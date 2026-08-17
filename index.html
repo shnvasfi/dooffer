@@ -137,11 +137,12 @@ table.pf .optrow .oname{padding-left:16px;}
 .pf-totalbar{display:flex;justify-content:flex-end;margin-top:8px;}
 .pf-totalbar .in{border:2px solid #000;display:flex;gap:14px;align-items:center;padding:6px 12px;font-weight:900;font-size:14px;}
 .pf-extra{display:flex;flex-direction:column;align-items:flex-end;gap:0;margin-top:0;}
-.pf-extra .exr{display:grid;grid-template-columns:1fr 14px 128px;align-items:center;
-  border:1px solid #000;border-top:none;width:100%;max-width:420px;font-size:13px;font-weight:800;box-sizing:border-box;}
-.pf-extra .exr .l{padding:5px 10px;}
-.pf-extra .exr .c{padding:5px 0;text-align:center;}
-.pf-extra .exr .v{padding:5px 10px;text-align:right;white-space:nowrap;display:flex;justify-content:flex-end;align-items:baseline;gap:4px;}
+.pf-extra .exr{display:grid;grid-template-columns:1fr 16px 132px;align-items:center;
+  border:1px solid #000;border-top:none;width:100%;max-width:560px;font-size:13px;font-weight:800;
+  box-sizing:border-box;min-height:30px;}
+.pf-extra .exr .l{padding:2px 10px;}
+.pf-extra .exr .c{padding:2px 0;text-align:center;}
+.pf-extra .exr .v{padding:2px 10px;text-align:right;white-space:nowrap;display:flex;justify-content:flex-end;align-items:baseline;gap:4px;}
 .pf-extra .exr .excur{min-width:26px;text-align:left;}
 .pf-extra .exr input{width:74px;text-align:right;border:none;border-bottom:1px dashed #999;background:#fffbe8;
   font-family:inherit;font-size:13px;font-weight:800;padding:0;}
@@ -209,7 +210,9 @@ table.pf .optrow .oname{padding-left:16px;}
   table.pf th.c-unit{width:64px;} table.pf th.c-amt{width:68px;} table.pf th.c-del{width:22px;}
   .pf-grid{grid-template-columns:105px 1fr;}
   .pf-grid>div{font-size:11px;padding:3px 6px;min-height:20px;}
-  .pf-totalbar .in{font-size:11.5px;gap:8px;padding:5px 8px;}
+  .pf-totalbar .in{font-size:11.5px;}
+  .pf-extra .exr{font-size:11.5px;grid-template-columns:1fr 14px 108px;}
+  .pf-extra .exr input{width:58px;font-size:11.5px;}
   .qty-in{width:24px;font-size:11px;}
   .delx{padding:2px 5px;font-size:10px;}
   .proforma{padding:7px;}
@@ -401,15 +404,15 @@ table.pf .optrow .oname{padding-left:16px;}
         </div>
       </div>
       <div class="pf-totalbar" id="pfTotalBar">
-        <div class="in" style="width:100%;max-width:420px;display:grid;grid-template-columns:1fr 14px 128px;align-items:center;gap:0;padding:5px 0;">
-          <span style="padding-left:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">INCOTERMS 2020
-          <select id="incoTerm" style="font-family:inherit;font-size:13.5px;font-weight:900;border:1px solid #bbb;padding:1px 2px;background:#fffbe8;">
+        <div class="in" style="width:100%;max-width:560px;display:grid;grid-template-columns:1fr 16px 132px;align-items:center;gap:0;padding:0;min-height:30px;">
+          <span style="padding:2px 10px;display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0;">INCOTERMS 2020
+          <select id="incoTerm" style="font-family:inherit;font-size:12.5px;font-weight:900;border:1px solid #bbb;padding:0 1px;background:#fffbe8;flex:none;">
             <option value=""></option><option value="EXW">EXW</option><option value="FCA">FCA</option><option value="CPT">CPT</option><option value="CIP">CIP</option><option value="DAP">DAP</option><option value="DPU">DPU</option><option value="DDP">DDP</option><option value="FAS">FAS</option><option value="FOB">FOB</option><option value="CFR">CFR</option><option value="CIF">CIF</option>
           </select>
-          <input id="incoPlace" placeholder="" style="border:none;border-bottom:1px solid #ccc;font-family:inherit;font-size:13px;font-weight:900;background:#fffbe8;width:92px;">
+          <input id="incoPlace" placeholder="" style="border:none;border-bottom:1px solid #ccc;font-family:inherit;font-size:12.5px;font-weight:900;background:#fffbe8;flex:1 1 auto;min-width:60px;">
           </span>
-          <span class="c" style="text-align:center;">:</span>
-          <span id="pfTotal" style="padding-right:10px;text-align:right;white-space:nowrap;">€ 0</span>
+          <span class="c" style="text-align:center;padding:2px 0;">:</span>
+          <span id="pfTotal" style="padding:2px 10px;text-align:right;white-space:nowrap;">€ 0</span>
         </div>
       </div>
       <div class="pf-extra" id="pfExtra" style="display:none;">
