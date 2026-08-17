@@ -254,10 +254,10 @@ table.pf .optrow .oname{padding-left:16px;}
     <div class="card hidden" id="emptyCard" style="border:1.5px solid var(--red);">
       <div style="font-weight:800;font-size:15px;margin-bottom:6px;">Fiyat listesi yüklü değil</div>
       <div style="font-size:13.5px;color:var(--muted);line-height:1.45;">
-        Fiyatlar güvenlik nedeniyle uygulamanın içinde tutulmaz; yalnızca bu cihazda saklanır.<br>
+        Fiyatlar güvenlik nedeniyle programın içinde tutulmaz; yalnızca bu cihazda saklanır.<br>
         Başlamak için güncel fiyat listesi PDF'ini yükleyin.
       </div>
-      <button class="btn pri" id="emptyLoad" style="width:100%;margin-top:10px;">Fiyat Listesi Yükle</button>
+      <button class="btn pri" id="emptyLoad" style="width:100%;margin-top:10px;">Fiyat Listesi PDF'i Yükle</button>
     </div>
 
     <div class="card" id="machineCard">
@@ -503,7 +503,7 @@ table.pf .optrow .oname{padding-left:16px;}
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnImport">Dosya Seç</button>
     </div>
     <div class="setrow">
-      <span>Gömülü listeye dön</span>
+      <span>Fiyatları sıfırla</span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnResetDb">Sıfırla</button>
     </div>
     <input type="file" id="fileInp" accept=".xlsx,.xls" style="display:none;">
@@ -516,9 +516,185 @@ table.pf .optrow .oname{padding-left:16px;}
 
 <script>
 /* ================= DATA (Euro Price List 05.05.2026 - valid until 31.07.2026) ================= */
-const OPTS = {};   // fiyat verisi cihazda tutulur (PDF/Excel ile yüklenir)
+const OPTS = {
+ o1:["OPTION","Monophase System (1P- 230V)","For KD 400",null],
+ o2:["3OP010030-0003","1 x Pneumatic Vertical Clamp","For KD 400 PS",null],
+ o3:["3OP010030-0004","2 x Pneumatic Vertical Clamp","For KD 350 PS / 400 PS",null],
+ o4:["OPTION","Hydraulic Damper Brake for Saw Head Movement","For RYK 420 S and W Series",null],
+ o5:["OPTION","Miter for Longitudinal Cutting Operations","For RYK 420 S and W Series",null],
+ o6:["3OP010030-0006","Conveyor Connection Kit (MKN 300)","For MK 420",null],
+ o7:["OPTION","Monophase System (1P- 230V)","For ACK 420 S",null],
+ o8:["3OP010030-0002","Laser Marking Indicating the Cutting Line","For ACK Serial of Machines",null],
+ o9:["3OP100030-0001","VCE 1570 Vacuum Chip Extractor & Accessories","For DC 550 / DC 421 / KD 402 / ACK Series / SK 500 / CDC 600",null],
+ o10:["3OP010030-0017","Electrical Pedal, Manometer, Regulator","For CK 412",null],
+ o11:["3OP010030-0007","90° of End Notching Kit","Vertical and horizontal clamps, 2 pc x KP 120 conveyor",null],
+ o12:["3OP020030-0001","Down Speed Control System","Two-step, for KD 402 S",null],
+ o13:["3UA690030-0141","DKN 70 Short Cut System (Digital)","For DC 421 and DC 550 Serial of Machines",null],
+ o14:["3UA690030-0142","DKN 71 Short Cut System (With Ruler)","For DC 421 and DC 550 Serial of Machines",null],
+ o15:["3OP020030-0006","Swarf Conveyor","For DC 550 Serial of Machines",null],
+ o16:["3OP020030-0005","DKN 80 Arrow Cut System","For DC 421 / 550",null],
+ o17:["OPTION","Machine Length 4m / 5m / 6m","For DC 421 and DC 550",null],
+ o18:["3OP020030-0010","Swarf Conveyor (5m)","For CDC 600 5m",null],
+ o19:["3OP020030-0014","Swarf Conveyor (7m)","For CDC 600 7m",null],
+ o20:["MS","Machine Stand","For KD 305 – KY 305 – KM 212 – FR 222 / FR 223",null],
+ o21:["3OP050030-0001","Lazer Marker Indicator","For SNM 560 M & SNM 560 SRV",null],
+ o22:["3OP060030-0001","Centering Apparatus (MA 240)","For FR 221 / FR 225 / FR 226",null],
+ o23:["OPTION","Monophase (1P- 230V) System","For FR 225 & FR 226",null],
+ o24:["3OP100030-0006","MKN 300 Serial Conveyor Connection Kit","For Extending the MKN 300 Serial of Conveyors",null],
+ o25:["3OP090030-0002","Top Guard","For KP 180 - H 180 mm",null],
+ o26:["3OP100030-0003","Angled Swarf Conveyor","For PIM 6508E / PIM 6509",null],
+ o27:["3OP110030-0015","Profile Rotating Mechanism","For PIM 6508E (for high and narrow type of profiles)",null],
+ o28:["3OP100030-0002","Swarf Vacuum Extractor (VCE 3500)","For PIM 6508E / PIM 6509 (for PVC swarfs)",null],
+ o29:["3OP110030-0032","Tool and Apparatus Set","For AIM 3410",null],
+ o30:["3OP110030-0020","Saw Kit","For AIM 3410",null],
+ o31:["3OP110030-0022","Tool Length Measurement Unit","For AIM 3410",null],
+ o32:["3OP110030-0019","Right Positioning Set","For AIM 3410",null],
+ o33:["3OP110030-0023","AIM 3410 Additional Clamp","For AIM 3410",null],
+ o34:["3OP110030-0028","AIM 3410 Hand-held Controller","For AIM 3410",null],
+ o35:["3OP110030-0007","Special Saw Blade Kit","For AIM 4420 & AIM 7420",null],
+ o36:["0AA020000-0842","CAM Software (CADXTRACT)","For AIM Serial of Machines",null],
+ o37:["3OP110030-0011","Second Magazine Unit","11 pcs. of Tool Capacity",null],
+ o38:["3OP110030-0008","Chip Removal Conveyor","For AIM 4420",null],
+ o39:["3OP110030-0005","Tool and Apparatus Set","For AIM 7510 / 4420 / 7420 (6 Sets of Cutter, Collet, Tool Holder and 8 pcs. Mold Height)",null],
+ o40:["3OP110030-0006","Special Saw Blade Kit","For AIM 7510 (HSK F63 Ø350)",null],
+ o41:["3OP110030-0010","Chip Removal Conveyor","For AIM 7420 / 7510",null],
+ o42:["3OP110030-0003","Oil Mist Vacuum Blower","For AIM Series",null],
+ o43:["3OP110030-0001","Barcode Reader","For AIM Series",null],
+ o44:["SKN 301","Roller Conveyor 3.0 m (PLC, Touch Screen)","For CK 412, 3 m Digital Measuring Unit",null],
+ o45:["0AA020000-0861","CAMPROX CAM Program","CAMQUIX 4 Axis SW (CAMPROX) (AIM 3410)",null],
+ o46:["0AA020000-0212","UNILINK CAM Program","UNILINK OnBoard 4 AXIS for AIM 3410 with 6 Months of Free Unilink Office Software",null]
+};
+
 /* [code, product name, features, category, price(null=request), optionIds] */
-const MACHINES = [];   // fiyat verisi cihazda tutulur (PDF/Excel ile yüklenir)
+const MACHINES = [
+["KD 305","Mitre Saw Machine","Portable, Mechanic Clamp, Ø300 mm (WITHOUT SAW), 230V","Kesme Makineleri",null,["o20"]],
+["KY 305","Mitre Saw Machine","Portable, Mechanic Clamp, Tilted, Ø300 mm (WITHOUT SAW), 230V","Kesme Makineleri",null,["o20"]],
+["KD 350 M","Mitre Saw Machine","Portable, Mechanic Clamp, With Ø350 mm of Saw, 400V","Kesme Makineleri",null,[]],
+["KD 350 D","Mitre Saw Machine","Mechanic Clamp, With Ø350 mm of Saw, With Stand, 400V","Kesme Makineleri",null,[]],
+["KD 350 PS","Mitre Saw Machine","Pneumatic Clamp, With Ø350 mm of Saw, With Stand, Cooling System, 400V","Kesme Makineleri",null,["o3"]],
+["KD 400 M","Mitre Saw Machine","Portable, Mechanic Clamp, With Ø400 mm of Saw, 400V","Kesme Makineleri",null,["o1"]],
+["KD 400 D","Mitre Saw Machine","Mechanic Clamp, With Ø400 mm of Saw, With Stand, 400V","Kesme Makineleri",null,["o1"]],
+["KD 400 PS","Mitre Saw Machine","Pneumatic Clamp, With Ø400 mm of Saw, With Stand, Cooling System, 400V","Kesme Makineleri",null,["o1","o2","o3"]],
+["RYK 420 S","Radial Saw Machine","Aluminium Radial Cutting, With Ø420 mm of Saw, Cooling System, Laser Marker, Motor Brake System, Pneumatic Top Clamp, 400V","Kesme Makineleri",null,["o4","o5"]],
+["RYK 420 W","Radial Saw Machine","PVC and Wood Radial Cutting, With Ø420 mm of Saw, Laser Marker, Motor Brake System, Pneumatic Top Clamp, 400V","Kesme Makineleri",null,["o4","o5"]],
+["MK 420","Manual Up-Cutting Saw Machine","Manual, With 420 mm of Saw, With Stand, 230V","Kesme Makineleri",null,["o6"]],
+["MK 420 PS","Manual Up-Cutting Saw Machine","Manual, With 420 mm of Saw, With Stand, Cooling System, Vertical Clamp, CE Conformity, 400V","Kesme Makineleri",null,[]],
+["MK 450","Manual Up-Cutting Saw Machine","Manual, With 450 mm of Saw, With Stand, Cooling System, 230V","Kesme Makineleri",null,[]],
+["ACK 420 S","Up-Cutting Saw Machine","Semi-automatic, Hydro-pneumatic, 2.2 kW, With Ø420 mm of Saw, With 3 m of Conveyor, Cooling System, 400V","Kesme Makineleri",null,["o7","o8","o9"]],
+["ACK 420 CE","Up-Cutting Saw Machine","Semi-automatic, Hydro-pneumatic, 2.2 kW, With Ø420 mm of Saw, With 3 m of Conveyor, Cooling System, CE Conformity, 400V","Kesme Makineleri",null,["o8","o9"]],
+["ACK 550","Up-Cutting Saw Machine","Semi-automatic, Hydro-pneumatic, 4 kW, With Ø550 mm of Saw, Cooling System, Vertical Clamps, Left Horizontal Clamp, With 3 m of Conveyor, 400V","Kesme Makineleri",null,["o8","o9"]],
+["ACK 700","Up-Cutting Saw Machine","Semi-automatic, Hydro-pneumatic, 4 kW, With Ø700 mm of Saw, Vertical Clamps, Right/Left Horizontal Clamps, Cooling System, With 3 m of Conveyor, 400V","Kesme Makineleri",null,["o8","o9"]],
+["SCM 420 L4","Servo Controlled Serial Cutting Machine *","Automatic, Hydro-pneumatic, With Ø420 mm of Saw, 4 m of Length Stop, Cooling System, 400V","Kesme Makineleri",null,[]],
+["SCM 420 L7","Servo Controlled Serial Cutting Machine *","Automatic, Hydro-pneumatic, With Ø420 mm of Saw, 7 m of Length Stop, Cooling System, 400V","Kesme Makineleri",null,[]],
+["SK 500","Automatic Slicing Machine with Up Cutting Motion *","Servo Controlled, With Ø500 mm of Saw, With 2.5 m of Conveyor, Cooling System, 400V","Kesme Makineleri",null,["o9"]],
+["SK 500 D","Automatic Slicing and Drilling Machine *","Servo Controlled, With Drilling Unit, With Ø500 mm of Saw, With 2.5 m of Conveyor, Cooling System, 400V","Kesme Makineleri",null,["o9"]],
+["SDT 275","Reinforcement Sheet and Profile Cutting Saw","Manual, With Stand, With 275 mm of Saw, 400V","Kesme Makineleri",null,[]],
+["SDT 280","Semiautomatic Band Saw for Reinforcement Steel and Profile","Multiple Bundle Cutting, Hydraulic Vertical Clamp, Semi-automatic Band Saw, Cooling System, With 3 m of Conveyor, 400V","Kesme Makineleri",null,[]],
+["CK 412","PVC Glazing Bead Saw","Automatic, With Mechanic Measuring Unit, With Mould System, 400V","Kesme Makineleri",null,["o10","o44"]],
+["CK 412 U","PVC Glazing Bead Saw","Automatic, With Digital Measuring Unit, Special Mould System, With SKN 301 Conveyor, 400V","Kesme Makineleri",null,[]],
+["VK 420","V Cutting & 90° End Notching Machine","V Cutting & 90° End Notching Machine","Kesme Makineleri",null,["o11"]],
+["KD 402 S","Double Head Mitre Saw Machine","With 400 mm of Saw, With Digital Display, CE, 400V","Kesme Makineleri",null,["o12","o9"]],
+["DC 421 PSD","Double Head Mitre Saw Machine *","Cross Cut, With 420 mm of Saw, Automatic, Operator Panel Controller, Cooling System, USB Data Transfer, 400V","Kesme Makineleri",null,["o13","o14","o16","o9","o17"]],
+["DC 421 PBS","Double Head Mitre Saw Machine *","Cross Cut, With 420 mm of Saw, Automatic, PC Computerized, Barcode Printer, Cooling System, 400V","Kesme Makineleri",null,["o13","o14","o16","o9","o17"]],
+["DC 550 PB","Double Head Mitre Saw Machine *","Cross Cut, With 550 mm of Saw, PC Computerized, Barcode Printer, Cooling System, 400V","Kesme Makineleri",null,["o13","o14","o15","o16","o9","o17"]],
+["DC 550 SKH","Double Head Mitre Saw Machine *","Cross Cut, Servo Controlled, PC Computerized, With 550 mm of Saw, Barcode Printer, Profile Height Measurement System, Cooling System, 400V","Kesme Makineleri",null,["o13","o14","o15","o16","o9","o17"]],
+["CDC 600 (5m)","Compound Angle Double Head Saw Cutting Machine *","Pivoting and Tilting Saw Mechanism, Up-Cutting, Servo Controlled, PC Computerized, With 600 mm of Saws, Barcode Printer, Cooling System, 5m, 400V","Kesme Makineleri",null,["o18","o9"]],
+["CDC 600 (7m)","Compound Angle Double Head Saw Cutting Machine *","Pivoting and Tilting Saw Mechanism, Up-Cutting, Servo Controlled, PC Computerized, With 600 mm of Saws, Barcode Printer, Cooling System, 7m, 400V","Kesme Makineleri",null,["o19","o9"]],
+["SNM 560 M","Aluminium Facade Notching Machine *","Manual Controlled, Digital Displays for Angles, With Ø500 (horizontal) and Ø550 mm (vertical) of Saws, Cooling System, Max. Clamping: H:240 - W:140 mm, Max. Notching: H:205 - W:185 mm","Freze & Kertme Makineleri",null,["o21"]],
+["SNM 560 SRV","Aluminium Facade Notching Machine *","Servo Controlled, With Ø500 (horizontal) and Ø550 mm (vertical) of Saws, Cooling System, Max. Clamping: H:240 - W:140 mm, Max. Notching: H:205 - W:185 mm","Freze & Kertme Makineleri",null,["o21"]],
+["KM 212","Portable End Milling Machine","Portable, Manual, WITHOUT CUTTERS, 230V","Freze & Kertme Makineleri",null,["o20"]],
+["KM 211 S","Manual End Milling Machine","Manual, Pneumatic Clamps, Cooling System, WITHOUT CUTTER, (230V-400V)","Freze & Kertme Makineleri",null,[]],
+["KM 215 S","Semi-Automatic End Milling Machine","Semiautomatic, Pneumatic Clamps, Angle Adjustment, Quick Change of Cutter Set, WITHOUT CUTTER, Cooling System, (230V-400V)","Freze & Kertme Makineleri",null,[]],
+["MEM 128","Multiple End Milling Machine","90° of Multiple End Milling, Cooling System, Vertical and Horizontal Clamps, CE","Freze & Kertme Makineleri",null,[]],
+["FR 221 S","Template Copy Router","Pneumatic Clamps, Cooling System, (230V-400V)","Freze & Kertme Makineleri",null,["o22"]],
+["FR 222","Template Copy Router","Portable, Mechanic Clamps, 230V","Freze & Kertme Makineleri",null,["o20"]],
+["FR 223","Template Copy Router","Portable, Mechanic Clamps, AC Motor, 230V","Freze & Kertme Makineleri",null,["o20"]],
+["FR 223 S","Template Copy Router","Portable, Mechanic Clamps, AC Motor, Cooling System, 230V (Minimum order quantity: 15)","Freze & Kertme Makineleri",null,[]],
+["FR 226 S","Template Copy Router","Manual, Triple Spindle Drill, 900 RPM, Cooling System, 400V","Freze & Kertme Makineleri",null,["o22","o23"]],
+["ST 264","PVC Automatic Water Slot Machine","Frequency Controlled Motors, 230V","Freze & Kertme Makineleri",null,[]],
+["CRM 201 S","Copy Router with Triple Hole & Water Slot Drilling","Copy Router, Triple Hole and Water Slot Drilling, Horizontal and Vertical Pneumatic Clamps, Cooling System, High Frequency Motor, Ø5 Cutter Bit, 230V","Freze & Kertme Makineleri",null,[]],
+["CRM 250 S","3 Spindle Copy Router Machine","3 x High Frequency Motors, Cooling System, 2 x Template, 230V","Freze & Kertme Makineleri",null,[]],
+["NCR 300","NC Controlled Copy Router Machine","4 Axis, NC Controlled, Programmable Ready Macros, Horizontal and Vertical Clamps, Cooling System, Ø8 mm Cutter Bit, 400V","Freze & Kertme Makineleri",null,[]],
+["NCR 300 P","NC Controlled Copy Router Machine *","4 Axis, NC Controlled, Programmable Ready Macros, Horizontal and Vertical Clamps, Cooling System, Ø8 mm Cutter Bit, 400V, 15'' Control Panel","Freze & Kertme Makineleri",null,[]],
+["TK 503","Single Corner PVC Welding Machine","Portable, 30°-180° Welding Angle, 165 mm Welding Height, 0.2 / 2.0 mm Welding Options, 230V","PVC Kaynak & Köşe Temizleme",null,[]],
+["TK 505","Single Corner PVC Welding Machine","30°-180° Welding Angle, 180 mm Welding Height, 0.2 / 2.0 mm Welding Options, 230V","PVC Kaynak & Köşe Temizleme",null,[]],
+["DK 502","Double Corner PVC Welding Machine *","Double Head, 180 mm Welding Height, 0.2 / 2.0 mm Welding Options, CE, 230V","PVC Kaynak & Köşe Temizleme",null,[]],
+["CA 601","PVC Corner Cleaning Machine","Semiautomatic, Quick Change of Cutter Set, WITHOUT CUTTERS, 400V","PVC Kaynak & Köşe Temizleme",null,[]],
+["CA 603","PVC Corner Cleaning Machine","4 pcs of Cutter Set Capacity, WITHOUT CUTTERS, 400V","PVC Kaynak & Köşe Temizleme",null,[]],
+["DK 540","Four Corner PVC Welding Machine *","Four Head, 180 mm Welding Height, Automatic Setting of 0.2 - 2 mm Welding","PVC Kaynak & Temizleme Hattı",null,[]],
+["DK 540 CS","Gasket Pressing System *","For DK 540","PVC Kaynak & Temizleme Hattı",null,[]],
+["SA 251","Cooling Station","Cooling Station for PVC Line (Conveyor)","PVC Kaynak & Temizleme Hattı",null,[]],
+["SA 261","Robotized Rotating System *","Robotized Rotating System for PVC Line","PVC Kaynak & Temizleme Hattı",null,[]],
+["CNC 609","PVC Corner Cleaning Machine *","2 pc. of Servo Motors","PVC Kaynak & Temizleme Hattı",null,[]],
+["CNC 609 R","PVC Corner Cleaning Machine *","2 pc. of Servo Motors, Line Harmonization Package","PVC Kaynak & Temizleme Hattı",null,[]],
+["CNC 611","PVC Corner Cleaning Machine *","4 pc. of Servo Motors","PVC Kaynak & Temizleme Hattı",null,[]],
+["CCL 1661 (2 Axis)","PVC Welding and Corner Cleaning Line (2 Axis) *","DK 540 CS - SA 251 - SA 261 - CNC 609 R","PVC Kaynak & Temizleme Hattı",null,[]],
+["CCL 1661 (4 Axis)","PVC Welding and Corner Cleaning Line (4 Axis) *","DK 540 CS - SA 251 - SA 261 - CNC 611","PVC Kaynak & Temizleme Hattı",null,[]],
+["CPM 4150 S","Composite Panel Processing Machine *","1600 x 4100 mm Net Machining Capacity, CNC Controller, Manual Vacuum Controller, 400V","CNC Makineleri",null,[]],
+["CPM 4200","Composite Panel Processing Machine *","2000 x 4100 mm Net Machining Capacity, CNC Controller","CNC Makineleri",null,[]],
+["CPM 6161","Composite Panel Processing Machine *","1600 x 6650 mm Net Machining Capacity, Automatic Vacuum Controller, Double Station, 400V","CNC Makineleri",null,[]],
+["PIM 6508 SE","PVC Profile Machining & Cutting Center *","8 Axis CNC Control System, Windows Based Touchscreen PC, Ø500 mm of Saw","CNC Makineleri",null,["o26","o27","o28"]],
+["PIM 6509","PVC Profile Machining & Cutting Center *","8 Axis CNC Control System, Windows Based Touchscreen PC, Ø550 mm of Saw","CNC Makineleri",null,["o26","o28"]],
+["AIM 3410","Aluminium Profile Machining Center *","4 Axis, 3.200 mm of Machining Capacity, Delta CNC Automation","CNC Makineleri",null,["o45","o46","o29","o30","o31","o32","o33","o34","o36","o42","o43"]],
+["AIM 3410 CBN","Aluminium Profile Machining Center","4 Axis, 3.200 mm of Machining Capacity, Delta CNC Automation, Cabinetized Type","CNC Makineleri",null,["o45","o46","o29","o30","o31","o32","o33","o34","o36","o42","o43"]],
+["AIM 4420","Aluminium Profile Machining Center *","4 Axis, 4.020 mm of Machining Capacity, B&R CNC Automation, CAMPROX® Cam Quix 4-Axis Software","CNC Makineleri",null,["o35","o39","o36","o37","o38","o42","o43"]],
+["AIM 7420","Aluminium Profile Machining Center *","4 Axis, 7.020 mm of Machining Capacity, B&R CNC Automation, CAMPROX® Cam Quix 4-Axis Software","CNC Makineleri",null,["o35","o39","o36","o37","o41","o42","o43"]],
+["AIM 7420 T","Aluminium Profile Machining Center *","4 Axis, 7.020 mm of Machining Capacity, B&R CNC Automation, CAMPROX® Cam Quix 4-Axis Software, Rigid Tapping Feature","CNC Makineleri",null,["o35","o39","o36","o37","o41","o42","o43"]],
+["AIM 7510","Aluminium Profile Machining Center *","5 Axis, 7.120 mm of Machining Capacity, DELTA CNC Automation, CAMPROX® Cam Quix 5-Axis Software, Hand-held Controller","CNC Makineleri",null,["o39","o40","o36","o37","o41","o42","o43"]],
+["ALM 6510 AT","Aluminium Profile Machining and Cutting Center (Angled Tools)","8 Axis CNC Control System, Windows Based Touchscreen PC, Ø550 mm of Saw, Barcode Printer, Cooling System, Automatic Lubrication, Angled Tools, 400V","CNC Makineleri",null,[]],
+["MKN 150","Roller Conveyor","1.5 m, Mechanical, Manual Stop, L 1500 x W 200 mm","Konveyörler",null,[]],
+["MKN 300","Roller Conveyor","3.0 m, Mechanical, Manual Stop, L 3000 x W 200 mm","Konveyörler",null,["o24"]],
+["MKN 301","Roller Conveyor","3.0 m, Mechanical, Manual Stop, L 3000 x W 300 mm","Konveyörler",null,["o24"]],
+["DKN 302","Roller Conveyor","3.0 m, Hand Wheel Controller, Digital Display, Pneumatic Brake System, L 3000 x W 300 mm","Konveyörler",null,[]],
+["DKN 602","Roller Conveyor","6.0 m, Hand Wheel Controller, Digital Display, Pneumatic Brake System, L 6000 x W 300 mm","Konveyörler",null,[]],
+["SKN 300","Roller Conveyor","3.0 m, Computerized, ±0.2 mm Positioning Accuracy, L 3000 x W 250 mm","Konveyörler",null,[]],
+["SKN 600","Roller Conveyor","6.0 m, Computerized, ±0.2 mm Positioning Accuracy, L 6000 x W 250 mm","Konveyörler",null,[]],
+["SKN 301","Roller Conveyor","3.0 m, PLC Controlled, Touch Screen, for CK 412, 3 m Digital Measuring Unit, L 3000 x W 200 mm","Konveyörler",null,[]],
+["HDL 400","Roller Conveyor","4.0 m, Automatic Length Stop, Servo Controlled, Touch Screen, CSV Data Transfer, L 4000 x W 300 mm","Konveyörler",null,[]],
+["HDL 700","Roller Conveyor","7.0 m, Automatic Length Stop, Servo Controlled, Touch Screen, CSV Data Transfer, L 7000 x W 300 mm","Konveyörler",null,[]],
+["PYE 101","Manual Punch Press","Corner Punch Press","Presler",null,[]],
+["PYE 102","Manual Punch Press","Corner Punch Press","Presler",null,[]],
+["PYE 103","Manual Punch Press","Corner Punch Press","Presler",null,[]],
+["PYE 104","Manual Punch Press","Corner Punch Press","Presler",null,[]],
+["KP 180","Hydraulic Aluminum Corner Crimping Machine","Hydraulic Press, Clamping Capacity H 180 mm, 400V","Presler",null,["o25"]],
+["KP 110","Pneumatic Aluminum Corner Crimping Machine","Pneumatic Press, Clamping Capacity H 120 mm","Presler",null,[]],
+["KP 130 CNC","CNC Controlled Aluminium Corner Crimping Machine (Coming Soon)","CNC Controlled, Clamping Capacity H 120 mm, 220-230V","Presler",null,[]],
+["MCA 801","Automatic Mullion Connector Assembly Machine","Double Head, Screwing, Semi-automatic, With Profile Support Table","Montaj & Diğer",null,[]],
+["SM 201","Vertical Screwdriver","Single Head, Semi Automatic, Vertical, With Desk","Montaj & Diğer",null,[]],
+["SM 201 SD","Vertical Screwdriver and Montage Drilling Machine (yeni)","Double Head, Montage Drilling, Semi Automatic, Vertical, With Desk","Montaj & Diğer",null,[]],
+["SM 206","Automatic Vertical Screwdriver *","Automatic, Double Head, Loading and Unloading Stations","Montaj & Diğer",null,[]],
+["NSM 352","Sash Assembly Station *","PVC Sash Assb., With Template, Automatic Centering, Shear Cutting, Punching, Hinge Hole Drilling and Screwing, Laser Pointer, Corner Element Hanger","Montaj & Diğer",null,[]],
+["NSM 352 A","Sash Assembly Station * (yeni)","Alm. Sash Assb., With Template, Automatic Centering, Shear Cutting, Punching, Hinge Hole Drilling and Screwing, Laser Pointer, Corner Element Hanger","Montaj & Diğer",null,[]],
+["NSM 353","Sash Assembly Station *","PVC Sash Assb., With Template, Automatic Centering, Shear Cutting, Punching, Hinge Hole Drilling and Screwing, Laser Pointer, Corner Element Hanger, Cutter for Espagnolette Channel, Triple Handle Hole Drilling","Montaj & Diğer",null,[]],
+["NSM 353 A","Sash Assembly Station * (yeni)","Alm. Sash Assb., With Template, Automatic Centering, Shear Cutting, Punching, Hinge Hole Drilling and Screwing, Laser Pointer, Corner Element Hanger, Cutter for Espagnolette Channel, Triple Handle Hole Drilling","Montaj & Diğer",null,[]],
+["GAS 301","Glass Assembly Table","Fast Glass Installation, 70° Inclined Working Platform, Ergonomic Use, Roller Surfaces","Montaj & Diğer",null,[]],
+["MS","Machine Stand","Machine Stand for KD 305 – KY 305 – KM 212 – FR 222 / FR 223","Montaj & Diğer",null,[]],
+["WB 4000","Work Bench","Work Bench, Plastic Feet, Telescopic Feature, Rubber Covered Surfaces","Aksesuarlar",null,[]],
+["GPT 1000","Glass & Profile Trolley","Swivel Wheels, Special Paint Against Scratches","Aksesuarlar",null,[]],
+["HP 1000","Horizontal Profile Trolley","Special Paint Against Scratches, Double Sided, Swivel Wheels","Aksesuarlar",null,[]],
+["PT 1000","Product Transportation Trolley","Special Paint Against Scratches, Single Sided, Swivel Wheels","Aksesuarlar",null,[]],
+["VP 1000","Vertical Profile Trolley","Special Paint Against Scratches, Double Sided, Swivel Wheels","Aksesuarlar",null,[]],
+["VP 2000","Vertical Profile Trolley","Special Paint Against Scratches, Double Sided, Swivel Wheels","Aksesuarlar",null,[]],
+["GT 1000","Gasket Trolley","Four Station, Swivel Wheels","Aksesuarlar",null,[]],
+["PWB 4100","Pneumatic Work Bench","Telescopic Feature, Vertical and Horizontal Working Position, Plastic Feet","Aksesuarlar",null,[]],
+["RT 1000","Rotating Assembly Table","Special Paint Against Scratches, Plastic Feet, Telescopic Feature","Aksesuarlar",null,[]],
+["WAS 1000","Window Assembly Station","Fixed Feet, Roller Fitted Surfaces","Aksesuarlar",null,[]],
+["PC 4000","Profile Trolley","Swivel Wheels, Special Paint Against Scratches","Aksesuarlar",null,[]],
+["RS 1000","Roller Profile Support","Roller Profile Support","Aksesuarlar",null,[]],
+["250 TOOLQUAZ","Saw Blade (ToolQuaz)","Ø250 x 2,8 / 2 x 30 mm. Z80 (NEG. -5°)","Testereler",null,[]],
+["300 TOOLQUAZ","Saw Blade (ToolQuaz)","Ø300 x 3,0 / 2,5 x 30 mm. Z96 (POZ. +5°)","Testereler",null,[]],
+["350 TOOLQUAZ","Saw Blade (ToolQuaz)","Ø350 x 3,4 x 30 mm. Z108 (NEG. -5°)","Testereler",null,[]],
+["400 TOOLQUAZ","Saw Blade (ToolQuaz)","Ø400 x 3,4 x 30 mm. Z108 (NEG. -5°)","Testereler",null,[]],
+["420 TOOLQUAZ","Saw Blade (ToolQuaz)","Ø420 x 4,0 x 30 mm. Z108 (POZ. +5°)","Testereler",null,[]],
+["450 TOOLQUAZ","Saw Blade (ToolQuaz)","Ø450 x 4,0 / 3,2 x 30 mm. Z120 (POZ. +5°)","Testereler",null,[]],
+["550 TOOLQUAZ","Saw Blade (ToolQuaz)","Ø550 x 4,4 x 30 mm. Z120 (POZ. +5°)","Testereler",null,[]],
+["300 FREUD","Saw Blade (Freud)","Ø300 x 3,0/2,5 x 30 mm. Z96 (NEG. -6)","Testereler",null,[]],
+["350 FREUD","Saw Blade (Freud)","Ø350 x 3,5/3,0 x 30 mm. Z108 (NEG. -6)","Testereler",null,[]],
+["400 FREUD","Saw Blade (Freud)","Ø400 x 3,5/3,0 x 32 mm. Z120 (NEG. -6)","Testereler",null,[]],
+["420 FREUD","Saw Blade (Freud)","Ø420 x 4,0/3,2 x 30 mm. Z120 (NEG. -6)","Testereler",null,[]],
+["450 FREUD","Saw Blade (Freud)","Ø450 x 4,0/3,2 x 30 mm. Z108 (NEG. -6)","Testereler",null,[]],
+["550 FREUD","Saw Blade (Freud)","Ø550 x 4,2/3,5 x 30 mm. Z132 (POZ. +10)","Testereler",null,[]]
+];
 
 const CAT_ORDER = ["Kesme Makineleri","Freze & Kertme Makineleri","CNC Makineleri","PVC Kaynak & Köşe Temizleme","PVC Kaynak & Temizleme Hattı","Presler","Konveyörler","Montaj & Diğer","Aksesuarlar","Testereler"];
 const D1_VALUES = [0,10,20,30];
@@ -566,19 +742,19 @@ let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
   DB = normalizeEmbedded();
-} else if(MACHINES.length && (parseInt(localStorage.getItem("yq_dbver")) || 0) < DB_VERSION){
-  // Gömülü liste güncellendi: yeni listeye geç, kullanıcının girdiği TL fiyatlarını koru
-  const oldTL = {};
-  DB.machines.forEach(m => { if(m.tl != null) oldTL["M:" + m.code] = m.tl; });
-  Object.values(DB.opts || {}).forEach(o => { if(o.tl != null) oldTL["O:" + o.code] = o.tl; });
+} else if((parseInt(localStorage.getItem("yq_dbver")) || 0) < DB_VERSION){
+  // Program güncellendi: makine/opsiyon yapısını yenile, cihazdaki FİYATLARI koru
+  const keep = {};
+  DB.machines.forEach(m => { keep["M:" + m.code] = {eur:m.eur, tl:m.tl}; });
+  Object.values(DB.opts || {}).forEach(o => { keep["O:" + o.code] = {eur:o.eur, tl:o.tl}; });
   const fresh = normalizeEmbedded();
   let kept = 0;
-  fresh.machines.forEach(m => { const v = oldTL["M:" + m.code]; if(v != null){ m.tl = v; kept++; } });
-  Object.values(fresh.opts).forEach(o => { const v = oldTL["O:" + o.code]; if(v != null){ o.tl = v; kept++; } });
+  const carry = (it, k) => { const v = keep[k]; if(v){ if(v.eur != null){ it.eur = v.eur; kept++; } if(v.tl != null) it.tl = v.tl; } };
+  fresh.machines.forEach(m => carry(m, "M:" + m.code));
+  Object.values(fresh.opts).forEach(o => carry(o, "O:" + o.code));
   DB = fresh;
   localStorage.setItem("yq_db", JSON.stringify(DB));
-  localStorage.removeItem("yq_dbinfo");
-  dbNotice = "Fiyat listesi Ağustos 2026 sürümüne güncellendi." + (kept ? "\n" + kept + " TL fiyatı korundu." : "");
+  dbNotice = "Program güncellendi. Makine listesi yenilendi, fiyatlarınız korundu (" + kept + " kalem).";
 }
 localStorage.setItem("yq_dbver", String(DB_VERSION));
 
@@ -801,16 +977,7 @@ function nextQuoteNo(){
   localStorage.setItem("yq_pfNo", no);
   return no;
 }
-function saveQuote(){ localStorage.setItem("yq_quote", JSON.stringify(quote)); $("qBadge").textContent = quote.length; function renderEmptyState(){
-  const empty = !DB.machines.length;
-  $("emptyCard").classList.toggle("hidden", !empty);
-  $("machineCard").classList.toggle("hidden", empty);
-  ["optCard","sumCard","discCard","finalCard","actBar"].forEach(x => { if(empty) $(x).classList.add("hidden"); });
-  if(empty){ $("netBar").style.display = "none"; document.querySelector("main").style.paddingBottom = ""; }
-}
-$("emptyLoad").onclick = () => { $("setModal").classList.add("open"); updateImpInfo(); };
-renderEmptyState();
-renderMini(); }
+function saveQuote(){ localStorage.setItem("yq_quote", JSON.stringify(quote)); $("qBadge").textContent = quote.length; renderMini(); }
 function renderMini(){
   const box = $("quoteMini");
   if(!quote.length){ box.style.display = "none"; box.innerHTML = ""; return; }
@@ -1005,7 +1172,7 @@ $("btnPdf").onclick = async () => {
 
 /* ================= EXCEL IMPORT ================= */
 function updateImpInfo(){
-  $("impInfo").textContent = "Aktif liste: " + (localStorage.getItem("yq_dbinfo") || "Yüklü değil — PDF veya Excel yükleyin");
+  $("impInfo").textContent = "Aktif liste: " + (localStorage.getItem("yq_dbinfo") || "Fiyatlar yüklü değil — PDF yükleyin");
 }
 function pickPlaceholder(){ return cur === "EUR" ? "Select" : "Seçiniz"; }
 function resetSel(){
@@ -1055,16 +1222,10 @@ $("fileInp").onchange = async e => {
   e.target.value = "";
 };
 $("btnResetDb").onclick = async () => {
-  if(!MACHINES.length){
-    if(!await uiConfirm("Bu sürümde gömülü fiyat listesi yoktur.\nTüm fiyat verisi silinsin mi?\n(Sonrasında Ayarlar > PDF'ten Fiyat Güncelle ile yeniden yüklemeniz gerekir)")) return;
-    localStorage.removeItem("yq_db"); localStorage.removeItem("yq_dbinfo");
-    DB = {machines:[], opts:{}}; updateImpInfo(); resetSel(); renderEmptyState();
-    return;
-  }
-  if(await uiConfirm("Gömülü fiyat listesine dönülsün mü? (Yüklenen liste verisi silinir)")){
+  if(await uiConfirm("Tüm fiyatlar silinsin mi?\n(Sonra PDF'ten yeniden yüklemeniz gerekir)")){
     localStorage.removeItem("yq_db"); localStorage.removeItem("yq_dbinfo");
     localStorage.setItem("yq_dbver", String(DB_VERSION));
-    DB = normalizeEmbedded(); updateImpInfo(); resetSel();
+    DB = normalizeEmbedded(); updateImpInfo(); resetSel(); renderEmptyState();
   }
 };
 
@@ -1482,12 +1643,16 @@ document.getElementById("byeBack").onclick = () => {
   document.getElementById("byeScreen").style.display = "none";
 };
 
+function pricesLoaded(){ return DB.machines.some(m => m.eur != null || m.tl != null); }
 function renderEmptyState(){
-  const empty = !DB.machines.length;
+  const empty = !pricesLoaded();
   $("emptyCard").classList.toggle("hidden", !empty);
   $("machineCard").classList.toggle("hidden", empty);
-  ["optCard","sumCard","discCard","finalCard","actBar"].forEach(x => { if(empty) $(x).classList.add("hidden"); });
-  if(empty){ $("netBar").style.display = "none"; document.querySelector("main").style.paddingBottom = ""; }
+  if(empty){
+    ["optCard","sumCard","discCard","finalCard","actBar"].forEach(x => $(x).classList.add("hidden"));
+    $("netBar").style.display = "none";
+    document.querySelector("main").style.paddingBottom = "";
+  }
 }
 $("emptyLoad").onclick = () => { $("setModal").classList.add("open"); updateImpInfo(); };
 renderEmptyState();
@@ -1520,7 +1685,6 @@ renderMini();
 })();
 </script>
 <script>
-/* --- çevrimdışı çalışma + otomatik güncelleme --- */
 if("serviceWorker" in navigator){
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").then(reg => {
@@ -1532,8 +1696,7 @@ if("serviceWorker" in navigator){
             b.style.cssText = "position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:120;background:#0a7d4f;color:#fff;padding:12px 14px;border-radius:12px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.3);";
             b.innerHTML = "<span>Yeni sürüm hazır</span>";
             const btn = document.createElement("button");
-            btn.textContent = "Güncelle";
-            btn.style.cssText = "background:#fff;color:#0a7d4f;border:none;border-radius:8px;padding:7px 12px;font-weight:800;cursor:pointer;";
+            btn.textContent = "Güncelle"; btn.style.cssText = "background:#fff;color:#0a7d4f;border:none;border-radius:8px;padding:7px 12px;font-weight:800;cursor:pointer;";
             btn.onclick = () => { nw.postMessage("skipWaiting"); location.reload(); };
             b.appendChild(btn); document.body.appendChild(b);
           }
