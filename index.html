@@ -136,6 +136,14 @@ table.pf .optrow td{color:#333;}
 table.pf .optrow .oname{padding-left:16px;}
 .pf-totalbar{display:flex;justify-content:flex-end;margin-top:8px;}
 .pf-totalbar .in{border:2px solid #000;display:flex;gap:14px;align-items:center;padding:6px 12px;font-weight:900;font-size:14px;}
+.pf-extra{display:flex;flex-direction:column;align-items:flex-end;gap:0;margin-top:6px;}
+.pf-extra .exr{display:flex;align-items:center;border:1px solid #000;border-bottom:none;min-width:330px;font-size:13px;font-weight:800;}
+.pf-extra .exr:last-child{border-bottom:1px solid #000;}
+.pf-extra .exr .l{flex:1;padding:5px 10px;}
+.pf-extra .exr .c{padding:5px 6px;}
+.pf-extra .exr .v{padding:5px 10px;text-align:right;min-width:118px;white-space:nowrap;}
+.pf-extra .exr input{width:88px;text-align:right;border:none;border-bottom:1px dashed #999;background:#fffbe8;font-family:inherit;font-size:13px;font-weight:800;}
+.pf-extra .exr.tot{border-top:2px solid #000;border-bottom:2px solid #000;background:#f4f6f8;}
 .pf-cond{font-size:11.5px;}
 .pf-note{color:#c05500;font-size:11px;margin-top:8px;line-height:1.4;}
 .delx{background:var(--red);color:#fff;border:none;border-radius:6px;font-size:11px;padding:2px 7px;cursor:pointer;}
@@ -398,6 +406,11 @@ table.pf .optrow .oname{padding-left:16px;}
           <input id="incoPlace" placeholder="" style="border:none;border-bottom:1px solid #ccc;font-family:inherit;font-size:13.5px;font-weight:900;background:#fffbe8;width:120px;">
           <span>&nbsp;:</span><span id="pfTotal">€ 0</span>
         </div>
+      </div>
+      <div class="pf-extra" id="pfExtra" style="display:none;">
+        <div class="exr" id="exFreight"><span class="l">FREIGHT</span><span class="c">:</span><span class="v"><input id="exFreightAmt" type="tel" inputmode="decimal" placeholder="0,00"> <span class="excur"></span></span></div>
+        <div class="exr" id="exIns"><span class="l">INSURANCE</span><span class="c">:</span><span class="v"><input id="exInsAmt" type="tel" inputmode="decimal" placeholder="0,00"> <span class="excur"></span></span></div>
+        <div class="exr tot" id="exTot"><span class="l" id="exTotLbl">TOTAL</span><span class="c">:</span><span class="v" id="exTotVal"></span></div>
       </div>
       <div class="pf-sechead">SALES CONDITION</div>
       <div class="pf-grid pf-cond">
@@ -1106,6 +1119,7 @@ function renderQuote(){
   const tot = quoteTotal(), listT = quoteListTotal();
   $("pfTotal").textContent = fmtQ(tot);
   $("pfDiscBar").style.display = showD && quote.length ? "flex" : "none";
+  if(typeof renderExtra === "function") renderExtra();
   $("pfListT").textContent = fmtQ(listT);
   $("pfDiscT").textContent = "− " + fmtQ(listT - tot);
   tb.querySelectorAll(".delx").forEach(b => b.onclick = () => {
@@ -1426,6 +1440,47 @@ $("pdfInp").onchange = async e => {
   e.target.value = "";
 };
 
+
+/* ================= TESLİM ŞEKLİNE GÖRE EK SATIRLAR ================= */
+const TERM_RULES = {
+  "EXW":[], "FCA":[], "FAS":[], "FOB":[],
+  "CPT":["F"], "CFR":["F"],
+  "CIP":["F","I"], "DAP":["F","I"], "DPU":["F","I"], "CIF":["F","I"]
+};
+function parseAmt(v){
+  if(v == null) return 0;
+  let t = String(v).trim().replace(/[^\d,.-]/g, "");
+  if(!t) return 0;
+  if(t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");          // 1.500,50 -> 1500.50
+  else if(/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, "");     // 1.500 -> 1500
+  const n = parseFloat(t);
+  return isNaN(n) ? 0 : n;
+}
+function renderExtra(){
+  const term = ($("delTerm") && $("delTerm").value || "").toUpperCase();
+  const rule = TERM_RULES[term] || [];
+  const box = $("pfExtra");
+  if(!rule.length || !quote.length){ box.style.display = "none"; return; }
+  box.style.display = "flex";
+  const cur = quote.length ? (quote[0].cur || "EUR") : "EUR";
+  const curLbl = cur === "TL" ? "TL" : "EUR";
+  box.querySelectorAll(".excur").forEach(e => e.textContent = curLbl);
+  $("exFreight").style.display = rule.includes("F") ? "" : "none";
+  $("exIns").style.display = rule.includes("I") ? "" : "none";
+  const fr = rule.includes("F") ? parseAmt($("exFreightAmt").value) : 0;
+  const ins = rule.includes("I") ? parseAmt($("exInsAmt").value) : 0;
+  const tot = quoteTotal() + fr + ins;
+  $("exTotLbl").textContent = "TOTAL " + term + "- AMOUNT";
+  $("exTotVal").textContent = tot.toLocaleString("tr-TR", NF) + " " + curLbl;
+}
+["exFreightAmt","exInsAmt"].forEach(id => {
+  const el = $(id);
+  el.value = localStorage.getItem("yq_" + id) || "";
+  el.oninput = () => { localStorage.setItem("yq_" + id, el.value); renderExtra(); };
+});
+$("delTerm").addEventListener("change", renderExtra);
+renderExtra();
+
 /* ================= KARTVİZİT ================= */
 let cardData = localStorage.getItem("yq_card") || null;
 function renderCard(){
@@ -1435,9 +1490,10 @@ function renderCard(){
 }
 function clearCard(){ cardData = null; localStorage.removeItem("yq_card"); renderCard(); }
 function clearCustomer(){
-  ["cPerson","cCompany","cPhone","cMail","cPayment","incoTerm","incoPlace","delTerm","delPlace"].forEach(id => {
+  ["cPerson","cCompany","cPhone","cMail","cPayment","incoTerm","incoPlace","delTerm","delPlace","exFreightAmt","exInsAmt"].forEach(id => {
     $(id).value = ""; localStorage.removeItem("yq_" + id);
   });
+  if(typeof renderExtra === "function") renderExtra();
 }
 function shrinkImage(file){
   return new Promise((res, rej) => {
