@@ -1246,7 +1246,16 @@ async function pdfToLines(file){
       (rows[y] = rows[y] || []).push(it);
     });
     Object.keys(rows).map(Number).sort((a,b) => b - a).forEach(y => {
-      const txt = rows[y].sort((a,b) => a.transform[4] - b.transform[4]).map(i => i.str).join(" ").replace(/\s+/g," ").trim();
+      const items = rows[y].sort((a,b) => a.transform[4] - b.transform[4]);
+      let txt = "", prevEnd = null;
+      items.forEach(it => {
+        const x = it.transform[4], wdt = it.width || 0;
+        if(prevEnd != null && x - prevEnd > 6) txt += "  ";        // kolon boşluğu
+        else if(txt && !/\s$/.test(txt) && !/^\s/.test(it.str)) txt += " ";
+        txt += it.str;
+        prevEnd = x + wdt;
+      });
+      txt = txt.replace(/[ \t]{3,}/g, "  ").trim();
       if(txt) lines.push(txt);
     });
   }
@@ -1266,6 +1275,17 @@ const normCode = c => baseCode(String(c || "")).toUpperCase().replace(/\s+/g, " 
 const normInfo = t => String(t || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 const OPT_CODE_RE = /^(3OP\d{6}-\d{4}|3UA\d{6}-\d{4}|0AA\d{6}-\d{4}|OPTION)\b/;
 const SECTION_RE = /^(CUTTING MACHINES|ACCESSORIES|OTHERS|WELDING|CLEANING LINE|CLEANING|MILLING & NOTCHING MACHINES|CONVEYORS|PUNCH PRESSES|CNC MACHINES|PVC WELDING|SAW BLADES)\s+/i;
+let _kcCache = null, _kcLen = -1;
+function knownCodesSorted(){
+  const n = DB.machines.length + Object.keys(DB.opts).length;
+  if(_kcCache && _kcLen === n) return _kcCache;
+  const set = new Set();
+  DB.machines.forEach(m => { set.add(m.code.toUpperCase()); set.add(normCode(m.code)); });
+  Object.values(DB.opts).forEach(o => { set.add(o.code.toUpperCase()); set.add(normCode(o.code)); });
+  _kcCache = [...set].filter(Boolean).sort((a,b) => b.length - a.length);
+  _kcLen = n;
+  return _kcCache;
+}
 const SECT_MAP = {
   "CUTTING MACHINES":"Kesme Makineleri", "MILLING & NOTCHING MACHINES":"Freze & Kertme Makineleri",
   "CNC MACHINES":"CNC Makineleri", "WELDING":"PVC Kaynak & Köşe Temizleme", "CLEANING":"PVC Kaynak & Köşe Temizleme",
@@ -1287,9 +1307,18 @@ function parsePdfRows(lines){
     if(isNaN(price)) return;
     const body = line.slice(0, pm.index).trim();
     const om = body.match(OPT_CODE_RE);
-    let code, rest;
+    let code = null, rest = "";
     if(om){ code = om[1]; rest = body.slice(om[1].length).trim(); }
-    else { const parts = body.split(/\s{2,}/); code = (parts[0] || "").trim(); rest = parts.slice(1).join(" ").trim(); }
+    if(!code){
+      // bilinen makine/opsiyon kodlarıyla satır başı eşleştirmesi (en uzun kod önce)
+      const U = body.toUpperCase();
+      const hit = knownCodesSorted().find(c => U === c || U.startsWith(c + " "));
+      if(hit){ code = body.slice(0, hit.length).trim(); rest = body.slice(hit.length).trim(); }
+    }
+    if(!code){
+      const parts = body.split(/\s{2,}/);
+      code = (parts[0] || "").trim(); rest = parts.slice(1).join(" ").trim();
+    }
     if(!code || code.length > 24) return;
     const rp = rest.split(/\s{2,}/);
     rows.push({code, key:normCode(code), title:(rp[0] || "").trim(), info:rp.slice(1).join(" ").trim(), price, isOpt: !!om, sect});
