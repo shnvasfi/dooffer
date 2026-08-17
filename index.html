@@ -487,6 +487,10 @@ table.pf .optrow .oname{padding-left:16px;}
       </span>
     </div>
     <div class="setrow">
+      <span>Programı Güncelle</span>
+      <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnAppUpd">Kontrol Et</button>
+    </div>
+    <div class="setrow">
       <span>Geçmiş Teklifler</span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnHist">Aç</button>
     </div>
@@ -737,7 +741,7 @@ function normalizeEmbedded(){
     opts: Object.fromEntries(Object.entries(OPTS).map(([k,o]) => [k, {code:o[0], name:o[1], info:o[2], eur:o[3], tl:null}]))
   };
 }
-const DB_VERSION = 20260801;   // gömülü liste sürümü (Ağustos 2026)
+const DB_VERSION = 20260818;   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1578,6 +1582,14 @@ async function renderHist(){
     });
   }catch(e){ box.innerHTML = "<div style='color:var(--red);padding:14px 0;'>Geçmiş açılamadı: " + e.message + "</div>"; }
 }
+$("btnAppUpd").onclick = async () => {
+  const b = $("btnAppUpd"); b.textContent = "Kontrol…"; b.disabled = true;
+  try{
+    if("caches" in window){ const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }
+    if(navigator.serviceWorker){ const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.unregister())); }
+    location.reload();
+  }catch(e){ b.textContent = "Kontrol Et"; b.disabled = false; uiAlert("Güncelleme denetlenemedi: " + e.message); }
+};
 $("btnHist").onclick = () => { $("setModal").classList.remove("open"); $("histModal").classList.add("open"); renderHist(); };
 $("histClose").onclick = () => $("histModal").classList.remove("open");
 $("pdfViewClose").onclick = () => {
