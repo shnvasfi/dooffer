@@ -136,14 +136,17 @@ table.pf .optrow td{color:#333;}
 table.pf .optrow .oname{padding-left:16px;}
 .pf-totalbar{display:flex;justify-content:flex-end;margin-top:8px;}
 .pf-totalbar .in{border:2px solid #000;display:flex;gap:14px;align-items:center;padding:6px 12px;font-weight:900;font-size:14px;}
-.pf-extra{display:flex;flex-direction:column;align-items:flex-end;gap:0;margin-top:6px;}
-.pf-extra .exr{display:flex;align-items:center;border:1px solid #000;border-bottom:none;min-width:330px;font-size:13px;font-weight:800;}
-.pf-extra .exr:last-child{border-bottom:1px solid #000;}
-.pf-extra .exr .l{flex:1;padding:5px 10px;}
-.pf-extra .exr .c{padding:5px 6px;}
-.pf-extra .exr .v{padding:5px 10px;text-align:right;min-width:118px;white-space:nowrap;}
-.pf-extra .exr input{width:88px;text-align:right;border:none;border-bottom:1px dashed #999;background:#fffbe8;font-family:inherit;font-size:13px;font-weight:800;}
-.pf-extra .exr.tot{border-top:2px solid #000;border-bottom:2px solid #000;background:#f4f6f8;}
+.pf-extra{display:flex;flex-direction:column;align-items:flex-end;gap:0;margin-top:0;}
+.pf-extra .exr{display:grid;grid-template-columns:1fr 14px 128px;align-items:center;
+  border:1px solid #000;border-top:none;width:100%;max-width:420px;font-size:13px;font-weight:800;box-sizing:border-box;}
+.pf-extra .exr .l{padding:5px 10px;}
+.pf-extra .exr .c{padding:5px 0;text-align:center;}
+.pf-extra .exr .v{padding:5px 10px;text-align:right;white-space:nowrap;display:flex;justify-content:flex-end;align-items:baseline;gap:4px;}
+.pf-extra .exr .excur{min-width:26px;text-align:left;}
+.pf-extra .exr input{width:74px;text-align:right;border:none;border-bottom:1px dashed #999;background:#fffbe8;
+  font-family:inherit;font-size:13px;font-weight:800;padding:0;}
+.pf-extra .exr.tot{border-top:1px solid #000;background:#f4f6f8;}
+.pf-totalbar .in{box-sizing:border-box;}
 .pf-cond{font-size:11.5px;}
 .pf-note{color:#c05500;font-size:11px;margin-top:8px;line-height:1.4;}
 .delx{background:var(--red);color:#fff;border:none;border-radius:6px;font-size:11px;padding:2px 7px;cursor:pointer;}
@@ -397,14 +400,16 @@ table.pf .optrow .oname{padding-left:16px;}
           <span style="color:#c8102e;">DISCOUNT: <span id="pfDiscT"></span></span>
         </div>
       </div>
-      <div class="pf-totalbar">
-        <div class="in">
-          <span>INCOTERMS 2020</span>
+      <div class="pf-totalbar" id="pfTotalBar">
+        <div class="in" style="width:100%;max-width:420px;display:grid;grid-template-columns:1fr 14px 128px;align-items:center;gap:0;padding:5px 0;">
+          <span style="padding-left:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">INCOTERMS 2020
           <select id="incoTerm" style="font-family:inherit;font-size:13.5px;font-weight:900;border:1px solid #bbb;padding:1px 2px;background:#fffbe8;">
             <option value=""></option><option value="EXW">EXW</option><option value="FCA">FCA</option><option value="CPT">CPT</option><option value="CIP">CIP</option><option value="DAP">DAP</option><option value="DPU">DPU</option><option value="DDP">DDP</option><option value="FAS">FAS</option><option value="FOB">FOB</option><option value="CFR">CFR</option><option value="CIF">CIF</option>
           </select>
-          <input id="incoPlace" placeholder="" style="border:none;border-bottom:1px solid #ccc;font-family:inherit;font-size:13.5px;font-weight:900;background:#fffbe8;width:120px;">
-          <span>&nbsp;:</span><span id="pfTotal">€ 0</span>
+          <input id="incoPlace" placeholder="" style="border:none;border-bottom:1px solid #ccc;font-family:inherit;font-size:13px;font-weight:900;background:#fffbe8;width:92px;">
+          </span>
+          <span class="c" style="text-align:center;">:</span>
+          <span id="pfTotal" style="padding-right:10px;text-align:right;white-space:nowrap;">€ 0</span>
         </div>
       </div>
       <div class="pf-extra" id="pfExtra" style="display:none;">
@@ -1460,8 +1465,9 @@ function renderExtra(){
   const term = ($("delTerm") && $("delTerm").value || "").toUpperCase();
   const rule = TERM_RULES[term] || [];
   const box = $("pfExtra");
-  if(!rule.length || !quote.length){ box.style.display = "none"; return; }
+  if(!rule.length || !quote.length){ box.style.display = "none"; $("pfTotalBar").style.marginBottom = ""; return; }
   box.style.display = "flex";
+  $("pfTotalBar").style.marginBottom = "0";
   const cur = quote.length ? (quote[0].cur || "EUR") : "EUR";
   const curLbl = cur === "TL" ? "TL" : "EUR";
   box.querySelectorAll(".excur").forEach(e => e.textContent = curLbl);
