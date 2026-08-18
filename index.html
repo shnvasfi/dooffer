@@ -143,9 +143,9 @@ table.pf .optrow .oname{padding-left:16px;}
   box-sizing:border-box;min-height:30px;}
 .pf-extra .exr .l{padding:2px 10px;}
 .pf-extra .exr .c{padding:2px 0;text-align:center;}
-.pf-extra .exr .v{padding:2px 10px;text-align:right;white-space:nowrap;display:flex;justify-content:flex-end;align-items:baseline;gap:4px;}
-.pf-extra .exr .excur{min-width:26px;text-align:left;}
-.pf-extra .exr input{width:74px;text-align:right;border:none;border-bottom:1px dashed #999;background:#fffbe8;
+.pf-extra .exr .v{padding:2px 10px;white-space:nowrap;display:flex;justify-content:space-between;align-items:baseline;gap:6px;}
+.pf-extra .exr .excur{min-width:14px;text-align:left;font-weight:800;}
+.pf-extra .exr input{flex:1;width:auto;min-width:56px;text-align:right;border:none;border-bottom:1px dashed #999;background:#fffbe8;
   font-family:inherit;font-size:13px;font-weight:800;padding:0;}
 .pf-extra .exr.tot{border-top:1px solid #000;background:#f4f6f8;}
 .pf-totalbar .in{box-sizing:border-box;}
@@ -448,8 +448,8 @@ table.pf .optrow .oname{padding-left:16px;}
         </div>
       </div>
       <div class="pf-extra" id="pfExtra" style="display:none;">
-        <div class="exr" id="exFreight"><span class="l">FREIGHT</span><span class="c">:</span><span class="v"><input id="exFreightAmt" type="tel" inputmode="decimal" placeholder="0,00"> <span class="excur"></span></span></div>
-        <div class="exr" id="exIns"><span class="l">INSURANCE</span><span class="c">:</span><span class="v"><input id="exInsAmt" type="tel" inputmode="decimal" placeholder="0,00"> <span class="excur"></span></span></div>
+        <div class="exr" id="exFreight"><span class="l">FREIGHT</span><span class="c">:</span><span class="v"><span class="excur"></span><input id="exFreightAmt" type="tel" inputmode="decimal" placeholder="0,00"></span></div>
+        <div class="exr" id="exIns"><span class="l">INSURANCE</span><span class="c">:</span><span class="v"><span class="excur"></span><input id="exInsAmt" type="tel" inputmode="decimal" placeholder="0,00"></span></div>
         <div class="exr tot" id="exTot"><span class="l" id="exTotLbl">TOTAL</span><span class="c">:</span><span class="v" id="exTotVal"></span></div>
       </div>
       <div class="pf-sechead gap">SALES CONDITION</div>
@@ -1688,7 +1688,7 @@ function renderExtra(){
   $("pfTotalBar").style.marginBottom = "0";
   const cur = quote.length ? (quote[0].cur || "EUR") : "EUR";
   const curLbl = cur === "TL" ? "TL" : "EUR";
-  box.querySelectorAll(".excur").forEach(e => e.textContent = curLbl);
+  box.querySelectorAll(".excur").forEach(e => e.textContent = (cur === "TL" ? "₺" : "€"));
   $("exFreight").style.display = rule.includes("F") ? "" : "none";
   $("exIns").style.display = rule.includes("I") ? "" : "none";
   const fr = rule.includes("F") ? parseAmt($("exFreightAmt").value) : 0;
