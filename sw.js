@@ -19,6 +19,15 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   const sameOrigin = url.origin === location.origin;
 
+  // prices.enc: her zaman ağdan denenir, yoksa önbellekten
+  if(sameOrigin && url.pathname.endsWith("prices.enc")){
+    e.respondWith(fetch(req).then(res => {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+      return res;
+    }).catch(() => caches.match(req)));
+    return;
+  }
   // Uygulama dosyaları: ağ önce (güncel sürüm), başarısızsa önbellek
   if(sameOrigin){
     e.respondWith(

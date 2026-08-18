@@ -305,9 +305,9 @@ table.pf .optrow .oname{padding-left:16px;}
       <div style="font-weight:800;font-size:15px;margin-bottom:6px;">Fiyat listesi yüklü değil</div>
       <div style="font-size:13.5px;color:var(--muted);line-height:1.45;">
         Fiyatlar güvenlik nedeniyle programın içinde tutulmaz; yalnızca bu cihazda saklanır.<br>
-        Başlamak için güncel fiyat listesi PDF'ini yükleyin.
+        Fiyat listesi merkezden şifreli olarak gelir. Ayarlardan güncellemeyi başlatın.
       </div>
-      <button class="btn pri" id="emptyLoad" style="width:100%;margin-top:10px;">Fiyat Listesi PDF'i Yükle</button>
+      <button class="btn pri" id="emptyLoad" style="width:100%;margin-top:10px;">Fiyat Listesini Getir</button>
     </div>
 
     <div class="card" id="machineCard">
@@ -595,6 +595,26 @@ table.pf .optrow .oname{padding-left:16px;}
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnAppUpd">Kontrol Et</button>
     </div>
     <div class="setrow">
+      <span>Fiyat Listesi<br><span style="font-size:12px;color:var(--muted);" id="pkgInfo"></span></span>
+      <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnPkgCheck">Güncelle</button>
+    </div>
+    <div class="setrow">
+      <span>Yönetici Modu</span>
+      <span style="display:flex;gap:6px;align-items:center;">
+        <input class="pininp" id="admInp" type="password" inputmode="numeric" maxlength="12" style="width:92px;letter-spacing:3px;" placeholder="kod">
+        <button class="btn sec" style="flex:none;padding:8px 12px;" id="btnAdm">Aç</button>
+      </span>
+    </div>
+    <div id="admBox" style="display:none;">
+    <div class="setrow">
+      <span>Paket Şifresi</span>
+      <input class="pininp" id="passInp" type="password" style="width:120px;letter-spacing:2px;" placeholder="şifre">
+    </div>
+    <div class="setrow">
+      <span>Fiyat Paketi Oluştur<br><span style="font-size:12px;color:var(--muted);">prices.enc — GitHub'a yüklenir</span></span>
+      <button class="btn pri" style="flex:none;padding:8px 14px;" id="btnPkgMake">Oluştur</button>
+    </div>
+    <div class="setrow">
       <span>PDF'ten Fiyat Güncelle</span>
       <span style="display:flex;gap:6px;">
         <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnPdfEur">€ EUR</button>
@@ -609,6 +629,7 @@ table.pf .optrow .oname{padding-left:16px;}
     <div class="setrow">
       <span>Fiyatları sıfırla</span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnResetDb">Sıfırla</button>
+    </div>
     </div>
     <input type="file" id="fileInp" accept=".xlsx,.xls" style="display:none;">
     <div class="setrow" style="border-bottom:none;font-size:12.5px;color:var(--muted);display:block;">
@@ -2056,6 +2077,113 @@ $("pdfViewClose").onclick = () => {
 };
 $("histModal").onclick = e => { if(e.target === $("histModal")) $("histModal").classList.remove("open"); };
 
+
+/* ================= ŞİFRELİ FİYAT PAKETİ (prices.enc) ================= */
+const PKG_URL = "prices.enc";
+const ADM_KEY = "yq_adm";      // yönetici kodu (basit koruma)
+const PASS_KEY = "yq_pass";    // paket şifresi
+const STAMP_KEY = "yq_pkgstamp";
+
+const b64 = {
+  enc: buf => btoa(String.fromCharCode(...new Uint8Array(buf))),
+  dec: str => Uint8Array.from(atob(str), c => c.charCodeAt(0))
+};
+function cryptoReady(){ return !!(window.crypto && crypto.subtle); }
+async function deriveKey(pass, salt){
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2", salt, iterations:150000, hash:"SHA-256"},
+    base, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
+}
+async function pkgEncrypt(obj, pass){
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(pass, salt);
+  const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, new TextEncoder().encode(JSON.stringify(obj)));
+  return JSON.stringify({v:1, s:b64.enc(salt), i:b64.enc(iv), d:b64.enc(ct)});
+}
+async function pkgDecrypt(text, pass){
+  const o = JSON.parse(text);
+  const key = await deriveKey(pass, b64.dec(o.s));
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64.dec(o.i)}, key, b64.dec(o.d));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function updatePkgInfo(){
+  const st = localStorage.getItem(STAMP_KEY);
+  const el = $("pkgInfo");
+  if(el) el.textContent = st ? ("Paket: " + st) : (localStorage.getItem("yq_dbinfo") || "Paket yüklenmedi");
+}
+/* Yönetici: mevcut fiyatlardan şifreli paket üret */
+$("btnPkgMake").onclick = async () => {
+  if(!cryptoReady()){ uiAlert("Bu ortamda şifreleme kullanılamıyor.\nUygulamayı https adresinden açın."); return; }
+  const pass = ($("passInp").value || "").trim();
+  if(pass.length < 4){ uiAlert("Paket şifresi en az 4 karakter olmalı."); return; }
+  if(!DB.machines.some(m => m.eur != null || m.tl != null)){ uiAlert("Önce PDF'ten fiyatları yükleyin."); return; }
+  const b = $("btnPkgMake"); b.textContent = "…"; b.disabled = true;
+  try{
+    const stamp = new Date().toLocaleDateString("tr-TR") + " " + new Date().toLocaleTimeString("tr-TR").slice(0,5);
+    const text = await pkgEncrypt({ver:DB_VERSION, stamp, db:DB}, pass);
+    localStorage.setItem(PASS_KEY, pass);
+    localStorage.setItem(STAMP_KEY, stamp);
+    updatePkgInfo();
+    const file = new File([text], "prices.enc", {type:"application/octet-stream"});
+    if(navigator.canShare && navigator.canShare({files:[file]})) await navigator.share({files:[file], title:"prices.enc"});
+    else { const u = URL.createObjectURL(file); const a = document.createElement("a"); a.href = u; a.download = "prices.enc"; a.click(); }
+    uiAlert("Paket hazır: prices.enc\nGitHub deposuna yükleyin (Add file > Upload files).\nPaket tarihi: " + stamp);
+  }catch(e){ uiAlert("Paket oluşturulamadı: " + e.message); }
+  b.textContent = "Oluştur"; b.disabled = false;
+};
+/* Tüm telefonlar: paketi indir, çöz, uygula */
+async function checkPricePackage(silent){
+  if(!/^https?:$/.test(location.protocol)){ if(!silent) uiAlert("Paket güncellemesi yalnızca internet adresinden açıldığında çalışır."); return; }
+  if(!cryptoReady()){ if(!silent) uiAlert("Bu ortamda şifreleme kullanılamıyor (https gerekir)."); return; }
+  const pass = localStorage.getItem(PASS_KEY);
+  if(!pass){ if(!silent) uiAlert("Paket şifresi girilmemiş.\nAyarlar > Yönetici Modu bölümünden şifreyi girin."); return; }
+  try{
+    const res = await fetch(PKG_URL + "?t=" + Date.now(), {cache:"no-store"});
+    if(!res.ok){ if(!silent) uiAlert("Fiyat paketi bulunamadı (henüz yüklenmemiş olabilir)."); return; }
+    const pkg = await pkgDecrypt(await res.text(), pass);
+    if(!pkg || !pkg.db || !pkg.db.machines){ throw new Error("paket içeriği okunamadı"); }
+    if(pkg.stamp && pkg.stamp === localStorage.getItem(STAMP_KEY)){ if(!silent) uiAlert("Fiyat listesi güncel.\nPaket: " + pkg.stamp); return; }
+    DB = pkg.db;
+    localStorage.setItem("yq_db", JSON.stringify(DB));
+    localStorage.setItem("yq_dbver", String(pkg.ver || DB_VERSION));
+    localStorage.setItem(STAMP_KEY, pkg.stamp || "");
+    localStorage.setItem("yq_dbinfo", "Merkezi paket (" + (pkg.stamp || "") + ")");
+    updateImpInfo(); updatePkgInfo(); resetSel(); renderEmptyState();
+    uiAlert("Fiyat listesi güncellendi.\nPaket: " + (pkg.stamp || "") + "\nMakine: " + DB.machines.length);
+  }catch(e){
+    if(!silent) uiAlert("Paket açılamadı: " + e.message + "\nŞifre yanlış olabilir.");
+  }
+}
+$("btnPkgCheck").onclick = () => checkPricePackage(false);
+/* Yönetici modu */
+function admOpen(v){
+  $("admBox").style.display = v ? "" : "none";
+  $("btnAdm").textContent = v ? "Kapat" : "Aç";
+  $("admInp").style.display = v ? "none" : "";
+  if(v) $("passInp").value = localStorage.getItem(PASS_KEY) || "";
+}
+$("btnAdm").onclick = async () => {
+  if($("admBox").style.display !== "none"){ admOpen(false); return; }
+  const code = ($("admInp").value || "").trim();
+  const saved = localStorage.getItem(ADM_KEY);
+  if(!saved){
+    if(code.length < 4){ uiAlert("Yönetici kodu belirlemek için en az 4 karakter girin.\nBu kod bu cihazda saklanır."); return; }
+    localStorage.setItem(ADM_KEY, code); admOpen(true);
+    uiAlert("Yönetici kodu belirlendi.");
+    return;
+  }
+  if(code === saved){ admOpen(true); $("admInp").value = ""; }
+  else uiAlert("Yönetici kodu hatalı.");
+};
+$("passInp").onchange = () => {
+  const v = ($("passInp").value || "").trim();
+  if(v) localStorage.setItem(PASS_KEY, v);
+};
+updatePkgInfo();
+/* açılışta sessiz kontrol */
+setTimeout(() => checkPricePackage(true), 1500);
+
 /* ================= SETTINGS & PIN ================= */
 $("btnSettings").onclick = () => {
   $("pinToggle").checked = !!localStorage.getItem("yq_pin");
@@ -2065,7 +2193,8 @@ $("btnSettings").onclick = () => {
   $("devModeInfo").textContent = md ? MODE_NAMES[md] + " • örnek no: " + devPrefix() + "-00001" : "Açılış ekranından seçim yapın";
   $("devInp").value = (localStorage.getItem("yq_dev") || "").replace(/^[FSO]-/i, "");
   $("seqInp").value = localStorage.getItem("yq_seq") || "1";
-  updateImpInfo();
+  updateImpInfo(); updatePkgInfo();
+  if($("admBox").style.display === "none") $("admInp").value = "";
   $("setModal").classList.add("open");
 };
 $("btnSeqReset").onclick = async () => {
