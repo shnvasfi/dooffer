@@ -168,8 +168,13 @@ table.pf .optrow .oname{padding-left:16px;}
 #splash .wordmark .of{color:#9aa3ab;}
 #splash .tag{font-size:13px;color:#9aa3ab;letter-spacing:3px;text-transform:uppercase;}
 #splash .welcome{margin-top:18px;font-size:20px;font-weight:700;color:#fff;}
-#splash .tap{position:absolute;bottom:calc(46px + env(safe-area-inset-bottom));font-size:13.5px;color:#b9bec3;
-  animation:pulse 1.6s ease-in-out infinite;}
+#splash .modebox{margin-top:14px;width:min(92vw,340px);}
+#splash .modelbl{font-size:13.5px;color:#c9ced3;text-align:center;margin-bottom:10px;}
+#splash .modebtns{display:flex;gap:8px;}
+#splash .modebtn{flex:1;padding:12px 0;border-radius:12px;border:1.5px solid rgba(255,255,255,.45);
+  background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-weight:800;cursor:pointer;}
+#splash .modebtn.on{background:#fff;color:#2c2c2e;border-color:#fff;}
+#splash .btn.pri:disabled{opacity:.4;}
 @keyframes pulse{0%,100%{opacity:.45;}50%{opacity:1;}}
 /* ---- pin ---- */
 #lock{position:fixed;inset:0;z-index:300;background:linear-gradient(170deg,#2c2c2e 0%,#3a3a3c 55%,#2a2a2c 100%);display:none;flex-direction:column;
@@ -238,7 +243,15 @@ table.pf .optrow .oname{padding-left:16px;}
   <div class="wordmark"><span class="do">DO</span><span class="of">_Offer</span></div>
   <div class="tag">FİYAT &amp; TEKLİF ASİSTANI</div>
   <div class="welcome">Hoşgeldiniz</div>
-  <div class="tap">Başlamak için ekrana dokunun</div>
+  <div class="modebox">
+    <div class="modelbl">Lütfen seçiminizi yapınız</div>
+    <div class="modebtns">
+      <button class="modebtn" data-mode="F">Fuar</button>
+      <button class="modebtn" data-mode="S">Seyahat</button>
+      <button class="modebtn" data-mode="O">Ofis</button>
+    </div>
+    <button class="btn pri" id="modeOk" style="width:100%;margin-top:12px;" disabled>Tamam</button>
+  </div>
 </div>
 
 <!-- PIN LOCK -->
@@ -472,6 +485,43 @@ table.pf .optrow .oname{padding-left:16px;}
   </div>
 </div>
 
+<!-- EDIT ITEM MODAL -->
+<div class="modal" id="editModal" style="z-index:240;align-items:center;">
+  <div class="mbox" style="border-radius:18px;max-width:460px;margin:0 12px;max-height:88vh;overflow-y:auto;">
+    <h3 id="edTitle">Kalemi Düzenle</h3>
+    <div style="font-size:12.5px;color:var(--muted);margin:-8px 0 12px;" id="edSub"></div>
+
+    <div class="lbl">Adet</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+      <button class="qbtn" id="edQtyMinus">−</button>
+      <input class="qinp" id="edQty" type="tel" inputmode="numeric" value="1">
+      <button class="qbtn" id="edQtyPlus">+</button>
+      <span style="flex:1;text-align:right;font-size:13px;color:var(--muted);" id="edUnitInfo"></span>
+    </div>
+
+    <div class="lbl">İskonto %</div>
+    <div class="seg" id="edSegD1" style="margin-bottom:10px;"></div>
+    <div class="lbl">Artı İskonto %</div>
+    <div class="seg plus" id="edSegD2" style="margin-bottom:12px;"></div>
+
+    <div id="edOptsWrap" style="margin-bottom:12px;">
+      <div class="lbl">Opsiyonlar</div>
+      <div id="edOpts"></div>
+    </div>
+
+    <div style="background:var(--blue-dark);color:#fff;border-radius:12px;padding:10px 12px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:#cfdbe4;"><span>Liste</span><span id="edList"></span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:#cfdbe4;"><span>İskonto</span><span id="edDisc"></span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;"><b style="font-size:14px;">NET</b><b id="edNet" style="font-size:20px;"></b></div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn sec" id="edCancel">Vazgeç</button>
+      <button class="btn pri" id="edSave">Kaydet</button>
+    </div>
+  </div>
+</div>
+
 <!-- MESSAGE MODAL -->
 <div class="modal" id="msgModal" style="align-items:center;">
   <div class="mbox" style="border-radius:18px;max-width:420px;margin:0 14px;">
@@ -497,8 +547,12 @@ table.pf .optrow .oname{padding-left:16px;}
       <input class="pininp" id="pinValue" type="tel" maxlength="4" inputmode="numeric" placeholder="••••">
     </div>
     <div class="setrow">
-      <span>Cihaz Kodu (teklif no ön eki)</span>
-      <input class="pininp" id="devInp" style="letter-spacing:1px;width:80px;" maxlength="4" placeholder="1">
+      <span>Cihaz Kodu (teklif no ön eki)<br><span style="font-size:12px;color:var(--muted);" id="devModeInfo"></span></span>
+      <span style="display:flex;align-items:center;gap:4px;">
+        <span id="devLetter" style="font-weight:900;font-size:18px;min-width:22px;text-align:center;">—</span>
+        <span style="font-weight:900;">-</span>
+        <input class="pininp" id="devInp" style="letter-spacing:2px;width:74px;" maxlength="4" placeholder="AB">
+      </span>
     </div>
     <div class="setrow">
       <span>Sıradaki Teklif Sayacı</span>
@@ -993,8 +1047,13 @@ function refresh(){
 }
 
 /* ================= QUOTE ================= */
+function devPrefix(){
+  const letter = localStorage.getItem("yq_mode") || "";
+  const ini = (localStorage.getItem("yq_dev") || "").trim().toLocaleUpperCase("tr");
+  return [letter, ini].filter(Boolean).join("-") || "1";
+}
 function nextQuoteNo(){
-  const dev = (localStorage.getItem("yq_dev") || "1").trim() || "1";
+  const dev = devPrefix();
   const seq = parseInt(localStorage.getItem("yq_seq") || "1") || 1;
   const no = dev + "-" + String(seq).padStart(5, "0");
   localStorage.setItem("yq_seq", String(seq + 1));
@@ -1110,7 +1169,7 @@ function renderQuote(){
     tr.innerHTML = `<td class="ctr">${n}</td><td><b>${it.code}</b></td><td>${it.name}</td>
       <td class="ctr"><input class="qty-in" type="tel" value="${it.qty}" data-i="${idx}"><span class="qprint" style="display:none;">${it.qty}</span></td>
       ${dcols}<td class="num">${fmtQ(it.unitNet)}</td><td class="num"><b>${fmtQ(it.unitNet * it.qty)}</b></td>
-      <td class="ctr noprint"><button class="delx" data-del="${idx}">✕</button></td>`;
+      <td class="ctr noprint" style="white-space:nowrap;"><button class="delx" data-edit="${idx}" style="background:var(--blue);margin-right:3px;">✎</button><button class="delx" data-del="${idx}">✕</button></td>`;
     tb.appendChild(tr);
     it.opts.forEach((o, oi) => {
       n++;
@@ -1130,7 +1189,8 @@ function renderQuote(){
   if(typeof renderExtra === "function") renderExtra();
   $("pfListT").textContent = fmtQ(listT);
   $("pfDiscT").textContent = "− " + fmtQ(listT - tot);
-  tb.querySelectorAll(".delx").forEach(b => b.onclick = () => {
+  tb.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openEdit(+b.dataset.edit));
+  tb.querySelectorAll(".delx:not([data-edit])").forEach(b => b.onclick = () => {
     if(b.dataset.delopt){
       const [i, oi] = b.dataset.delopt.split(":").map(Number);
       quote[i].opts.splice(oi, 1);
@@ -1475,6 +1535,105 @@ $("pdfInp").onchange = async e => {
 };
 
 
+/* ================= KALEM DÜZENLEME ================= */
+let edIdx = -1, edState = null;
+function unitListOf(x, it){
+  if(x.unitList != null) return x.unitList;
+  const k = (1 - (it.d1||0)/100) * (1 - (it.d2||0)/100);
+  return k ? x.unitNet / k : x.unitNet;
+}
+function edBuildSeg(el, values, prefix, key){
+  el.innerHTML = "";
+  const clearOn = () => [...el.querySelectorAll("button")].forEach(c => c.classList.remove("on"));
+  values.forEach(v => {
+    const b = document.createElement("button");
+    b.textContent = v === 0 ? "Yok" : prefix + v;
+    b.dataset.v = v;
+    b.onclick = () => { edState[key] = v; clearOn(); b.classList.add("on"); el._inp.value = ""; edRefresh(); };
+    el.appendChild(b);
+  });
+  const inp = document.createElement("input");
+  inp.type = "tel"; inp.inputMode = "numeric"; inp.placeholder = "Elle %";
+  inp.style.cssText = "flex:1 0 66px;min-width:58px;padding:7px 4px;border-radius:10px;border:1.5px dashed var(--blue);text-align:center;font-size:14px;font-weight:700;";
+  inp.oninput = () => {
+    if(inp.value === ""){ edState[key] = 0; clearOn(); el.querySelector("button").classList.add("on"); edRefresh(); return; }
+    const v = parseFloat(inp.value.replace(",", "."));
+    if(isNaN(v)) return;
+    edState[key] = Math.max(0, Math.min(99, v)); clearOn(); edRefresh();
+  };
+  el._inp = inp; el.appendChild(inp);
+}
+function edPaintSeg(el, key){
+  const v = edState[key];
+  const btns = [...el.querySelectorAll("button")];
+  btns.forEach(b => b.classList.remove("on"));
+  const hit = btns.find(b => +b.dataset.v === v);
+  if(hit){ hit.classList.add("on"); el._inp.value = ""; }
+  else el._inp.value = String(v);
+}
+function edRefresh(){
+  const cur = edState.cur;
+  const k = (1 - edState.d1/100) * (1 - edState.d2/100);
+  let list = edState.unitList * edState.qty;
+  edState.opts.forEach(o => { list += o.unitList * o.qty; });
+  const net = list * k;
+  $("edList").textContent = fmtC(list, cur);
+  $("edDisc").textContent = "− " + fmtC(list - net, cur) + "  (%" + (Math.round(edState.d1*100)/100) + (edState.d2 ? " +%" + (Math.round(edState.d2*100)/100) : "") + ")";
+  $("edNet").textContent = fmtC(net, cur);
+  $("edUnitInfo").textContent = "birim " + fmtC(edState.unitList, cur);
+  $("edQty").value = edState.qty;
+}
+function edRenderOpts(){
+  const box = $("edOpts");
+  if(!edState.opts.length){ $("edOptsWrap").style.display = "none"; return; }
+  $("edOptsWrap").style.display = "";
+  box.innerHTML = "";
+  edState.opts.forEach((o, i) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);";
+    row.innerHTML = `<div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.name}</div>
+        <div style="font-size:11.5px;color:var(--muted);">${o.code} • ${fmtC(o.unitList, edState.cur)}</div>
+      </div>
+      <input class="oqty" type="tel" inputmode="numeric" value="${o.qty}" style="width:44px;">
+      <button class="delx">✕</button>`;
+    row.querySelector("input").oninput = e => { o.qty = Math.max(1, parseInt(e.target.value) || 1); edRefresh(); };
+    row.querySelector("button").onclick = () => { edState.opts.splice(i, 1); edRenderOpts(); edRefresh(); };
+    box.appendChild(row);
+  });
+}
+function openEdit(idx){
+  const it = quote[idx]; if(!it) return;
+  edIdx = idx;
+  edState = {
+    qty: it.qty || 1, d1: it.d1 || 0, d2: it.d2 || 0,
+    cur: it.cur || "EUR", unitList: unitListOf(it, it),
+    opts: (it.opts || []).map(o => ({code:o.code, name:o.name, qty:(o.qty != null ? o.qty : it.qty) || 1, unitList: unitListOf(o, it)}))
+  };
+  $("edTitle").textContent = it.code;
+  $("edSub").textContent = it.name || "";
+  edBuildSeg($("edSegD1"), D1_VALUES, "%", "d1");
+  edBuildSeg($("edSegD2"), D2_VALUES, "+%", "d2");
+  edPaintSeg($("edSegD1"), "d1");
+  edPaintSeg($("edSegD2"), "d2");
+  edRenderOpts(); edRefresh();
+  $("editModal").classList.add("open");
+}
+$("edQtyMinus").onclick = () => { edState.qty = Math.max(1, edState.qty - 1); edRefresh(); };
+$("edQtyPlus").onclick = () => { edState.qty = edState.qty + 1; edRefresh(); };
+$("edQty").oninput = () => { const v = parseInt($("edQty").value); if(v) { edState.qty = Math.max(1, v); edRefresh(); } };
+$("edCancel").onclick = () => { $("editModal").classList.remove("open"); edIdx = -1; };
+$("edSave").onclick = () => {
+  const it = quote[edIdx]; if(!it) return;
+  const k = (1 - edState.d1/100) * (1 - edState.d2/100);
+  it.qty = edState.qty; it.d1 = edState.d1; it.d2 = edState.d2;
+  it.unitList = edState.unitList; it.unitNet = edState.unitList * k;
+  it.opts = edState.opts.map(o => ({code:o.code, name:o.name, qty:o.qty, unitList:o.unitList, unitNet:o.unitList * k}));
+  saveQuote(); renderQuote();
+  $("editModal").classList.remove("open"); edIdx = -1;
+};
+$("editModal").onclick = e => { if(e.target === $("editModal")) $("edCancel").onclick(); };
+
 /* ================= TESLİM ŞEKLİNE GÖRE EK SATIRLAR ================= */
 const TERM_RULES = {
   "EXW":[], "FCA":[], "FAS":[], "FOB":[],
@@ -1724,7 +1883,10 @@ $("histModal").onclick = e => { if(e.target === $("histModal")) $("histModal").c
 $("btnSettings").onclick = () => {
   $("pinToggle").checked = !!localStorage.getItem("yq_pin");
   $("pinValue").value = localStorage.getItem("yq_pin") || "";
-  $("devInp").value = localStorage.getItem("yq_dev") || "1";
+  const md = localStorage.getItem("yq_mode") || "";
+  $("devLetter").textContent = md || "—";
+  $("devModeInfo").textContent = md ? MODE_NAMES[md] + " • örnek no: " + devPrefix() + "-00001" : "Açılış ekranından seçim yapın";
+  $("devInp").value = (localStorage.getItem("yq_dev") || "").replace(/^[FSO]-/i, "");
   $("seqInp").value = localStorage.getItem("yq_seq") || "1";
   updateImpInfo();
   $("setModal").classList.add("open");
@@ -1736,8 +1898,8 @@ $("btnSeqReset").onclick = async () => {
   }
 };
 $("setClose").onclick = () => {
-  const dev = $("devInp").value.trim();
-  if(dev) localStorage.setItem("yq_dev", dev);
+  const dev = $("devInp").value.trim().toLocaleUpperCase("tr");
+  localStorage.setItem("yq_dev", dev);
   const sq = parseInt($("seqInp").value);
   if(sq && sq > 0) localStorage.setItem("yq_seq", String(sq));
   if($("pinToggle").checked){
@@ -1749,18 +1911,33 @@ $("setClose").onclick = () => {
 };
 $("setModal").onclick = e => { if(e.target === $("setModal")) $("setModal").classList.remove("open"); };
 
-document.getElementById("splash").addEventListener("click", function(){
+const MODE_NAMES = {F:"Fuar", S:"Seyahat", O:"Ofis"};
+let selMode = localStorage.getItem("yq_mode") || "";
+function paintModeBtns(){
+  document.querySelectorAll("#splash .modebtn").forEach(b => b.classList.toggle("on", b.dataset.mode === selMode));
+  document.getElementById("modeOk").disabled = !selMode;
+}
+document.querySelectorAll("#splash .modebtn").forEach(b => {
+  b.onclick = () => { selMode = b.dataset.mode; paintModeBtns(); };
+});
+paintModeBtns();
+document.getElementById("modeOk").onclick = () => {
+  if(!selMode) return;
+  localStorage.setItem("yq_mode", selMode);
   try{
     const el = document.documentElement;
     const fs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
     if(fs) fs.call(el);
   }catch(e){}
-  this.classList.add("bye");
-  setTimeout(() => { this.style.display = "none"; }, 500);
+  const sp = document.getElementById("splash");
+  sp.classList.add("bye");
+  setTimeout(() => { sp.style.display = "none"; }, 500);
   if(dbNotice){ const m = dbNotice; dbNotice = ""; setTimeout(() => uiAlert(m), 700); }
-});
+};
 document.getElementById("brandBtn").onclick = () => {
   const sp = document.getElementById("splash");
+  selMode = localStorage.getItem("yq_mode") || "";
+  paintModeBtns();
   sp.style.display = "flex";
   setTimeout(() => sp.classList.remove("bye"), 20);
 };
