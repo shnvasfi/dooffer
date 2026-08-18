@@ -1295,6 +1295,11 @@ async function makePdf(){
 $("btnPdf").onclick = async () => {
   if(!quote.length){ uiAlert("Teklif listesi boş."); return; }
   const b = $("btnPdf"); b.textContent = "Hazırlanıyor…"; b.disabled = true;
+  if(!await ensureLib("html2pdf")){
+    b.textContent = "PDF Paylaş"; b.disabled = false;
+    if(await uiConfirm("PDF aracı indirilemedi (internet gerekiyor).\n\nYazdır ekranını açayım mı?\n(Oradan 'PDF olarak kaydet' seçebilirsiniz)")) window.print();
+    return;
+  }
   try{
     const file = await makePdf();
     try{
@@ -1338,8 +1343,8 @@ function resetSel(){
   $("mPrice").textContent = "—"; $("mPrice").classList.remove("req"); $("curSym").style.display = "";
   ["optCard","sumCard","discCard","finalCard","actBar"].forEach(x => $(x).classList.add("hidden"));
 }
-$("btnImport").onclick = () => {
-  if(typeof XLSX === "undefined"){ uiAlert("Excel okuyucu yüklenemedi. İnternet bağlantısı gerekli."); return; }
+$("btnImport").onclick = async () => {
+  if(!await ensureLib("XLSX")){ uiAlert("Excel okuyucu indirilemedi. İnternet bağlantısı gerekli."); return; }
   $("fileInp").click();
 };
 $("fileInp").onchange = async e => {
@@ -1628,8 +1633,8 @@ function addNewFromPdf(rows, field){
   return added;
 }
 function bindPdfBtn(btnId, field){
-  $(btnId).onclick = () => {
-    if(typeof pdfjsLib === "undefined"){ uiAlert("PDF okuyucu yüklenemedi. İnternet bağlantısı gerekli."); return; }
+  $(btnId).onclick = async () => {
+    if(!await ensureLib("pdfjsLib")){ uiAlert("PDF okuyucu indirilemedi. İnternet bağlantısı gerekli."); return; }
     pdfTarget = field; $("pdfInp").click();
   };
 }
@@ -1820,6 +1825,64 @@ function renderExtra(){
 $("delTerm").addEventListener("change", renderExtra);
 renderExtra();
 
+
+/* ================= HARİCİ KÜTÜPHANE YÜKLEYİCİ (çoklu kaynak + yedek) ================= */
+const LIB_SRC = {
+  html2pdf: [
+    "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js",
+    "https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js",
+    "https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"
+  ],
+  XLSX: [
+    "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
+    "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js",
+    "https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"
+  ],
+  pdfjsLib: [
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
+    "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js",
+    "https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"
+  ],
+  Tesseract: [
+    "https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js",
+    "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js",
+    "https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js"
+  ]
+};
+let LIB_TIMEOUT = 9000;   // bir kaynak yanıt vermezse sıradakine geç
+function loadScript(src){
+  return new Promise((res, rej) => {
+    const sc = document.createElement("script");
+    let done = false;
+    const finish = (ok, err) => {
+      if(done) return; done = true;
+      clearTimeout(tm);
+      ok ? res(src) : rej(err || new Error(src));
+    };
+    const tm = setTimeout(() => { try{ sc.remove(); }catch(e){} finish(false, new Error("zaman aşımı: " + src)); }, LIB_TIMEOUT);
+    sc.src = src; sc.async = true;
+    sc.onload = () => finish(true);
+    sc.onerror = () => finish(false);
+    document.head.appendChild(sc);
+  });
+}
+async function ensureLib(name){
+  if(window[name]) return true;
+  for(const src of (LIB_SRC[name] || [])){
+    try{
+      await loadScript(src);
+      if(window[name]){
+        if(name === "pdfjsLib" && pdfjsLib.GlobalWorkerOptions)
+          pdfjsLib.GlobalWorkerOptions.workerSrc = src.replace(/pdf(\.min)?\.js$/, "pdf.worker$1.js");
+        return true;
+      }
+    }catch(e){ /* sıradaki kaynağı dene */ }
+  }
+  return false;
+}
+// çevrimiçiyken önden yükle (sonradan çevrimdışı da çalışsın)
+setTimeout(() => { ensureLib("html2pdf"); ensureLib("pdfjsLib"); }, 2500);
+
 /* ================= KARTVİZİT ================= */
 let cardData = localStorage.getItem("yq_card") || null;
 function renderCard(){
@@ -1890,15 +1953,7 @@ async function runCardOcr(dataUrl){
   const b = $("btnCard");
   b.textContent = "Okunuyor…"; b.disabled = true;
   try{
-    if(typeof Tesseract === "undefined"){
-      await new Promise((res, rej) => {
-        const sc = document.createElement("script");
-        sc.src = "https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js";
-        sc.onload = res;
-        sc.onerror = () => rej(new Error("OCR kütüphanesi yüklenemedi (internet gerekli)"));
-        document.head.appendChild(sc);
-      });
-    }
+    if(!await ensureLib("Tesseract")) throw new Error("OCR aracı indirilemedi (internet gerekli)");
     const r = await Tesseract.recognize(dataUrl, "tur+eng");
     fillFromCard(r.data.text || "");
   }catch(err){
