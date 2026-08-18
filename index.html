@@ -400,6 +400,7 @@ table.pf .optrow .oname{padding-left:16px;}
     <div class="qtools noprint">
       <button class="btn sec" id="btnBack">‹ Hesaplamaya Dön</button>
       <button class="btn pri" id="btnPdf">PDF Paylaş</button>
+      <button class="btn sec" id="btnHist">🕘 Geçmiş Teklifler</button>
       <button class="btn sec" id="btnDisc">İskonto: Gizli</button>
       <button class="btn sec" id="btnClear" style="color:var(--red);border-color:var(--red);">Teklifi Temizle</button>
     </div>
@@ -504,7 +505,10 @@ table.pf .optrow .oname{padding-left:16px;}
 <!-- HISTORY MODAL -->
 <div class="modal" id="histModal" style="z-index:230;">
   <div class="mbox" style="max-height:82vh;display:flex;flex-direction:column;">
-    <h3>Geçmiş Teklifler</h3>
+    <h3 style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <span>Geçmiş Teklifler</span>
+      <button class="btn sec" id="btnCsv" style="flex:none;padding:7px 12px;font-size:13px;">⬇︎ CSV / Excel</button>
+    </h3>
     <div id="histList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
     <button class="btn pri mclose" id="histClose">Kapat</button>
   </div>
@@ -589,10 +593,6 @@ table.pf .optrow .oname{padding-left:16px;}
     <div class="setrow">
       <span>Programı Güncelle</span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnAppUpd">Kontrol Et</button>
-    </div>
-    <div class="setrow">
-      <span>Geçmiş Teklifler</span>
-      <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnHist">Aç</button>
     </div>
     <div class="setrow">
       <span>PDF'ten Fiyat Güncelle</span>
@@ -1277,10 +1277,18 @@ $("btnPdf").onclick = async () => {
   try{
     const file = await makePdf();
     try{
+      const qcur2 = quote.length ? (quote[0].cur || "EUR") : cur;
       await pdfArchivePut({
         no: $("pfNo").value, ts: Date.now(),
         date: new Date().toLocaleDateString("tr-TR"),
         company: $("cCompany").value, person: $("cPerson").value,
+        phone: $("cPhone").value, mail: $("cMail").value,
+        mode: localStorage.getItem("yq_mode") || "", user: (localStorage.getItem("yq_dev") || ""),
+        cur: qcur2, incoTerm: $("incoTerm").value, incoPlace: $("incoPlace").value,
+        delTerm: $("delTerm").value, delPlace: $("delPlace").value, payment: $("cPayment").value,
+        freight: parseAmt($("exFreightAmt").value), insurance: parseAmt($("exInsAmt").value),
+        listTotal: quoteListTotal(), netTotal: quoteTotal(),
+        items: JSON.parse(JSON.stringify(quote)),
         total: fmtQ(quoteTotal()), blob: file, card: cardData
       });
     }catch(e){ /* arşiv desteklenmiyorsa paylaşım yine de sürsün */ }
@@ -1985,7 +1993,60 @@ $("btnAppUpd").onclick = async () => {
     location.reload();
   }catch(e){ b.textContent = "Kontrol Et"; b.disabled = false; uiAlert("Güncelleme denetlenemedi: " + e.message); }
 };
-$("btnHist").onclick = () => { $("setModal").classList.remove("open"); $("histModal").classList.add("open"); renderHist(); };
+$("btnHist").onclick = () => { $("histModal").classList.add("open"); renderHist(); };
+
+/* ---- teklif kayıtlarını CSV (Excel) olarak ver ---- */
+function csvCell(v){
+  const t = (v == null ? "" : String(v)).replace(/"/g, '""');
+  return /[";\n]/.test(t) ? '"' + t + '"' : t;
+}
+function numCell(n){ return (n == null || isNaN(n)) ? "" : String(Math.round(n * 100) / 100).replace(".", ","); }
+function buildCsv(recs){
+  const head = ["Teklif No","Tarih","Mod","Kullanıcı","Firma","İlgili Kişi","Telefon","E-posta","Para Birimi",
+    "Sıra","Tür","Kod","Ad","Adet","Liste Fiyat","İskonto %","Artı İskonto %","Birim Net","Tutar",
+    "Teslim Şekli","Teslim Yeri","Incoterm","Incoterm Yeri","Ödeme","Navlun","Sigorta",
+    "Teklif Liste Toplamı","Teklif Net Toplamı"];
+  const rows = [head];
+  const MODES = {F:"Fuar", S:"Seyahat", O:"Ofis"};
+  recs.forEach(r => {
+    const items = r.items || [];
+    if(!items.length){
+      rows.push([r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", r.company || "", r.person || "",
+        r.phone || "", r.mail || "", r.cur || "", "", "", "", "", "", "", "", "", "", "",
+        r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
+        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal)]);
+      return;
+    }
+    let n = 0;
+    items.forEach(it => {
+      n++;
+      const push = (tur, code, name, qty, unitList, unitNet) => rows.push([
+        r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", r.company || "", r.person || "",
+        r.phone || "", r.mail || "", r.cur || "", n, tur, code, name,
+        qty, numCell(unitList), numCell(it.d1), numCell(it.d2), numCell(unitNet), numCell(unitNet * qty),
+        r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
+        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal)
+      ]);
+      push("Makine", it.code, it.name, it.qty, it.unitList, it.unitNet);
+      (it.opts || []).forEach(o => { n++; push("Opsiyon", o.code, o.name, (o.qty != null ? o.qty : it.qty), o.unitList, o.unitNet); });
+    });
+  });
+  return "\uFEFF" + rows.map(r => r.map(csvCell).join(";")).join("\r\n");
+}
+$("btnCsv").onclick = async () => {
+  const b = $("btnCsv"); const t0 = b.textContent; b.textContent = "Hazırlanıyor…"; b.disabled = true;
+  try{
+    const recs = (await pdfArchiveAll()).sort((a,b2) => (a.ts||0) - (b2.ts||0));
+    if(!recs.length){ uiAlert("Kayıtlı teklif yok.\nPDF Paylaş yaptığınız teklifler burada birikir."); return; }
+    const csv = buildCsv(recs);
+    const dev = (localStorage.getItem("yq_mode") || "") + (localStorage.getItem("yq_dev") ? "-" + localStorage.getItem("yq_dev") : "");
+    const name = "DO_Offer_Teklifler_" + (dev || "kayit") + "_" + new Date().toISOString().slice(0,10) + ".csv";
+    const file = new File([csv], name, {type:"text/csv;charset=utf-8"});
+    if(navigator.canShare && navigator.canShare({files:[file]})) await navigator.share({files:[file], title:name});
+    else { const u = URL.createObjectURL(file); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); }
+  }catch(e){ if(e.name !== "AbortError") uiAlert("CSV oluşturulamadı: " + e.message); }
+  b.textContent = t0; b.disabled = false;
+};
 $("histClose").onclick = () => $("histModal").classList.remove("open");
 $("pdfViewClose").onclick = () => {
   const fr = $("pdfViewFrame");
