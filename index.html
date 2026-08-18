@@ -176,6 +176,9 @@ table.pf .optrow .oname{padding-left:16px;}
   background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-weight:800;cursor:pointer;}
 #splash .modebtn.on{background:#fff;color:#2c2c2e;border-color:#fff;}
 #splash .btn.pri:disabled{opacity:.4;}
+#splash .sign{position:absolute;right:22px;bottom:calc(20px + env(safe-area-inset-bottom));
+  font-family:"Snell Roundhand","Brush Script MT","Segoe Script","Bradley Hand",cursive;
+  font-size:26px;color:#a9b0b6;transform:rotate(-6deg);opacity:.85;white-space:nowrap;}
 @keyframes pulse{0%,100%{opacity:.45;}50%{opacity:1;}}
 /* ---- pin ---- */
 #lock{position:fixed;inset:0;z-index:300;background:linear-gradient(170deg,#2c2c2e 0%,#3a3a3c 55%,#2a2a2c 100%);display:none;flex-direction:column;
@@ -271,6 +274,7 @@ table.pf .optrow .oname{padding-left:16px;}
     </div>
     <button class="btn pri" id="modeOk" style="width:100%;margin-top:12px;" disabled>Tamam</button>
   </div>
+  <div class="sign">Vasfi Şahin</div>
 </div>
 
 <!-- PIN LOCK -->
@@ -1389,8 +1393,14 @@ function tailPrice(line){
 const baseCode = c => c.replace(/\s*\((?:yeni|new|[\dmM.,\s]+|[^)]*axis[^)]*)\)\s*$/i, "").trim();
 const normCode = c => baseCode(String(c || "")).toUpperCase().replace(/\s+/g, " ");
 const normInfo = t => String(t || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-const OPT_CODE_RE = /^(3OP\d{6}-\d{4}|3UA\d{6}-\d{4}|0AA\d{6}-\d{4}|OPTION)\b/;
-const SECTION_RE = /^(CUTTING MACHINES|ACCESSORIES|OTHERS|WELDING|CLEANING LINE|CLEANING|MILLING & NOTCHING MACHINES|CONVEYORS|PUNCH PRESSES|CNC MACHINES|PVC WELDING|SAW BLADES)\s+/i;
+// bilgi metnindeki makine kodlarını çıkar: "KD 400 PS için" -> "KD 400 PS"
+function infoCodes(t){
+  // dil bağımsız: "For KD 400" ve "KD 400 için" aynı sonucu verir
+  const m = String(t || "").match(/\b[A-ZÇĞİÖŞÜ]{2,4}\s?\d{2,4}(?:\s?[A-ZÇĞİÖŞÜ]{1,3})?\b/g) || [];
+  return [...new Set(m.map(x => x.replace(/\s+/g, " ").trim()))].sort().join("+");
+}
+const OPT_CODE_RE = /^(3OP\d{6}-\d{4}|3UA\d{6}-\d{4}|0AA\d{6}-\d{4}|OPTION|OPSİYON|OPSIYON)\b/i;
+const SECTION_RE = /^(CUTTING MACHINES|ACCESSORIES|OTHERS|WELDING|CLEANING LINE|CLEANING|MILLING & NOTCHING MACHINES|CONVEYORS|PUNCH PRESSES|CNC MACHINES|PVC WELDING|SAW BLADES|KESME MAKİNELERİ|KESME MAKINELERI|FREZE GRUBU|FREZE VE KERTME|CNC MAKİNELERİ|CNC MAKINELERI|PVC KAYNAK VE TEMİZLEME|PVC KAYNAK|KÖŞE TEMİZLEME|KAYNAK VE TEMİZLEME|KONVEYÖRLER|PANÇ PRESLER|PANC PRESLER|EKİPMANLAR|EKIPMANLAR|TESTERELER|MONTAJ VE DİĞER|DİĞER ÜRÜNLER)\s+/i;
 let _kcCache = null, _kcLen = -1;
 function knownCodesSorted(){
   const n = DB.machines.length + Object.keys(DB.opts).length;
@@ -1407,39 +1417,86 @@ const SECT_MAP = {
   "CNC MACHINES":"CNC Makineleri", "WELDING":"PVC Kaynak & Köşe Temizleme", "CLEANING":"PVC Kaynak & Köşe Temizleme",
   "PVC WELDING":"PVC Kaynak & Temizleme Hattı", "CLEANING LINE":"PVC Kaynak & Temizleme Hattı",
   "CONVEYORS":"Konveyörler", "PUNCH PRESSES":"Presler", "ACCESSORIES":"Aksesuarlar",
-  "OTHERS":"Montaj & Diğer", "SAW BLADES":"Testereler"
+  "OTHERS":"Montaj & Diğer", "SAW BLADES":"Testereler",
+  "KESME MAKİNELERİ":"Kesme Makineleri", "KESME MAKINELERI":"Kesme Makineleri",
+  "FREZE GRUBU":"Freze & Kertme Makineleri", "FREZE VE KERTME":"Freze & Kertme Makineleri",
+  "CNC MAKİNELERİ":"CNC Makineleri", "CNC MAKINELERI":"CNC Makineleri",
+  "PVC KAYNAK VE TEMİZLEME":"PVC Kaynak & Temizleme Hattı", "PVC KAYNAK":"PVC Kaynak & Temizleme Hattı",
+  "KÖŞE TEMİZLEME":"PVC Kaynak & Köşe Temizleme", "KAYNAK VE TEMİZLEME":"PVC Kaynak & Köşe Temizleme",
+  "KONVEYÖRLER":"Konveyörler", "PANÇ PRESLER":"Presler", "PANC PRESLER":"Presler",
+  "EKİPMANLAR":"Aksesuarlar", "EKIPMANLAR":"Aksesuarlar", "TESTERELER":"Testereler",
+  "MONTAJ VE DİĞER":"Montaj & Diğer", "DİĞER ÜRÜNLER":"Montaj & Diğer"
 };
 function parsePdfRows(lines){
-  const rows = [];
+  const PRICE_RE = /(?:(₺|€|TL|EUR)\s*)?(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:,\d{1,2})?)\s*(₺|€|TL|EUR)?\s*$/i;
+  // 1. geçiş: her satırdan kod ve fiyatı ayrı ayrı çıkar
+  const arr = [];
   let sect = "";
   lines.forEach(raw => {
-    // bölüm adı yalnızca satır başında (fiyat satırıyla aynı satırda) güvenilirdir
     const sm = String(raw).trim().match(SECTION_RE);
     if(sm){ const k = sm[1].toUpperCase(); if(SECT_MAP[k]) sect = SECT_MAP[k]; }
-    const line = String(raw).replace(SECTION_RE, "").trim();
-    const pm = line.match(/([\d.]+)\s*€\s*$/);
-    if(!pm) return;
-    const price = parseInt(pm[1].replace(/\./g, ""), 10);
-    if(isNaN(price)) return;
-    const body = line.slice(0, pm.index).trim();
-    const om = body.match(OPT_CODE_RE);
-    let code = null, rest = "";
-    if(om){ code = om[1]; rest = body.slice(om[1].length).trim(); }
-    if(!code){
-      // bilinen makine/opsiyon kodlarıyla satır başı eşleştirmesi (en uzun kod önce)
-      const U = body.toUpperCase();
+    let line = String(raw).replace(SECTION_RE, "").trim();
+    if(!line) return;
+    // fiyat
+    let price = null;
+    const pm = line.match(PRICE_RE);
+    if(pm && (pm[1] || pm[3])){
+      const v = parseFloat(pm[2].replace(/\./g, "").replace(",", "."));
+      if(!isNaN(v) && v > 0){ price = Math.round(v * 100) / 100; line = line.slice(0, pm.index).trim(); }
+    }
+    // kod
+    let code = null, rest = line;
+    const om = line.match(OPT_CODE_RE);
+    if(om){
+      code = /^OPS[İI]YON$/i.test(om[1]) ? "OPTION" : om[1];
+      rest = line.slice(om[1].length).trim();
+    } else {
+      const U = line.toUpperCase();
       const hit = knownCodesSorted().find(c => U === c || U.startsWith(c + " "));
-      if(hit){ code = body.slice(0, hit.length).trim(); rest = body.slice(hit.length).trim(); }
+      if(hit){ code = line.slice(0, hit.length).trim(); rest = line.slice(hit.length).trim(); }
+      else {
+        const parts = line.split(/\s{2,}/);
+        const cand = (parts[0] || "").trim();
+        // yeni kod olabilir: 2-24 karakter, harf+rakam içerir, cümle değil
+        if(cand && cand.length <= 24 && /\d/.test(cand) && /^[A-Z0-9ÇĞİÖŞÜ][A-Z0-9ÇĞİÖŞÜ .()\/-]*$/i.test(cand) && parts.length > 1){
+          code = cand; rest = parts.slice(1).join(" ").trim();
+        }
+      }
     }
-    if(!code){
-      const parts = body.split(/\s{2,}/);
-      code = (parts[0] || "").trim(); rest = parts.slice(1).join(" ").trim();
-    }
-    if(!code || code.length > 24) return;
     const rp = rest.split(/\s{2,}/);
-    rows.push({code, key:normCode(code), title:(rp[0] || "").trim(), info:rp.slice(1).join(" ").trim(), price, isOpt: !!om, sect});
+    arr.push({code, title:(rp[0] || "").trim(), info:rp.slice(1).join(" ").trim(), price,
+              isOpt: !!(om || (code && OPT_CODE_RE.test(code))), sect, used:false});
+  });
+  // 2. geçiş: kodu olup fiyatı olmayan satırlara, yakındaki fiyat-only satırın fiyatını bağla
+  const rows = [];
+  arr.forEach((L, i) => {
+    if(!L.code) return;
+    let price = L.price;
+    if(price == null){
+      for(const j of [i-1, i+1]){          // yalnızca komşu satır (yanlış eşleşmeyi önler)
+        const N = arr[j];
+        if(N && !N.used && !N.code && N.price != null){ price = N.price; N.used = true; break; }
+      }
+    }
+    if(price == null) return;
+    rows.push({code:L.code, key:normCode(L.code), title:L.title, info:L.info, price, isOpt:L.isOpt, sect:L.sect});
   });
   return rows;
+}
+const ASK_RE = /(fiyat\s*al[ıi]n[ıi]z|fiyat\s*sorunuz|request\s*price)/i;
+// "Fiyat Alınız" yazan kalemlerin kodları (eksik değil, fiyatı sorulacak demek)
+function parseAskCodes(lines){
+  const set = new Set();
+  lines.forEach(raw => {
+    const line = String(raw).replace(SECTION_RE, "").trim();
+    if(!ASK_RE.test(line)) return;
+    const om = line.match(OPT_CODE_RE);
+    if(om){ set.add(normCode(/^OPS[İI]YON$/i.test(om[1]) ? "OPTION" : om[1])); return; }
+    const U = line.toUpperCase();
+    const hit = knownCodesSorted().find(c => U === c || U.startsWith(c + " "));
+    if(hit) set.add(normCode(hit));
+  });
+  return set;
 }
 // OPTION gibi tekrarlayan kodlar için: kod -> fiyat listesi + "kod|bilgi" -> fiyat
 function parsePdfPrices(lines){
@@ -1448,11 +1505,20 @@ function parsePdfPrices(lines){
     (byCode[r.key] = byCode[r.key] || []).push(r.price);
     const k2 = r.key + "|" + normInfo(r.info || r.title);
     byCode[k2] = [r.price];
+    if(r.key === "OPTION"){                       // OPSİYON/OPTION satırları: ait olduğu makine kodundan eşleştir
+      const ic = infoCodes(r.info);
+      if(ic){
+        byCode["OPTION#" + ic + "#" + normInfo(r.title).slice(0, 10)] = [r.price];
+        const k4 = "OPTION#" + ic;
+        if(!byCode[k4]) byCode[k4] = [r.price];
+      }
+    }
   });
   return byCode;
 }
-function applyPdfPrices(byCode, field){
-  const changes = [], misses = [];
+function applyPdfPrices(byCode, field, askSet){
+  const changes = [], misses = [], asked = [];
+  askSet = askSet || new Set();
   const walk = (items, label) => {
     const idx = {};
     items.forEach(it => {
@@ -1461,12 +1527,26 @@ function applyPdfPrices(byCode, field){
       let np = null;
       const exact = byCode[c + "|" + normInfo(it.info || it.name)];
       if(exact) np = exact[0];
+      if(np == null && c === "OPTION"){
+        const ic = infoCodes(it.info);
+        if(ic){
+          const a = byCode["OPTION#" + ic + "#" + normInfo(it.name).slice(0, 10)];
+          const b = byCode["OPTION#" + ic];
+          if(a) np = a[0]; else if(b) np = b[0];
+        }
+      }
       // "OPTION" gibi genel kodlarda yalnızca bilgi eşleşmesi geçerli (yanlış fiyat atamasını önler)
       if(np == null && c !== "OPTION"){
         const arr = byCode[c];
         if(arr){ const i = idx[c] || 0; np = arr.length === 1 ? arr[0] : arr[Math.min(i, arr.length - 1)]; idx[c] = i + 1; }
       }
-      if(np == null){ if(it[field] != null || it.eur != null) misses.push(it.code); return; }
+      if(np == null){
+        if(askSet.has(c)){                        // PDF'te "Fiyat Alınız" yazıyor
+          if(it[field] != null){ changes.push(it.code + ": " + it[field] + " → Fiyat Sorunuz"); it[field] = null; }
+          asked.push(it.code);
+        } else if(it[field] != null) misses.push(it.code);   // gerçekten listede yok
+        return;
+      }
       if(it[field] !== np){
         changes.push(it.code + (label ? " (" + label(it) + ")" : "") + ": " + (it[field] ?? "—") + " → " + np);
         it[field] = np;
@@ -1475,7 +1555,7 @@ function applyPdfPrices(byCode, field){
   };
   walk(DB.machines, null);
   walk(Object.values(DB.opts), o => o.name.slice(0,22));
-  return {changes, misses:[...new Set(misses)]};
+  return {changes, misses:[...new Set(misses)], asked:[...new Set(asked)]};
 }
 function removeMissingFromDb(codes){
   const set = new Set(codes.map(normCode));
@@ -1533,11 +1613,13 @@ $("pdfInp").onchange = async e => {
     const rows = parsePdfRows(lines);
     if(!rows.length) throw new Error("PDF içinde kod + fiyat satırı bulunamadı");
     const backup = JSON.stringify(DB);
-    const {changes, misses} = applyPdfPrices(parsePdfPrices(lines), pdfTarget);
+    const askSet = parseAskCodes(lines);
+    const {changes, misses, asked} = applyPdfPrices(parsePdfPrices(lines), pdfTarget, askSet);
     const added = addNewFromPdf(rows, pdfTarget);
     let msg = f.name + "\n" + rows.length + " satır okundu (" + pdfTarget.toUpperCase() + " listesi)\n\n";
     msg += "• Fiyatı değişen: " + changes.length + "\n";
     msg += "• Yeni eklenen: " + added.length + "\n";
+    msg += "• Fiyat Sorunuz olarak işaretli: " + asked.length + "\n";
     msg += "• PDF'te bulunamayan: " + misses.length + (misses.length ? " (" + misses.slice(0,8).join(", ") + (misses.length > 8 ? "…" : "") + ")" : "") + "\n\n";
     if(added.length) msg += "YENİ KALEMLER\n" + added.slice(0,12).join("\n") + (added.length > 12 ? "\n… ve " + (added.length-12) + " tane daha" : "") + "\n\n";
     if(changes.length) msg += "FİYAT DEĞİŞİKLİKLERİ\n" + changes.slice(0,12).join("\n") + (changes.length > 12 ? "\n… ve " + (changes.length-12) + " tane daha" : "");
