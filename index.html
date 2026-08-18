@@ -2139,9 +2139,23 @@ async function checkPricePackage(silent){
   const pass = localStorage.getItem(PASS_KEY);
   if(!pass){ if(!silent) uiAlert("Paket şifresi girilmemiş.\nAyarlar > Yönetici Modu bölümünden şifreyi girin."); return; }
   try{
-    const res = await fetch(PKG_URL + "?t=" + Date.now(), {cache:"no-store"});
-    if(!res.ok){ if(!silent) uiAlert("Fiyat paketi bulunamadı (henüz yüklenmemiş olabilir)."); return; }
-    const pkg = await pkgDecrypt(await res.text(), pass);
+    // birkaç olası adresi dene (alt klasör / önbellek sorunlarına karşı)
+    const base = location.href.replace(/[?#].*$/, "").replace(/[^/]*$/, "");
+    const tries = [PKG_URL, "./" + PKG_URL, base + PKG_URL];
+    let txt = null, lastStatus = "";
+    for(const u of tries){
+      try{
+        const res = await fetch(u + "?t=" + Date.now(), {cache:"no-store"});
+        if(res.ok){ txt = await res.text(); break; }
+        lastStatus = res.status + " " + (res.statusText || "");
+      }catch(err){ lastStatus = err.message; }
+    }
+    if(txt == null){
+      if(!silent) uiAlert("Fiyat paketi indirilemedi (" + (lastStatus || "bağlantı yok") + ").\n\nDeneyin:\n• Ayarlar > Programı Güncelle > Kontrol Et\n• İnternet bağlantısını kontrol edin\n• Dosyanın depoda prices.enc adıyla durduğunu doğrulayın");
+      return;
+    }
+    if(txt.trim().startsWith("<")){ if(!silent) uiAlert("Paket yerine web sayfası geldi.\nDosya adı prices.enc olmalı ve uygulamayla aynı klasörde bulunmalı."); return; }
+    const pkg = await pkgDecrypt(txt, pass);
     if(!pkg || !pkg.db || !pkg.db.machines){ throw new Error("paket içeriği okunamadı"); }
     if(pkg.stamp && pkg.stamp === localStorage.getItem(STAMP_KEY)){ if(!silent) uiAlert("Fiyat listesi güncel.\nPaket: " + pkg.stamp); return; }
     DB = pkg.db;

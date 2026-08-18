@@ -1,5 +1,5 @@
 /* DO_Offer service worker — çevrimdışı çalışma + otomatik güncelleme */
-const CACHE = "dooffer-v1";
+const CACHE = "dooffer-v2";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon.png"];
 
 self.addEventListener("install", e => {
@@ -22,8 +22,7 @@ self.addEventListener("fetch", e => {
   // prices.enc: her zaman ağdan denenir, yoksa önbellekten
   if(sameOrigin && url.pathname.endsWith("prices.enc")){
     e.respondWith(fetch(req).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+      if(res.ok){ const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {}); }
       return res;
     }).catch(() => caches.match(req)));
     return;
@@ -32,8 +31,7 @@ self.addEventListener("fetch", e => {
   if(sameOrigin){
     e.respondWith(
       fetch(req).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+        if(res.ok){ const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {}); }
         return res;
       }).catch(() => caches.match(req).then(r => r || caches.match("./index.html")))
     );
