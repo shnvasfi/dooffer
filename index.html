@@ -1383,6 +1383,19 @@ function applyPdfPrices(byCode, field){
   walk(Object.values(DB.opts), o => o.name.slice(0,22));
   return {changes, misses:[...new Set(misses)]};
 }
+function removeMissingFromDb(codes){
+  const set = new Set(codes.map(normCode));
+  const removedM = [], removedO = [];
+  DB.machines = DB.machines.filter(m => {
+    if(set.has(normCode(m.code))){ removedM.push(m.code); return false; }
+    return true;
+  });
+  Object.entries(DB.opts).forEach(([id, o]) => {
+    if(set.has(normCode(o.code))){ removedO.push(o.code); delete DB.opts[id]; }
+  });
+  DB.machines.forEach(m => { m.opts = m.opts.filter(id => DB.opts[id]); });
+  return {removedM, removedO};
+}
 function addNewFromPdf(rows, field){
   const known = new Set([...DB.machines.map(m => normCode(m.code)), ...Object.values(DB.opts).map(o => normCode(o.code))]);
   const added = [];
@@ -1442,7 +1455,20 @@ $("pdfInp").onchange = async e => {
       localStorage.setItem("yq_dbver", String(DB_VERSION));
       localStorage.setItem("yq_dbinfo", f.name + " (" + new Date().toLocaleDateString("tr-TR") + ")");
       updateImpInfo(); resetSel(); renderEmptyState();
-      uiAlert("Fiyat listesi güncellendi.\nDeğişen: " + changes.length + " • Yeni: " + added.length);
+      let extraMsg = "";
+      if(misses.length){
+        const ask = "Bu " + misses.length + " kalem yeni PDF'te yok (üretimden kalkmış olabilir):\n\n"
+          + misses.slice(0,15).join(", ") + (misses.length > 15 ? " … ve " + (misses.length-15) + " tane daha" : "")
+          + "\n\nListeden kaldırılsın mı?";
+        const ans = await uiChoice(ask, "Listede Kalsın", "Listeden Kaldır");
+        if(ans === 2){
+          const rm = removeMissingFromDb(misses);
+          localStorage.setItem("yq_db", JSON.stringify(DB));
+          resetSel(); if(typeof renderEmptyState === "function") renderEmptyState();
+          extraMsg = "\nKaldırılan: " + (rm.removedM.length + rm.removedO.length) + " kalem";
+        }
+      }
+      uiAlert("Fiyat listesi güncellendi.\nDeğişen: " + changes.length + " • Yeni: " + added.length + extraMsg);
     } else DB = JSON.parse(backup);
   }catch(err){ uiAlert("PDF okunamadı: " + err.message); }
   e.target.value = "";
