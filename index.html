@@ -224,7 +224,25 @@ table.pf .optrow .oname{padding-left:16px;}
   .proforma{padding:7px;}
 }
 .pdfmode .noprint{display:none !important;}
-.pdfmode select, .pdfmode input{background:#fff !important;border:none !important;-webkit-appearance:none;appearance:none;}
+/* --- PDF çıktısı: tek tip yazı, başlıklar hariç kalın değil --- */
+.pdfmode, .pdfmode *{font-family:Arial,Helvetica,sans-serif !important;font-size:11.5px !important;
+  font-weight:400 !important;font-style:normal !important;letter-spacing:0 !important;line-height:1.3 !important;}
+.pdfmode .pf-title{font-size:28px !important;font-weight:900 !important;}
+.pdfmode .pf-sechead{font-size:12.5px !important;font-weight:800 !important;}
+.pdfmode table.pf th{font-weight:800 !important;}
+.pdfmode .pf-grid .k{font-weight:800 !important;}
+.pdfmode .pf-meta b{font-weight:800 !important;}
+.pdfmode .pf-totalbar .in{font-weight:800 !important;}
+.pdfmode .pf-extra .exr .l{font-weight:800 !important;}
+.pdfmode .pf-extra .exr.tot{font-weight:800 !important;}
+.pdfmode .optrow td{font-style:italic !important;font-size:10.5px !important;}
+.pdfmode table.pf td{overflow-wrap:anywhere;word-break:normal;}
+.pdfmode table.pf th.c-mak{width:132px !important;}
+.pdfmode table.pf th.c-qty{width:30px !important;}
+.pdfmode input,.pdfmode select{display:none !important;}
+.pdfmode .qprint,.pdfmode .excur{display:none !important;}
+.pdfmode .pdfval{display:inline !important;}
+.pdfval{display:none;}
 @media print{
   body{background:#fff;}
   body *{visibility:hidden;}
@@ -1168,7 +1186,7 @@ function renderQuote(){
     const dcols = showD ? `<td class="num">${fmtQ(listOf(it,it))}</td><td class="ctr">${discLabel(it)}</td>` : "";
     const tr = document.createElement("tr");
     tr.innerHTML = `<td class="ctr">${n}</td><td><b>${it.code}</b></td><td>${it.name}</td>
-      <td class="ctr"><input class="qty-in" type="tel" value="${it.qty}" data-i="${idx}"><span class="qprint" style="display:none;">${it.qty}</span></td>
+      <td class="ctr"><input class="qty-in" type="tel" value="${it.qty}" data-i="${idx}"></td>
       ${dcols}<td class="num">${fmtQ(it.unitNet)}</td><td class="num"><b>${fmtQ(it.unitNet * it.qty)}</b></td>
       <td class="ctr noprint" style="white-space:nowrap;"><button class="delx" data-edit="${idx}" style="background:var(--blue);margin-right:3px;">✎</button><button class="delx" data-del="${idx}">✕</button></td>`;
     tb.appendChild(tr);
@@ -1178,7 +1196,7 @@ function renderQuote(){
       const tro = document.createElement("tr"); tro.className = "optrow";
       const oq = oQty(o, it);
       tro.innerHTML = `<td class="ctr">${n}</td><td>${o.code}</td><td class="oname">+ ${o.name}</td>
-        <td class="ctr"><input class="qty-in" type="tel" value="${oq}" data-i="${idx}" data-oi="${oi}"><span class="qprint" style="display:none;">${oq}</span></td>
+        <td class="ctr"><input class="qty-in" type="tel" value="${oq}" data-i="${idx}" data-oi="${oi}"></td>
         ${docols}<td class="num">${fmtQ(o.unitNet)}</td><td class="num">${fmtQ(o.unitNet * oq)}</td>
         <td class="ctr noprint"><button class="delx" data-delopt="${idx}:${oi}">✕</button></td>`;
       tb.appendChild(tro);
@@ -1219,9 +1237,22 @@ function renderQuote(){
 /* ================= PDF & MAIL ================= */
 async function makePdf(){
   const el = $("proforma");
+  // giriş kutularının içeriğini düz metne çevir (PDF'te tek tip yazı için)
+  const MONEY_IDS = ["exFreightAmt","exInsAmt"];
+  el.querySelectorAll("input,select").forEach(f => {
+    let txt = "";
+    if(f.tagName === "SELECT") txt = f.selectedOptions[0] ? f.selectedOptions[0].text : "";
+    else if(MONEY_IDS.includes(f.id)) txt = f.value.trim() ? fmtC(parseAmt(f.value), quote.length ? (quote[0].cur || "EUR") : cur) : "";
+    else txt = f.value;
+    let sp = f.nextElementSibling;
+    if(!sp || !sp.classList || !sp.classList.contains("pdfval")){
+      sp = document.createElement("span");
+      sp.className = "pdfval";
+      f.parentNode.insertBefore(sp, f.nextSibling);
+    }
+    sp.textContent = txt;
+  });
   el.classList.add("pdfmode");
-  el.querySelectorAll(".qty-in").forEach(i => i.style.display = "none");
-  el.querySelectorAll(".qprint").forEach(s => s.style.display = "inline");
   const opt = {
     margin: 5, filename: "Teklif_" + ($("cCompany").value || "Yilmaz").replace(/\s+/g,"_") + ".pdf",
     image: {type:"jpeg", quality:0.95},
@@ -1229,8 +1260,6 @@ async function makePdf(){
     jsPDF: {unit:"mm", format:"a4", orientation:"portrait"}
   };
   const blob = await html2pdf().set(opt).from(el).outputPdf("blob");
-  el.querySelectorAll(".qty-in").forEach(i => i.style.display = "");
-  el.querySelectorAll(".qprint").forEach(s => s.style.display = "none");
   el.classList.remove("pdfmode");
   return new File([blob], opt.filename, {type:"application/pdf"});
 }
@@ -1666,7 +1695,7 @@ function renderExtra(){
   const ins = rule.includes("I") ? parseAmt($("exInsAmt").value) : 0;
   const tot = quoteTotal() + fr + ins;
   $("exTotLbl").textContent = "TOTAL " + term + "- AMOUNT";
-  $("exTotVal").textContent = tot.toLocaleString("tr-TR", NF) + " " + curLbl;
+  $("exTotVal").textContent = fmtC(tot, cur);
 }
 ["exFreightAmt","exInsAmt"].forEach(id => {
   const el = $(id);
