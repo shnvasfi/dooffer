@@ -143,9 +143,9 @@ table.pf .optrow .oname{padding-left:16px;}
   box-sizing:border-box;min-height:30px;}
 .pf-extra .exr .l{padding:2px 10px;}
 .pf-extra .exr .c{padding:2px 0;text-align:center;}
-.pf-extra .exr .v{padding:2px 10px;white-space:nowrap;display:flex;justify-content:space-between;align-items:baseline;gap:6px;}
-.pf-extra .exr .excur{min-width:14px;text-align:left;font-weight:800;}
-.pf-extra .exr input{flex:1;width:auto;min-width:56px;text-align:right;border:none;border-bottom:1px dashed #999;background:#fffbe8;
+.pf-extra .exr .v{padding:2px 10px;white-space:nowrap;display:grid;grid-template-columns:16px 1fr;align-items:baseline;gap:4px;}
+.pf-extra .exr .excur{text-align:left;font-weight:800;}
+.pf-extra .exr input{width:100%;text-align:right;border:none;border-bottom:1px dashed #999;background:#fffbe8;
   font-family:inherit;font-size:13px;font-weight:800;padding:0;}
 .pf-extra .exr.tot{border-top:1px solid #000;background:#f4f6f8;}
 .pf-totalbar .in{box-sizing:border-box;}
@@ -240,7 +240,7 @@ table.pf .optrow .oname{padding-left:16px;}
 .pdfmode table.pf th.c-mak{width:132px !important;}
 .pdfmode table.pf th.c-qty{width:30px !important;}
 .pdfmode input,.pdfmode select{display:none !important;}
-.pdfmode .qprint,.pdfmode .excur{display:none !important;}
+.pdfmode .qprint{display:none !important;}
 .pdfmode .pdfval{display:inline !important;}
 .pdfval{display:none;}
 @media print{
@@ -444,13 +444,15 @@ table.pf .optrow .oname{padding-left:16px;}
           <input id="incoPlace" placeholder="" style="border:none;border-bottom:1px solid #ccc;font-family:inherit;font-size:12.5px;font-weight:900;background:#fffbe8;flex:1 1 auto;min-width:60px;">
           </span>
           <span class="c" style="text-align:center;padding:2px 0;">:</span>
-          <span id="pfTotal" style="padding:2px 10px;text-align:right;white-space:nowrap;">€ 0</span>
+          <span style="padding:2px 10px;white-space:nowrap;display:grid;grid-template-columns:16px 1fr;align-items:baseline;gap:4px;">
+            <span id="pfTotalCur" style="text-align:left;">€</span><span id="pfTotal" style="text-align:right;">0,00</span>
+          </span>
         </div>
       </div>
       <div class="pf-extra" id="pfExtra" style="display:none;">
         <div class="exr" id="exFreight"><span class="l">FREIGHT</span><span class="c">:</span><span class="v"><span class="excur"></span><input id="exFreightAmt" type="tel" inputmode="decimal" placeholder="0,00"></span></div>
         <div class="exr" id="exIns"><span class="l">INSURANCE</span><span class="c">:</span><span class="v"><span class="excur"></span><input id="exInsAmt" type="tel" inputmode="decimal" placeholder="0,00"></span></div>
-        <div class="exr tot" id="exTot"><span class="l" id="exTotLbl">TOTAL</span><span class="c">:</span><span class="v" id="exTotVal"></span></div>
+        <div class="exr tot" id="exTot"><span class="l" id="exTotLbl">TOTAL</span><span class="c">:</span><span class="v"><span class="excur"></span><span id="exTotVal" style="text-align:right;"></span></span></div>
       </div>
       <div class="pf-sechead gap">SALES CONDITION</div>
       <div class="pf-grid pf-cond">
@@ -1203,7 +1205,9 @@ function renderQuote(){
     });
   });
   const tot = quoteTotal(), listT = quoteListTotal();
-  $("pfTotal").textContent = fmtQ(tot);
+  const qcur = quote.length ? (quote[0].cur || "EUR") : cur;
+  $("pfTotalCur").textContent = qcur === "TL" ? "₺" : "€";
+  $("pfTotal").textContent = tot.toLocaleString("tr-TR", NF);
   $("pfDiscBar").style.display = showD && quote.length ? "flex" : "none";
   if(typeof renderExtra === "function") renderExtra();
   $("pfListT").textContent = fmtQ(listT);
@@ -1242,7 +1246,7 @@ async function makePdf(){
   el.querySelectorAll("input,select").forEach(f => {
     let txt = "";
     if(f.tagName === "SELECT") txt = f.selectedOptions[0] ? f.selectedOptions[0].text : "";
-    else if(MONEY_IDS.includes(f.id)) txt = f.value.trim() ? fmtC(parseAmt(f.value), quote.length ? (quote[0].cur || "EUR") : cur) : "";
+    else if(MONEY_IDS.includes(f.id)) txt = f.value.trim() ? parseAmt(f.value).toLocaleString("tr-TR", NF) : "";
     else txt = f.value;
     let sp = f.nextElementSibling;
     if(!sp || !sp.classList || !sp.classList.contains("pdfval")){
@@ -1695,7 +1699,7 @@ function renderExtra(){
   const ins = rule.includes("I") ? parseAmt($("exInsAmt").value) : 0;
   const tot = quoteTotal() + fr + ins;
   $("exTotLbl").textContent = "TOTAL " + term + "- AMOUNT";
-  $("exTotVal").textContent = fmtC(tot, cur);
+  $("exTotVal").textContent = (cur === "TL" ? tot.toLocaleString("tr-TR", NF) : tot.toLocaleString("tr-TR", NF));
 }
 ["exFreightAmt","exInsAmt"].forEach(id => {
   const el = $(id);
