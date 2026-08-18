@@ -611,6 +611,10 @@ table.pf .optrow .oname{padding-left:16px;}
       <input class="pininp" id="passInp" type="password" style="width:120px;letter-spacing:2px;" placeholder="şifre">
     </div>
     <div class="setrow">
+      <span>Kurulum Bağlantısı<br><span style="font-size:12px;color:var(--muted);">telefonlara özel gönderilir</span></span>
+      <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnSetupLink">Oluştur</button>
+    </div>
+    <div class="setrow">
       <span>Fiyat Paketi Oluştur<br><span style="font-size:12px;color:var(--muted);">prices.enc — GitHub'a yüklenir</span></span>
       <button class="btn pri" style="flex:none;padding:8px 14px;" id="btnPkgMake">Oluştur</button>
     </div>
@@ -2192,7 +2196,7 @@ async function checkPricePackage(silent){
   if(!/^https?:$/.test(location.protocol)){ if(!silent) uiAlert("Paket güncellemesi yalnızca internet adresinden açıldığında çalışır."); return; }
   if(!cryptoReady()){ if(!silent) uiAlert("Bu ortamda şifreleme kullanılamıyor (https gerekir)."); return; }
   const pass = localStorage.getItem(PASS_KEY);
-  if(!pass){ if(!silent) uiAlert("Paket şifresi girilmemiş.\nAyarlar > Yönetici Modu bölümünden şifreyi girin."); return; }
+  if(!pass){ if(!silent) uiAlert("Bu telefon henüz kuruluma bağlanmamış.\n\nYöneticinizden \"DO_Offer kurulum bağlantısı\"nı isteyin ve bir kez o bağlantıyla açın.\nSonrasında fiyatlar kendiliğinden güncellenir."); return; }
   try{
     // birkaç olası adresi dene (alt klasör / önbellek sorunlarına karşı)
     const base = location.href.replace(/[?#].*$/, "").replace(/[^/]*$/, "");
@@ -2225,6 +2229,35 @@ async function checkPricePackage(silent){
   }
 }
 $("btnPkgCheck").onclick = () => checkPricePackage(false);
+
+/* Yönetici: telefonlara gönderilecek kurulum bağlantısı (şifreyi taşır) */
+$("btnSetupLink").onclick = async () => {
+  const pass = (localStorage.getItem(PASS_KEY) || $("passInp").value || "").trim();
+  if(!pass){ uiAlert("Önce Paket Şifresi alanını doldurun."); return; }
+  const link = location.href.replace(/[?#].*$/, "") + "#s=" + btoa(unescape(encodeURIComponent(JSON.stringify({p:pass}))));
+  try{
+    if(navigator.share) await navigator.share({title:"DO_Offer kurulum", text:"DO_Offer kurulum bağlantısı", url:link});
+    else if(navigator.clipboard){ await navigator.clipboard.writeText(link); uiAlert("Bağlantı kopyalandı:\n\n" + link); }
+    else uiAlert("Bağlantı:\n\n" + link);
+  }catch(e){ if(e.name !== "AbortError") uiAlert("Bağlantı:\n\n" + link); }
+};
+
+/* Telefon: kurulum bağlantısıyla açıldıysa şifreyi kaydet ve fiyatları çek */
+(function applySetupLink(){
+  const m = (location.hash || "").match(/[#&]s=([^&]+)/);
+  if(!m) return;
+  try{
+    const o = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    if(o && o.p){
+      localStorage.setItem(PASS_KEY, o.p);
+      history.replaceState(null, "", location.pathname + location.search);
+      setTimeout(async () => {
+        await checkPricePackage(false);
+        updatePkgInfo();
+      }, 400);
+    }
+  }catch(e){}
+})();
 /* Yönetici modu */
 function admOpen(v){
   $("admBox").style.display = v ? "" : "none";
