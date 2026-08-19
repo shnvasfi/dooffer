@@ -510,7 +510,10 @@ table.pf .optrow .oname{padding-left:16px;}
   <div class="mbox" style="max-height:82vh;display:flex;flex-direction:column;">
     <h3 style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
       <span>Geçmiş Teklifler</span>
-      <button class="btn sec" id="btnCsv" style="flex:none;padding:7px 12px;font-size:13px;">⬇︎ CSV / Excel</button>
+      <span style="display:flex;gap:6px;">
+        <button class="btn sec" id="btnTable" style="flex:none;padding:7px 12px;font-size:13px;display:none;">📊 Merkezi Tablo</button>
+        <button class="btn sec" id="btnCsv" style="flex:none;padding:7px 12px;font-size:13px;">⬇︎ Bu Cihaz (CSV)</button>
+      </span>
     </h3>
     <div id="histList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
     <button class="btn pri mclose" id="histClose">Kapat</button>
@@ -613,6 +616,10 @@ table.pf .optrow .oname{padding-left:16px;}
     <div class="setrow">
       <span>Paket Şifresi<br><span style="font-size:12px;color:var(--muted);">boş = uygulamanın kendi anahtarı</span></span>
       <input class="pininp" id="passInp" type="password" style="width:120px;letter-spacing:2px;" placeholder="(isteğe bağlı)">
+    </div>
+    <div class="setrow">
+      <span>Merkezi Tablo (görüntüleme)<br><span style="font-size:12px;color:var(--muted);" id="tableInfo"></span></span>
+      <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnTableUrl">Ayarla</button>
     </div>
     <div class="setrow">
       <span>Merkezi Kayıt Adresi<br><span style="font-size:12px;color:var(--muted);" id="sheetInfo"></span></span>
@@ -893,7 +900,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.19-5";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.19-6";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2109,7 +2116,12 @@ $("btnAppUpd").onclick = async () => {
     location.reload();
   }catch(e){ b.textContent = "Kontrol Et"; b.disabled = false; uiAlert("Güncelleme denetlenemedi: " + e.message); }
 };
+$("btnTable").onclick = () => {
+  const u = localStorage.getItem(TABLE_KEY);
+  if(u) window.open(u, "_blank");
+};
 $("btnHist").onclick = async () => {
+  renderHistTools();
   $("histModal").classList.add("open");
   await renderHist();
   try{
@@ -2179,6 +2191,39 @@ $("pdfViewClose").onclick = () => {
 };
 $("histModal").onclick = e => { if(e.target === $("histModal")) $("histModal").classList.remove("open"); };
 
+
+/* ================= SÜRÜM DENETİMİ ================= */
+function showUpdateBar(txt){
+  if(document.getElementById("updBar")) return;
+  const b = document.createElement("div");
+  b.id = "updBar";
+  b.style.cssText = "position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:130;background:#0a7d4f;color:#fff;padding:12px 14px;border-radius:12px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.3);";
+  b.innerHTML = "<span>" + (txt || "Yeni sürüm hazır") + "</span>";
+  const btn = document.createElement("button");
+  btn.textContent = "Güncelle";
+  btn.style.cssText = "background:#fff;color:#0a7d4f;border:none;border-radius:8px;padding:7px 12px;font-weight:800;cursor:pointer;";
+  btn.onclick = () => hardRefresh();
+  b.appendChild(btn);
+  document.body.appendChild(b);
+}
+async function hardRefresh(){
+  try{
+    if("caches" in window){ const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }
+    if(navigator.serviceWorker){ const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.unregister())); }
+  }catch(e){}
+  location.reload();
+}
+async function checkAppUpdate(){
+  if(!/^https?:$/.test(location.protocol)) return;
+  try{
+    const res = await fetch(location.pathname + "?v=" + Date.now(), {cache:"no-store"});
+    if(!res.ok) return;
+    const txt = await res.text();
+    const m = txt.match(/APP_BUILD\s*=\s*"([^"]+)"/);
+    if(m && m[1] !== APP_BUILD) showUpdateBar("Yeni sürüm var (" + m[1] + ")");
+  }catch(e){}
+}
+setTimeout(checkAppUpdate, 2000);
 
 /* ================= MERKEZİ TEKLİF KAYDI (Google Sheets) ================= */
 const SHEET_URL_BUILTIN = "";        // yönetim adresi buraya gömülür (boşsa cihazdaki ayar kullanılır)
@@ -2388,7 +2433,22 @@ $("btnSheet").onclick = async () => {
       : "Adres kaydedildi ama gönderim doğrulanamadı. İnternet bağlantısını kontrol edin.");
   }
 };
+const TABLE_KEY = "yq_tableurl";
+$("btnTableUrl").onclick = async () => {
+  const v = await uiPrompt("Merkezi tablo adresi\n\nGoogle E-Tablolar bağlantısını yapıştırın.\n(Geçmiş Teklifler penceresinde \"Merkezi Tablo\" düğmesi çıkar)",
+    localStorage.getItem(TABLE_KEY) || "", "https://docs.google.com/spreadsheets/...");
+  if(v === null) return;
+  const t = v.trim();
+  if(t) localStorage.setItem(TABLE_KEY, t); else localStorage.removeItem(TABLE_KEY);
+  updateSheetInfo(); renderHistTools();
+};
+function renderHistTools(){
+  const btn = $("btnTable");
+  if(btn) btn.style.display = localStorage.getItem(TABLE_KEY) ? "" : "none";
+}
 function updateSheetInfo(){
+  const ti = $("tableInfo");
+  if(ti) ti.textContent = localStorage.getItem(TABLE_KEY) ? "Tanımlı" : "Tanımlı değil";
   const el = $("sheetInfo"); if(!el) return;
   const u = sheetUrl();
   let q = 0; try{ q = JSON.parse(localStorage.getItem(SHEETQ_KEY) || "[]").length; }catch(e){}
