@@ -2195,7 +2195,8 @@ $("btnPkgMake").onclick = async () => {
 async function checkPricePackage(silent){
   if(!/^https?:$/.test(location.protocol)){ if(!silent) uiAlert("Paket güncellemesi yalnızca internet adresinden açıldığında çalışır."); return; }
   if(!cryptoReady()){ if(!silent) uiAlert("Bu ortamda şifreleme kullanılamıyor (https gerekir)."); return; }
-  const pass = localStorage.getItem(PASS_KEY) || BUILTIN_PASS;
+  const stored = localStorage.getItem(PASS_KEY);
+  const passList = [...new Set([stored, BUILTIN_PASS].filter(Boolean))];
   try{
     // birkaç olası adresi dene (alt klasör / önbellek sorunlarına karşı)
     const base = location.href.replace(/[?#].*$/, "").replace(/[^/]*$/, "");
@@ -2213,7 +2214,13 @@ async function checkPricePackage(silent){
       return;
     }
     if(txt.trim().startsWith("<")){ if(!silent) uiAlert("Paket yerine web sayfası geldi.\nDosya adı prices.enc olmalı ve uygulamayla aynı klasörde bulunmalı."); return; }
-    const pkg = await pkgDecrypt(txt, pass);
+    let pkg = null, usedPass = null, lastErr = null;
+    for(const cand of passList){
+      try{ pkg = await pkgDecrypt(txt, cand); usedPass = cand; break; }
+      catch(err){ lastErr = err; }
+    }
+    if(!pkg) throw (lastErr || new Error("paket çözülemedi"));
+    if(usedPass === BUILTIN_PASS && stored && stored !== BUILTIN_PASS) localStorage.removeItem(PASS_KEY);  // eski şifre kaydını temizle
     if(!pkg || !pkg.db || !pkg.db.machines){ throw new Error("paket içeriği okunamadı"); }
     if(pkg.stamp && pkg.stamp === localStorage.getItem(STAMP_KEY)){ if(!silent) uiAlert("Fiyat listesi güncel.\nPaket: " + pkg.stamp); return; }
     DB = pkg.db;
@@ -2224,7 +2231,7 @@ async function checkPricePackage(silent){
     updateImpInfo(); updatePkgInfo(); resetSel(); renderEmptyState();
     uiAlert("Fiyat listesi güncellendi.\nPaket: " + (pkg.stamp || "") + "\nMakine: " + DB.machines.length);
   }catch(e){
-    if(!silent) uiAlert("Paket açılamadı: " + e.message + "\nŞifre yanlış olabilir.");
+    if(!silent) uiAlert("Fiyat paketi açılamadı.\n\nYöneticiden paketin son sürümle üretilmiş olduğunu doğrulamasını isteyin.\n(Ayrıntı: " + e.message + ")");
   }
 }
 $("btnPkgCheck").onclick = () => checkPricePackage(false);
@@ -2370,7 +2377,7 @@ function renderEmptyState(){
     document.querySelector("main").style.paddingBottom = "";
   }
 }
-$("emptyLoad").onclick = () => { $("setModal").classList.add("open"); updateImpInfo(); };
+$("emptyLoad").onclick = () => checkPricePackage(false);
 renderEmptyState();
 renderMini();
 
