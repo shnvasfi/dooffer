@@ -591,7 +591,7 @@ table.pf .optrow .oname{padding-left:16px;}
       </span>
     </div>
     <div class="setrow">
-      <span>Programı Güncelle</span>
+      <span>Programı Güncelle<br><span style="font-size:12px;color:var(--muted);" id="buildInfo"></span></span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnAppUpd">Kontrol Et</button>
     </div>
     <div class="setrow">
@@ -599,7 +599,7 @@ table.pf .optrow .oname{padding-left:16px;}
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnPkgCheck">Güncelle</button>
     </div>
     <div class="setrow">
-      <span>Yönetici Modu</span>
+      <span>Yönetici Modu<br><span style="font-size:12px;color:var(--muted);">ilk yazılan kod bu cihaza kaydedilir</span></span>
       <span style="display:flex;gap:6px;align-items:center;">
         <input class="pininp" id="admInp" type="password" inputmode="numeric" maxlength="12" style="width:92px;letter-spacing:3px;" placeholder="kod">
         <button class="btn sec" style="flex:none;padding:8px 12px;" id="btnAdm">Aç</button>
@@ -866,7 +866,8 @@ function normalizeEmbedded(){
     opts: Object.fromEntries(Object.entries(OPTS).map(([k,o]) => [k, {code:o[0], name:o[1], info:o[2], eur:o[3], tl:null}]))
   };
 }
-const DB_VERSION = 20260818;   // gömülü liste sürümü (Ağustos 2026)
+const DB_VERSION = 20260819;
+const APP_BUILD = "2026.08.19-3";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2185,9 +2186,16 @@ $("btnPkgMake").onclick = async () => {
     localStorage.setItem(STAMP_KEY, stamp);
     updatePkgInfo();
     const file = new File([text], "prices.enc", {type:"application/octet-stream"});
-    if(navigator.canShare && navigator.canShare({files:[file]})) await navigator.share({files:[file], title:"prices.enc"});
-    else { const u = URL.createObjectURL(file); const a = document.createElement("a"); a.href = u; a.download = "prices.enc"; a.click(); }
-    uiAlert("Paket hazır: prices.enc\nGitHub deposuna yükleyin (Add file > Upload files).\nPaket tarihi: " + stamp);
+    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if(isIOS && navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:"prices.enc"});     // iPhone/iPad: paylaş menüsü
+    } else {
+      const u = URL.createObjectURL(file);                            // Mac/PC: doğrudan indir
+      const a = document.createElement("a"); a.href = u; a.download = "prices.enc"; a.click();
+      setTimeout(() => URL.revokeObjectURL(u), 4000);
+    }
+    uiAlert("Paket hazır: prices.enc\n\nAnahtar: " + (pass === BUILTIN_PASS ? "uygulama anahtarı (kurulum gerekmez)" : "özel şifre (her telefona girilmeli)") +
+      "\nPaket tarihi: " + stamp + "\n\nGitHub deposuna yükleyin (Add file > Upload files).");
   }catch(e){ uiAlert("Paket oluşturulamadı: " + e.message); }
   b.textContent = "Oluştur"; b.disabled = false;
 };
@@ -2228,10 +2236,11 @@ async function checkPricePackage(silent){
     localStorage.setItem("yq_dbver", String(pkg.ver || DB_VERSION));
     localStorage.setItem(STAMP_KEY, pkg.stamp || "");
     localStorage.setItem("yq_dbinfo", "Merkezi paket (" + (pkg.stamp || "") + ")");
-    updateImpInfo(); updatePkgInfo(); resetSel(); renderEmptyState();
+    updateImpInfo(); updatePkgInfo();
+  if($("buildInfo")) $("buildInfo").textContent = "Sürüm: " + APP_BUILD; resetSel(); renderEmptyState();
     uiAlert("Fiyat listesi güncellendi.\nPaket: " + (pkg.stamp || "") + "\nMakine: " + DB.machines.length);
   }catch(e){
-    if(!silent) uiAlert("Fiyat paketi açılamadı.\n\nYöneticiden paketin son sürümle üretilmiş olduğunu doğrulamasını isteyin.\n(Ayrıntı: " + e.message + ")");
+    if(!silent) uiAlert("Fiyat paketi bu telefonda açılamadı.\n\nPaket büyük olasılıkla özel bir şifreyle üretilmiş.\nYönetici şunu yapmalı: Ayarlar > Yönetici Modu > Paket Şifresi alanını BOŞ bırakıp\n\"Fiyat Paketi Oluştur\" ile yeniden üretip depoya yüklemeli.");
   }
 }
 $("btnPkgCheck").onclick = () => checkPricePackage(false);
@@ -2269,12 +2278,19 @@ function admOpen(v){
   $("admBox").style.display = v ? "" : "none";
   $("btnAdm").textContent = v ? "Kapat" : "Aç";
   $("admInp").style.display = v ? "none" : "";
-  if(v) $("passInp").value = localStorage.getItem(PASS_KEY) || "";
+  if(v) $("passInp").value = "";   // boş bırakılırsa uygulamanın kendi anahtarı kullanılır
 }
+const MASTER_ADM = "DO-RESET-2026";   // kurtarma kodu: kayıtlı yönetici kodunu sıfırlar
 $("btnAdm").onclick = async () => {
   if($("admBox").style.display !== "none"){ admOpen(false); return; }
   const code = ($("admInp").value || "").trim();
   const saved = localStorage.getItem(ADM_KEY);
+  if(code === MASTER_ADM){
+    localStorage.removeItem(ADM_KEY);
+    $("admInp").value = ""; admOpen(true);
+    uiAlert("Yönetici kodu sıfırlandı.\nBu cihazda yeni kod belirlemek için kutuya yeni kodu yazıp Aç deyin.");
+    return;
+  }
   if(!saved){
     if(code.length < 4){ uiAlert("Yönetici kodu belirlemek için en az 4 karakter girin.\nBu kod bu cihazda saklanır."); return; }
     localStorage.setItem(ADM_KEY, code); admOpen(true);
@@ -2289,6 +2305,7 @@ $("passInp").onchange = () => {
   if(v) localStorage.setItem(PASS_KEY, v);
 };
 updatePkgInfo();
+if($("buildInfo")) $("buildInfo").textContent = "Sürüm: " + APP_BUILD;
 /* açılışta sessiz kontrol */
 setTimeout(() => checkPricePackage(true), 800);
 
