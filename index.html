@@ -558,6 +558,7 @@ table.pf .optrow .oname{padding-left:16px;}
 <div class="modal" id="msgModal" style="align-items:center;">
   <div class="mbox" style="border-radius:18px;max-width:420px;margin:0 14px;">
     <div id="msgText" style="font-size:15px;line-height:1.5;white-space:pre-wrap;max-height:55vh;overflow-y:auto;"></div>
+    <input id="msgInput" style="display:none;width:100%;margin-top:12px;padding:10px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;" autocapitalize="off" autocorrect="off" spellcheck="false">
     <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
       <button class="btn sec" id="msgNo">Vazgeç</button>
       <button class="btn sec" id="msgAlt" style="display:none;">Seçenek</button>
@@ -842,6 +843,7 @@ function uiDialog(msg, isConfirm){
     const M = document.getElementById("msgModal");
     document.getElementById("msgText").textContent = msg;
     document.getElementById("msgAlt").style.display = "none";
+    document.getElementById("msgInput").style.display = "none";
     document.getElementById("msgOk").textContent = "Tamam";
     document.getElementById("msgNo").style.display = isConfirm ? "" : "none";
     M.classList.add("open");
@@ -851,10 +853,27 @@ function uiDialog(msg, isConfirm){
 }
 const uiAlert = m => uiDialog(m, false);
 const uiConfirm = m => uiDialog(m, true);
+function uiPrompt(msg, value, placeholder){
+  return new Promise(res => {
+    const M = document.getElementById("msgModal");
+    document.getElementById("msgText").textContent = msg;
+    document.getElementById("msgAlt").style.display = "none";
+    document.getElementById("msgOk").textContent = "Tamam";
+    document.getElementById("msgNo").style.display = "";
+    const inp = document.getElementById("msgInput");
+    inp.style.display = ""; inp.value = value || ""; inp.placeholder = placeholder || "";
+    M.classList.add("open");
+    setTimeout(() => inp.focus(), 150);
+    const done = v => { M.classList.remove("open"); inp.style.display = "none"; res(v); };
+    document.getElementById("msgOk").onclick = () => done(inp.value);
+    document.getElementById("msgNo").onclick = () => done(null);
+  });
+}
 function uiChoice(msg, lbl1, lbl2){
   return new Promise(res => {
     const M = document.getElementById("msgModal");
     document.getElementById("msgText").textContent = msg;
+    document.getElementById("msgInput").style.display = "none";
     document.getElementById("msgNo").style.display = "";
     const alt = document.getElementById("msgAlt"), ok = document.getElementById("msgOk");
     alt.style.display = ""; alt.textContent = lbl1; ok.textContent = lbl2;
@@ -874,7 +893,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.19-4";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.19-5";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2353,7 +2372,7 @@ $("btnPkgCheck").onclick = () => checkPricePackage(false);
 /* Yönetici: telefonlara gönderilecek kurulum bağlantısı (şifreyi taşır) */
 $("btnSheet").onclick = async () => {
   const cur0 = localStorage.getItem(SHEET_KEY) || "";
-  const v = prompt("Merkezi kayıt adresi:\n• Google Form ön dolgulu bağlantısı (önerilen)\n• veya Apps Script web uygulaması adresi\n(boş bırakıp Tamam derseniz kayıt kapanır)", cur0);
+  const v = await uiPrompt("Merkezi kayıt adresi\n\n• Google Form ön dolgulu bağlantısını yapıştırın\n• Boş bırakıp Tamam derseniz kayıt kapanır", cur0, "https://docs.google.com/forms/...");
   if(v === null) return;
   const t = v.trim();
   if(t) localStorage.setItem(SHEET_KEY, t); else localStorage.removeItem(SHEET_KEY);
