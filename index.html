@@ -614,6 +614,10 @@ table.pf .optrow .oname{padding-left:16px;}
       <input class="pininp" id="passInp" type="password" style="width:120px;letter-spacing:2px;" placeholder="(isteğe bağlı)">
     </div>
     <div class="setrow">
+      <span>Merkezi Kayıt Adresi<br><span style="font-size:12px;color:var(--muted);" id="sheetInfo"></span></span>
+      <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnSheet">Ayarla</button>
+    </div>
+    <div class="setrow">
       <span>Kurulum Bağlantısı<br><span style="font-size:12px;color:var(--muted);">telefonlara özel gönderilir</span></span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnSetupLink">Oluştur</button>
     </div>
@@ -870,7 +874,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.19-3";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.19-4";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1324,6 +1328,15 @@ $("btnPdf").onclick = async () => {
         listTotal: quoteListTotal(), netTotal: quoteTotal(),
         items: JSON.parse(JSON.stringify(quote)),
         total: fmtQ(quoteTotal()), blob: file, card: cardData
+      });
+      sheetSend({
+        no: $("pfNo").value, date: new Date().toLocaleDateString("tr-TR"),
+        company: $("cCompany").value, person: $("cPerson").value, phone: $("cPhone").value, mail: $("cMail").value,
+        mode: localStorage.getItem("yq_mode") || "", user: (localStorage.getItem("yq_dev") || ""),
+        cur: qcur2, incoTerm: $("incoTerm").value, incoPlace: $("incoPlace").value,
+        delTerm: $("delTerm").value, delPlace: $("delPlace").value, payment: $("cPayment").value,
+        freight: parseAmt($("exFreightAmt").value), insurance: parseAmt($("exInsAmt").value),
+        listTotal: quoteListTotal(), netTotal: quoteTotal(), items: JSON.parse(JSON.stringify(quote))
       });
     }catch(e){ /* arşiv desteklenmiyorsa paylaşım yine de sürsün */ }
     if(navigator.canShare && navigator.canShare({files:[file]})){
@@ -2077,7 +2090,14 @@ $("btnAppUpd").onclick = async () => {
     location.reload();
   }catch(e){ b.textContent = "Kontrol Et"; b.disabled = false; uiAlert("Güncelleme denetlenemedi: " + e.message); }
 };
-$("btnHist").onclick = () => { $("histModal").classList.add("open"); renderHist(); };
+$("btnHist").onclick = async () => {
+  $("histModal").classList.add("open");
+  await renderHist();
+  try{
+    const n = (await pdfArchiveAll()).length;
+    if(n && await uiConfirm("Geçmişte " + n + " teklif var.\n\nCSV (Excel) dosyasını şimdi indirmek ister misiniz?")) $("btnCsv").onclick();
+  }catch(e){}
+};
 
 /* ---- teklif kayıtlarını CSV (Excel) olarak ver ---- */
 function csvCell(v){
@@ -2140,6 +2160,88 @@ $("pdfViewClose").onclick = () => {
 };
 $("histModal").onclick = e => { if(e.target === $("histModal")) $("histModal").classList.remove("open"); };
 
+
+/* ================= MERKEZİ TEKLİF KAYDI (Google Sheets) ================= */
+const SHEET_URL_BUILTIN = "";        // yönetim adresi buraya gömülür (boşsa cihazdaki ayar kullanılır)
+const SHEET_KEY = "yq_sheeturl";
+const SHEETQ_KEY = "yq_sheetq";
+function sheetUrl(){ return (localStorage.getItem(SHEET_KEY) || SHEET_URL_BUILTIN || "").trim(); }
+function sheetRows(r){
+  // her kalem için bir satır (CSV ile aynı kolonlar)
+  const MODES = {F:"Fuar", S:"Seyahat", O:"Ofis"};
+  const rows = [];
+  const base = [r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", r.company || "", r.person || "",
+                r.phone || "", r.mail || "", r.cur || ""];
+  const tail = [r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
+                r.freight || 0, r.insurance || 0, r.listTotal || 0, r.netTotal || 0];
+  let n = 0;
+  (r.items || []).forEach(it => {
+    n++;
+    rows.push([...base, n, "Makine", it.code, it.name, it.qty, it.unitList, it.d1, it.d2, it.unitNet, it.unitNet * it.qty, ...tail]);
+    (it.opts || []).forEach(o => {
+      n++;
+      const q = (o.qty != null ? o.qty : it.qty);
+      rows.push([...base, n, "Opsiyon", o.code, o.name, q, o.unitList, it.d1, it.d2, o.unitNet, o.unitNet * q, ...tail]);
+    });
+  });
+  return rows;
+}
+// Google Form ön dolgulu bağlantısından adres + alan kimliği çıkar
+function parseFormLink(link){
+  try{
+    const u = new URL(link);
+    if(!/docs\.google\.com$/.test(u.hostname) || !/\/forms\//.test(u.pathname)) return null;
+    const entry = [...u.searchParams.keys()].find(k => k.startsWith("entry."));
+    if(!entry) return null;
+    return {action: u.origin + u.pathname.replace(/\/(viewform|formResponse).*$/, "/formResponse"), entry};
+  }catch(e){ return null; }
+}
+function isFormUrl(u){ return /docs\.google\.com\/forms\//.test(u || ""); }
+async function sheetPost(payload){
+  const url = sheetUrl();
+  if(!url) return false;
+  // 1) Google Form
+  if(isFormUrl(url)){
+    const f = parseFormLink(url);
+    if(!f) return false;
+    try{
+      for(const row of (payload.rows || [])){
+        const body = new URLSearchParams();
+        body.append(f.entry, row.map(v => (v == null ? "" : String(v).replace(/;/g, ","))).join(";"));
+        await fetch(f.action, {method:"POST", mode:"no-cors", body});
+      }
+      return true;
+    }catch(e){ return false; }
+  }
+  // 2) Apps Script
+  try{
+    const res = await fetch(url, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(payload)});
+    return res.ok;
+  }catch(e){ return false; }
+}
+function sheetQueue(payload){
+  try{
+    const q = JSON.parse(localStorage.getItem(SHEETQ_KEY) || "[]");
+    q.push(payload);
+    localStorage.setItem(SHEETQ_KEY, JSON.stringify(q.slice(-200)));
+  }catch(e){}
+}
+async function sheetFlush(){
+  if(!sheetUrl()) return;
+  let q = [];
+  try{ q = JSON.parse(localStorage.getItem(SHEETQ_KEY) || "[]"); }catch(e){}
+  if(!q.length) return;
+  const kalan = [];
+  for(const p of q){ if(!await sheetPost(p)) kalan.push(p); }
+  localStorage.setItem(SHEETQ_KEY, JSON.stringify(kalan));
+}
+async function sheetSend(rec){
+  if(!sheetUrl()) return;
+  const payload = {no:rec.no, rows:sheetRows(rec)};
+  if(!await sheetPost(payload)) sheetQueue(payload);
+}
+setTimeout(sheetFlush, 3000);
+window.addEventListener("online", sheetFlush);
 
 /* ================= ŞİFRELİ FİYAT PAKETİ (prices.enc) ================= */
 const PKG_URL = "prices.enc";
@@ -2249,6 +2351,30 @@ async function checkPricePackage(silent){
 $("btnPkgCheck").onclick = () => checkPricePackage(false);
 
 /* Yönetici: telefonlara gönderilecek kurulum bağlantısı (şifreyi taşır) */
+$("btnSheet").onclick = async () => {
+  const cur0 = localStorage.getItem(SHEET_KEY) || "";
+  const v = prompt("Merkezi kayıt adresi:\n• Google Form ön dolgulu bağlantısı (önerilen)\n• veya Apps Script web uygulaması adresi\n(boş bırakıp Tamam derseniz kayıt kapanır)", cur0);
+  if(v === null) return;
+  const t = v.trim();
+  if(t) localStorage.setItem(SHEET_KEY, t); else localStorage.removeItem(SHEET_KEY);
+  updateSheetInfo();
+  if(t){
+    if(isFormUrl(t) && !parseFormLink(t)){
+      uiAlert("Bu bağlantıda alan kimliği (entry...) yok.\n\nFormda 'Ön dolgulu bağlantı al' ile TEST yazıp aldığınız bağlantıyı yapıştırın.");
+      return;
+    }
+    const ok = await sheetPost({test:true, rows:[["TEST","-","-","-","-","-","-","-","-",1,"Test","-","bağlantı denemesi",0,0,0,0,0,0,"-","-","-","-","-",0,0,0,0]]});
+    uiAlert(ok
+      ? (isFormUrl(t) ? "Kayıt açıldı. Form tablosuna bir TEST satırı gönderildi (silebilirsiniz)." : "Bağlantı çalışıyor. Tabloya bir TEST satırı yazıldı.")
+      : "Adres kaydedildi ama gönderim doğrulanamadı. İnternet bağlantısını kontrol edin.");
+  }
+};
+function updateSheetInfo(){
+  const el = $("sheetInfo"); if(!el) return;
+  const u = sheetUrl();
+  let q = 0; try{ q = JSON.parse(localStorage.getItem(SHEETQ_KEY) || "[]").length; }catch(e){}
+  el.textContent = u ? ((isFormUrl(u) ? "Açık (Google Form)" : "Açık (Apps Script)") + (q ? " • bekleyen: " + q : "")) : "Kapalı — teklifler yalnızca cihazda";
+}
 $("btnSetupLink").onclick = async () => {
   const pass = (localStorage.getItem(PASS_KEY) || $("passInp").value || "").trim();
   if(!pass){ uiAlert("Önce Paket Şifresi alanını doldurun."); return; }
@@ -2322,6 +2448,7 @@ $("btnSettings").onclick = () => {
   $("devInp").value = (localStorage.getItem("yq_dev") || "").replace(/^[FSO]-/i, "");
   $("seqInp").value = localStorage.getItem("yq_seq") || "1";
   updateImpInfo(); updatePkgInfo();
+  updateSheetInfo();
   if($("admBox").style.display === "none") $("admInp").value = "";
   $("setModal").classList.add("open");
 };
