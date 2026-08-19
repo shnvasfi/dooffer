@@ -900,7 +900,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.19-6";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.19-7";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2226,7 +2226,7 @@ async function checkAppUpdate(){
 setTimeout(checkAppUpdate, 2000);
 
 /* ================= MERKEZİ TEKLİF KAYDI (Google Sheets) ================= */
-const SHEET_URL_BUILTIN = "";        // yönetim adresi buraya gömülür (boşsa cihazdaki ayar kullanılır)
+const SHEET_URL_BUILTIN = "https://docs.google.com/forms/d/e/1FAIpQLScLNHMVK3RwBhjRV0lp-Kw-qMEMj31a_hTZM2kc8Pfy5gh4xA/viewform?usp=pp_url&entry.1239226715=test";   // merkezi kayıt (Google Form) — tüm cihazlar buraya yazar
 const SHEET_KEY = "yq_sheeturl";
 const SHEETQ_KEY = "yq_sheetq";
 function sheetUrl(){ return (localStorage.getItem(SHEET_KEY) || SHEET_URL_BUILTIN || "").trim(); }
