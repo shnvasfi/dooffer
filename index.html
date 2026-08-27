@@ -948,7 +948,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.20-8";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.20-9";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2761,6 +2761,16 @@ paintModeBtns();
 document.getElementById("modeOk").onclick = () => {
   if(!selMode) return;
   localStorage.setItem("yq_mode", selMode);
+  // açılışta seçilen kaynak, teklif bilgileri penceresine de yansısın
+  try{
+    if(typeof leadData !== "undefined"){
+      leadData.src = selMode;
+      leadData.srcName = MODE_NAMES[selMode] || selMode;
+      if(selMode !== "F") leadData.fair = "";
+      localStorage.setItem(LEAD_KEY, JSON.stringify(leadData));
+      if(typeof syncQuoteNo === "function") syncQuoteNo();
+    }
+  }catch(e){}
   try{
     const el = document.documentElement;
     const fs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
