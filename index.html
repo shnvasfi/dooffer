@@ -947,7 +947,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.20-6";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.20-7";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1464,7 +1464,8 @@ async function makePdf(){
   });
   el.classList.add("pdfmode");
   const opt = {
-    margin: 5, filename: "Teklif_" + ($("cCompany").value || "Yilmaz").replace(/\s+/g,"_") + ".pdf",
+    margin: 5, filename: "Teklif_" + ($("pfNo").value || "").replace(/[^\w-]/g,"") + "_" +
+      ($("cCompany").value || "Yilmaz").replace(/[^\wÇĞİÖŞÜçğıöşü]+/g,"_").slice(0,28) + ".pdf",
     image: {type:"jpeg", quality:0.95},
     html2canvas: {scale:2, useCORS:true},
     jsPDF: {unit:"mm", format:"a4", orientation:"portrait"}
@@ -1521,14 +1522,8 @@ $("btnPdf").onclick = async () => {
     if(await uiConfirm("Teklif kaydedildi (" + rec.no + ").\n\nPDF aracı indirilemedi (internet gerekiyor).\nYazdır ekranını açayım mı?\n(Oradan 'PDF olarak kaydet' seçebilirsiniz)")) window.print();
     return;
   }
-  try{
-    if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file], title:"Proforma Invoice"});
-    } else {
-      const url = URL.createObjectURL(file);
-      const a = document.createElement("a"); a.href = url; a.download = file.name; a.click();
-    }
-  }catch(e){ /* paylaşmaktan vazgeçilse de kayıt duruyor */ }
+  try{ await deliverFile(file, "Proforma Invoice"); }
+  catch(e){ /* paylaşmaktan vazgeçilse de kayıt duruyor */ }
 };
 
 /* ================= EXCEL IMPORT ================= */
@@ -2086,6 +2081,23 @@ async function ensureLib(name){
 // çevrimiçiyken önden yükle (sonradan çevrimdışı da çalışsın)
 setTimeout(() => { ensureLib("html2pdf"); ensureLib("pdfjsLib"); }, 2500);
 
+/* ---- dosya verme: iPhone/iPad'de paylaş, Mac/PC'de doğrudan indir ---- */
+function isTouchApple(){
+  return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+async function deliverFile(file, title){
+  if(isTouchApple() && navigator.canShare && navigator.canShare({files:[file]})){
+    await navigator.share({files:[file], title: title || file.name});
+    return "share";
+  }
+  const u = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = u; a.download = file.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 4000);
+  return "download";
+}
+
 /* ================= KARTVİZİT ================= */
 let cardData = localStorage.getItem("yq_card") || null;
 function renderCard(){
@@ -2256,8 +2268,7 @@ async function renderHist(){
       if(hshareBtn) hshareBtn.onclick = async () => {
         try{
           const f = r.blob instanceof File ? r.blob : new File([r.blob], "Teklif_" + r.no + ".pdf", {type:"application/pdf"});
-          if(navigator.canShare && navigator.canShare({files:[f]})) await navigator.share({files:[f]});
-          else { const u = URL.createObjectURL(f); const a = document.createElement("a"); a.href = u; a.download = f.name; a.click(); }
+          await deliverFile(f);
         }catch(e){ if(e.name !== "AbortError") uiAlert("Paylaşılamadı: " + e.message); }
       };
       row.querySelector(".hdel").onclick = async () => {
@@ -2339,10 +2350,11 @@ $("btnCsv").onclick = async () => {
     if(!recs.length){ uiAlert("Kayıtlı teklif yok.\nPDF Paylaş yaptığınız teklifler burada birikir."); return; }
     const csv = buildCsv(recs);
     const dev = (localStorage.getItem("yq_mode") || "") + (localStorage.getItem("yq_dev") ? "-" + localStorage.getItem("yq_dev") : "");
-    const name = "DO_Offer_Teklifler_" + (dev || "kayit") + "_" + new Date().toISOString().slice(0,10) + ".csv";
+    const st = new Date();
+    const name = "DO_Offer_Teklifler_" + (dev || "kayit") + "_" + st.toISOString().slice(0,10) +
+      "_" + String(st.getHours()).padStart(2,"0") + String(st.getMinutes()).padStart(2,"0") + ".csv";
     const file = new File([csv], name, {type:"text/csv;charset=utf-8"});
-    if(navigator.canShare && navigator.canShare({files:[file]})) await navigator.share({files:[file], title:name});
-    else { const u = URL.createObjectURL(file); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); }
+    await deliverFile(file, name);
   }catch(e){ if(e.name !== "AbortError") uiAlert("CSV oluşturulamadı: " + e.message); }
   b.textContent = t0; b.disabled = false;
 };
@@ -2522,14 +2534,7 @@ $("btnPkgMake").onclick = async () => {
     localStorage.setItem(STAMP_KEY, stamp);
     updatePkgInfo();
     const file = new File([text], "prices.enc", {type:"application/octet-stream"});
-    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    if(isIOS && navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file], title:"prices.enc"});     // iPhone/iPad: paylaş menüsü
-    } else {
-      const u = URL.createObjectURL(file);                            // Mac/PC: doğrudan indir
-      const a = document.createElement("a"); a.href = u; a.download = "prices.enc"; a.click();
-      setTimeout(() => URL.revokeObjectURL(u), 4000);
-    }
+    await deliverFile(file, "prices.enc");
     uiAlert("Paket hazır: prices.enc\n\nAnahtar: " + (pass === BUILTIN_PASS ? "uygulama anahtarı (kurulum gerekmez)" : "özel şifre (her telefona girilmeli)") +
       "\nPaket tarihi: " + stamp + "\n\nGitHub deposuna yükleyin (Add file > Upload files).");
   }catch(e){ uiAlert("Paket oluşturulamadı: " + e.message); }
