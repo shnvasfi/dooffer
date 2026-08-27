@@ -947,7 +947,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.20-5";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.20-6";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1255,6 +1255,7 @@ $("leadOk").onclick = () => {
     note: $("leadNoteOn").checked ? $("leadNote").value.trim() : ""
   };
   localStorage.setItem(LEAD_KEY, JSON.stringify(leadData));
+  syncQuoteNo();                                   // kaynak değiştiyse teklif no ön ekini düzelt
   $("leadModal").classList.remove("open");
   showQuote();
 };
@@ -1262,9 +1263,21 @@ $("leadModal").onclick = e => { if(e.target === $("leadModal")) $("leadCancel").
 
 /* ================= QUOTE ================= */
 function devPrefix(){
-  const letter = localStorage.getItem("yq_mode") || "";
+  const letter = ((typeof leadData !== "undefined" && leadData && leadData.src) || localStorage.getItem("yq_mode") || "");
   const ini = (localStorage.getItem("yq_dev") || "").trim().toLocaleUpperCase("tr");
   return [letter, ini].filter(Boolean).join("-") || "1";
+}
+// Teklif numarasının ön ekini güncel kaynağa göre düzeltir (sıra numarası korunur)
+function syncQuoteNo(){
+  const cur0 = ($("pfNo").value || "").trim();
+  const m = cur0.match(/(\d+)\s*$/);
+  if(!m || !quote.length) return;
+  const yeni = devPrefix() + "-" + m[1];
+  if(yeni !== cur0){
+    $("pfNo").value = yeni;
+    localStorage.setItem("yq_pfNo", yeni);
+    renderMini();
+  }
 }
 function nextQuoteNo(){
   const dev = devPrefix();
