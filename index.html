@@ -957,7 +957,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.21-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.21-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1290,6 +1290,7 @@ function syncQuoteNo(){
   }
 }
 function nextQuoteNo(){
+  editingNo = null;
   const dev = devPrefix();
   const seq = parseInt(localStorage.getItem("yq_seq") || "1") || 1;
   const no = dev + "-" + String(seq).padStart(5, "0");
@@ -1351,14 +1352,14 @@ $("btnNewQuote").onclick = async () => {
     return;
   }
   if(await uiConfirm("Yeni teklif başlatılsın mı?\nMevcut teklifteki " + quote.length + " kalem silinir ve sıradaki teklif numarasına geçilir.")){
-    quote = []; saveQuote(); clearCard(); clearCustomer(); renderQuote();
+    quote = []; saveQuote(); clearCard(); clearCustomer(); editingNo = null; renderQuote();
     uiAlert("Yeni teklif hazır.\nEkleyeceğiniz ilk makine yeni numara alacak.");
   }
 };
 $("btnWipe").onclick = async () => {
   const c = await uiChoice("Ne temizlensin?", "Sadece Bu Sayfa", "Sayfa + Teklif");
   if(c === 1){ resetSel(); }
-  if(c === 2){ resetSel(); quote = []; saveQuote(); clearCard(); clearCustomer(); renderQuote(); }
+  if(c === 2){ resetSel(); quote = []; saveQuote(); clearCard(); clearCustomer(); editingNo = null; renderQuote(); }
 };
 
 function showQuote(){
@@ -1369,7 +1370,7 @@ function showQuote(){
 }
 $("btnQuote").onclick = () => { leadFill(); $("leadModal").classList.add("open"); };
 $("btnBack").onclick = () => { $("quotePage").classList.add("hidden"); $("calcPage").classList.remove("hidden"); };
-$("btnClear").onclick = async () => { if(await uiConfirm("Teklif listesi silinsin mi?")){ quote = []; saveQuote(); clearCard(); clearCustomer(); renderQuote(); } };
+$("btnClear").onclick = async () => { if(await uiConfirm("Teklif listesi silinsin mi?")){ quote = []; saveQuote(); clearCard(); clearCustomer(); editingNo = null; renderQuote(); } };
 $("btnDisc").onclick = () => {
   const cur = localStorage.getItem("yq_showdisc") === "1";
   localStorage.setItem("yq_showdisc", cur ? "0" : "1");
@@ -1420,6 +1421,8 @@ function renderQuote(){
       tb.appendChild(tro);
     });
   });
+  const st = $("btnSaveQ");
+  if(st) st.textContent = (editingNo && editingNo === ($("pfNo").value || "").trim()) ? "💾 Teklifi Güncelle" : "💾 Teklifi Kaydet";
   const tot = quoteTotal(), listT = quoteListTotal();
   const qcur = quote.length ? (quote[0].cur || "EUR") : cur;
   $("pfTotalCur").textContent = qcur === "TL" ? "₺" : "€";
@@ -1523,6 +1526,8 @@ async function runSave(btn, forceNew){
 
   if(forceNew){
     nextQuoteNo();                       // her hâlükârda yeni numara
+  } else if(mevcut && editingNo && editingNo === no){
+    /* düzenleme modunda: aynı numarayla güncelle */
   } else if(mevcut){
     const c = await uiChoice(
       "Bu teklif zaten kayıtlı:\n" + no + "\n(" + (mevcut.company || "firma yok") + " • " + (mevcut.total || "") + ")\n\n" +
@@ -2279,11 +2284,13 @@ async function renderHist(){
           <div style="font-weight:800;">${r.no} <span style="font-weight:600;color:var(--muted);font-size:12.5px;">• ${r.date}</span></div>
           <div style="font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.company || r.person || "-"} • ${r.total}</div>
         </div>
+        <button class="btn sec hedit" style="flex:none;padding:8px 12px;font-size:13px;">✎ Düzenle</button>
         ${r.card ? '<button class="btn sec hcard" style="flex:none;padding:8px 10px;font-size:13px;">🪪</button>' : ''}
         ${r.blob ? '<button class="btn pri hopen" style="flex:none;padding:8px 12px;font-size:13px;">Aç</button>' +
                    '<button class="btn sec hshare" style="flex:none;padding:8px 12px;font-size:13px;">Paylaş</button>'
                  : '<span style="font-size:12px;color:var(--muted);white-space:nowrap;">PDF yok</span>'}
         <button class="delx hdel" style="flex:none;">✕</button>`;
+      row.querySelector(".hedit").onclick = () => loadQuoteForEdit(r);
       const hc = row.querySelector(".hcard");
       if(hc) hc.onclick = () => {
         $("pdfViewTitle").textContent = "Kartvizit — " + r.no;
@@ -2333,6 +2340,30 @@ $("btnHist").onclick = async () => {
     if(n && await uiConfirm("Geçmişte " + n + " teklif var.\n\nCSV (Excel) dosyasını şimdi indirmek ister misiniz?")) $("btnCsv").onclick();
   }catch(e){}
 };
+
+/* ---- geçmiş bir teklifi düzenlemek üzere ekrana yükle ---- */
+let editingNo = null;
+function loadQuoteForEdit(r){
+  quote = JSON.parse(JSON.stringify(r.items || []));
+  saveQuote();
+  const setF = (id, v) => { $(id).value = v || ""; localStorage.setItem("yq_" + id, v || ""); };
+  setF("cPerson", r.person); setF("cCompany", r.company); setF("cPhone", r.phone); setF("cMail", r.mail);
+  setF("cPayment", r.payment); setF("incoTerm", r.incoTerm); setF("incoPlace", r.incoPlace);
+  setF("delTerm", r.delTerm); setF("delPlace", r.delPlace);
+  setF("exFreightAmt", r.freight ? String(r.freight).replace(".", ",") : "");
+  setF("exInsAmt", r.insurance ? String(r.insurance).replace(".", ",") : "");
+  $("pfNo").value = r.no; localStorage.setItem("yq_pfNo", r.no);
+  leadData = r.lead ? JSON.parse(JSON.stringify(r.lead)) : {};
+  localStorage.setItem(LEAD_KEY, JSON.stringify(leadData));
+  cardData = r.card || null; renderCard();
+  editingNo = r.no;
+  $("histModal").classList.remove("open");
+  renderQuote(); renderExtra();
+  $("calcPage").classList.add("hidden");
+  $("quotePage").classList.remove("hidden");
+  window.scrollTo(0, 0);
+  uiAlert("Düzenleme modu: " + r.no + "\n\nDeğişiklikleri yapıp \"Teklifi Kaydet\" deyin; teklif aynı numarayla güncellenir.\nAyrı bir teklif olsun isterseniz \"Yeni Teklif Olarak Kaydet\" kullanın.");
+}
 
 /* ---- teklif kayıtlarını CSV (Excel) olarak ver ---- */
 function csvCell(v){
