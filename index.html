@@ -407,6 +407,7 @@ table.pf .optrow .oname{padding-left:16px;}
   <div class="qwrap">
     <div class="qtools noprint">
       <button class="btn sec" id="btnBack">‹ Hesaplamaya Dön</button>
+      <button class="btn pri" id="btnSaveQ" style="background:#0a6ea8;">💾 Teklifi Kaydet</button>
       <button class="btn pri" id="btnPdf">PDF Paylaş</button>
       <button class="btn sec" id="btnHist">🕘 Geçmiş Teklifler</button>
       <button class="btn sec" id="btnDisc">İskonto: Gizli</button>
@@ -946,7 +947,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.20-4";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.20-5";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1476,34 +1477,45 @@ function currentQuoteRecord(){
     total: fmtQ(quoteTotal()), card: cardData
   };
 }
-$("btnPdf").onclick = async () => {
-  if(!quote.length){ uiAlert("Teklif listesi boş."); return; }
-  const b = $("btnPdf"); b.textContent = "Hazırlanıyor…"; b.disabled = true;
-
-  // 1) Teklifi ÖNCE kaydet — PDF oluşmasa bile kayıt ve merkezi gönderim yapılsın
+// Teklifi arşive + merkezi kayda yazar, mümkünse PDF'ini de üretip saklar
+async function persistQuote(){
   const rec = currentQuoteRecord();
   try{ await pdfArchivePut(rec); }catch(e){}
   try{ sheetSend(rec); }catch(e){}
-
-  // 2) PDF üret ve paylaş
-  if(!await ensureLib("html2pdf")){
-    b.textContent = "PDF Paylaş"; b.disabled = false;
+  let file = null;
+  if(await ensureLib("html2pdf")){
+    try{
+      file = await makePdf();
+      try{ await pdfArchivePut(Object.assign({}, rec, {blob: file})); }catch(e){}
+    }catch(e){ file = null; }
+  }
+  return {rec, file};
+}
+$("btnSaveQ").onclick = async () => {
+  if(!quote.length){ uiAlert("Teklif listesi boş."); return; }
+  const b = $("btnSaveQ"); const t0 = b.textContent; b.textContent = "Kaydediliyor…"; b.disabled = true;
+  const {rec, file} = await persistQuote();
+  b.textContent = t0; b.disabled = false;
+  uiAlert("Teklif kaydedildi: " + rec.no + "\n" +
+    (file ? "PDF de kaydedildi. (Geçmiş Teklifler > Aç)" : "PDF oluşturulamadı; kayıt bilgileri saklandı."));
+};
+$("btnPdf").onclick = async () => {
+  if(!quote.length){ uiAlert("Teklif listesi boş."); return; }
+  const b = $("btnPdf"); b.textContent = "Hazırlanıyor…"; b.disabled = true;
+  const {rec, file} = await persistQuote();          // paylaşmadan ÖNCE kaydedilir
+  b.textContent = "PDF Paylaş"; b.disabled = false;
+  if(!file){
     if(await uiConfirm("Teklif kaydedildi (" + rec.no + ").\n\nPDF aracı indirilemedi (internet gerekiyor).\nYazdır ekranını açayım mı?\n(Oradan 'PDF olarak kaydet' seçebilirsiniz)")) window.print();
     return;
   }
   try{
-    const file = await makePdf();
-    try{ await pdfArchivePut(Object.assign({}, rec, {blob: file})); }catch(e){}
     if(navigator.canShare && navigator.canShare({files:[file]})){
       await navigator.share({files:[file], title:"Proforma Invoice"});
     } else {
       const url = URL.createObjectURL(file);
       const a = document.createElement("a"); a.href = url; a.download = file.name; a.click();
     }
-  }catch(e){
-    if(e.name !== "AbortError") uiAlert("Teklif kaydedildi (" + rec.no + ") ama PDF oluşturulamadı:\n" + e.message + "\nYazdır ekranından PDF kaydedebilirsiniz.");
-  }
-  b.textContent = "PDF Paylaş"; b.disabled = false;
+  }catch(e){ /* paylaşmaktan vazgeçilse de kayıt duruyor */ }
 };
 
 /* ================= EXCEL IMPORT ================= */
