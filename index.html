@@ -385,13 +385,9 @@ table.pf .optrow .oname{padding-left:16px;}
       <div class="big"><span class="cap">NET FİYAT</span><span class="val" id="fNet"></span></div>
     </div>
 
-    <div class="btnbar hidden" id="actBar" style="margin-bottom:8px;">
-      <button class="btn pri" id="btnAdd">Teklife Ekle</button>
-      <button class="btn sec" id="btnNewQuote">Yeni Teklif Oluştur</button>
-    </div>
-
     <div class="btnbar" style="margin-top:8px;">
-      <button class="btn sec" id="btnWipe" style="color:var(--red);border-color:var(--red);">Temizle</button>
+      <button class="btn sec" id="btnWipe" style="flex:0 0 34%;color:var(--red);border-color:var(--red);">Temizle</button>
+      <button class="btn pri hidden" id="btnAdd" style="flex:1;">Teklife Ekle</button>
     </div>
     <div id="quoteMini" style="margin-top:14px;display:none;"></div>
     <div style="text-align:right;margin-top:18px;">
@@ -961,7 +957,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.21-3";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.21-4";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1016,7 +1012,7 @@ function currentTotals(){
 /* ================= QTY KONTROLLERİ & ADIM AKIŞI ================= */
 let qtySet = false;
 function showRest(){
-  ["sumCard","discCard","finalCard","actBar"].forEach(x => $(x).classList.remove("hidden"));
+  ["sumCard","discCard","finalCard","btnAdd"].forEach(x => $(x).classList.remove("hidden"));
   $("optSkip").style.display = "none";
 }
 function advanceFromQty(){
@@ -1168,7 +1164,7 @@ function selectMachine(m){
   });
   sel._hasOpts = validOpts.length > 0;
   oc.classList.add("hidden");
-  ["sumCard","discCard","finalCard","actBar"].forEach(x => $(x).classList.add("hidden"));
+  ["sumCard","discCard","finalCard","btnAdd"].forEach(x => $(x).classList.add("hidden"));
   $("optSkip").style.display = "";
   refresh();
   window.scrollTo({top:0, behavior:"smooth"});
@@ -1350,16 +1346,7 @@ $("btnAdd").onclick = () => {
   resetSel();
   window.scrollTo({top:0, behavior:"smooth"});
 };
-$("btnNewQuote").onclick = async () => {
-  if(quote.length === 0){
-    uiAlert("Teklif listesi zaten boş.\nEkleyeceğiniz ilk makine yeni teklif numarası alacak.");
-    return;
-  }
-  if(await uiConfirm("Yeni teklif başlatılsın mı?\nMevcut teklifteki " + quote.length + " kalem silinir ve sıradaki teklif numarasına geçilir.")){
-    quote = []; saveQuote(); clearCard(); clearCustomer(); editingNo = null; renderQuote();
-    uiAlert("Yeni teklif hazır.\nEkleyeceğiniz ilk makine yeni numara alacak.");
-  }
-};
+
 $("btnWipe").onclick = async () => {
   const c = await uiChoice("Ne temizlensin?", "Sadece Bu Sayfa", "Sayfa + Teklif");
   if(c === 1){ resetSel(); }
@@ -1574,7 +1561,7 @@ function resetSel(){
   $("pickLabel").textContent = pickPlaceholder(); $("pickLabel").classList.add("ph");
   $("mName").textContent = ""; $("mDesc").textContent = "";
   $("mPrice").textContent = "—"; $("mPrice").classList.remove("req"); $("curSym").style.display = "";
-  ["optCard","sumCard","discCard","finalCard","actBar"].forEach(x => $(x).classList.add("hidden"));
+  ["optCard","sumCard","discCard","finalCard","btnAdd"].forEach(x => $(x).classList.add("hidden"));
 }
 $("btnImport").onclick = async () => {
   if(!await ensureLib("XLSX")){ uiAlert("Excel okuyucu indirilemedi. İnternet bağlantısı gerekli."); return; }
@@ -2897,7 +2884,7 @@ function renderEmptyState(){
   $("emptyCard").classList.toggle("hidden", !empty);
   $("machineCard").classList.toggle("hidden", empty);
   if(empty){
-    ["optCard","sumCard","discCard","finalCard","actBar"].forEach(x => $(x).classList.add("hidden"));
+    ["optCard","sumCard","discCard","finalCard","btnAdd"].forEach(x => $(x).classList.add("hidden"));
     $("netBar").style.display = "none";
     document.querySelector("main").style.paddingBottom = "";
   }
