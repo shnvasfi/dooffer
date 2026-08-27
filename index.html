@@ -55,6 +55,11 @@ main{flex:1;padding:10px 12px 16px;}
 .pbox .val{font-size:21px;font-weight:800;white-space:nowrap;}
 .pbox .val.req{font-size:13px;color:var(--red);font-weight:700;}
 .mdesc{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.3;}
+.leadsel{width:100%;padding:10px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;
+  font-family:inherit;background:#fff;margin-bottom:4px;box-sizing:border-box;}
+#leadSrc button{flex:1;padding:10px 0;border-radius:10px;border:1.5px solid var(--line);background:#fff;
+  font-size:14.5px;font-weight:700;cursor:pointer;}
+#leadSrc button.on{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff;}
 .qbtn{width:38px;height:38px;border:2px solid #000;background:#fff;font-size:18px;font-weight:800;cursor:pointer;line-height:1;}
 .qinp{width:54px;text-align:center;font-size:16px;font-weight:800;border:2px solid #000;padding:7px 0;}
 .oqty{width:38px;text-align:center;font-size:13px;font-weight:700;border:1.5px solid var(--line);border-radius:6px;padding:4px 0;}
@@ -273,7 +278,7 @@ table.pf .optrow .oname{padding-left:16px;}
     <div class="modebtns">
       <button class="modebtn" data-mode="F">Fuar</button>
       <button class="modebtn" data-mode="S">Seyahat</button>
-      <button class="modebtn" data-mode="O">Ofis</button>
+      <button class="modebtn" data-mode="D">Direkt</button>
     </div>
     <button class="btn pri" id="modeOk" style="width:100%;margin-top:12px;" disabled>Tamam</button>
   </div>
@@ -295,7 +300,7 @@ table.pf .optrow .oname{padding-left:16px;}
   <header class="top">
     <div class="brand" id="brandBtn" style="cursor:pointer;" title="Giriş sayfası"><img src="data:image/png;base64,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" style="height:26px;width:26px;background:#fff;border-radius:6px;padding:2px;"><span>DO_Offer</span></div>
     <div class="right">
-      <button class="hq" id="btnQuote">Teklifi Gör <span class="badge" id="qBadge">0</span></button>
+      <button class="hq" id="btnQuote">Teklife Git <span class="badge" id="qBadge">0</span></button>
       <button id="btnExit" title="Kapat" style="font-size:17px;font-weight:800;">&#10005;</button>
     </div>
   </header>
@@ -517,6 +522,47 @@ table.pf .optrow .oname{padding-left:16px;}
     </h3>
     <div id="histList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
     <button class="btn pri mclose" id="histClose">Kapat</button>
+  </div>
+</div>
+
+<!-- LEAD MODAL -->
+<div class="modal" id="leadModal" style="z-index:250;align-items:center;">
+  <div class="mbox" style="border-radius:18px;max-width:460px;margin:0 12px;max-height:88vh;overflow-y:auto;">
+    <h3>Teklif Bilgileri</h3>
+
+    <div class="lbl">Lead Kaynağı</div>
+    <div class="seg" id="leadSrc" style="margin-bottom:12px;">
+      <button data-src="F">Fuar</button><button data-src="S">Seyahat</button><button data-src="D">Direkt</button>
+    </div>
+
+    <div id="leadFairWrap" style="display:none;">
+      <div class="lbl">Fuar Adı</div>
+      <select id="leadFair" class="leadsel"><option value="">— Seçiniz —</option><option value="AVRASYA PENCERE FUARI">AVRASYA PENCERE FUARI</option><option value="BATIMAT">BATIMAT</option><option value="BAU">BAU</option><option value="BIG 5">BIG 5</option><option value="CONCRETA">CONCRETA</option><option value="EDIFICA">EDIFICA</option><option value="EXPO CAMACOL">EXPO CAMACOL</option><option value="FENSTERBAU FRONTALE">FENSTERBAU FRONTALE</option><option value="GLASSTECH MEXICO">GLASSTECH MEXICO</option><option value="VETECO">VETECO</option></select>
+    </div>
+
+    <div class="lbl">Ülke</div>
+    <select id="leadCountry" class="leadsel"><option value="">— Seçiniz —</option></select>
+
+    <div class="lbl">Fırsat Tipi</div>
+    <select id="leadOpp" class="leadsel"><option value="">— Seçiniz —</option><option value="F01">F01 Bayi Üzerinden Satış Fırsatı</option><option value="F02">F02 Perakende Satış Fırsatı</option><option value="F03">F03 Proje Satış Fırsatı</option><option value="F10">F10 Bayiye Satış Fırsatı</option></select>
+
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;"><div class="lbl">Başlangıç Tarihi</div><input type="date" id="leadStart" class="leadsel"></div>
+      <div style="flex:1;"><div class="lbl">Bitiş Tarihi</div><input type="date" id="leadEnd" class="leadsel"></div>
+    </div>
+
+    <label style="display:flex;align-items:center;gap:10px;margin:12px 0 6px;font-size:14.5px;font-weight:600;">
+      <input type="checkbox" id="leadNoteOn" style="width:20px;height:20px;accent-color:var(--blue);">
+      Not eklemek istiyorum
+    </label>
+    <textarea id="leadNote" class="leadsel" rows="3" placeholder="Notunuz…" style="display:none;resize:vertical;"></textarea>
+
+    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+      <button class="btn sec" id="leadClear" style="color:var(--red);border-color:var(--red);flex:1 0 100px;">Temizle</button>
+      <button class="btn sec" id="leadCancel" style="flex:1 0 100px;">Vazgeç</button>
+      <button class="btn pri" id="leadOk" style="flex:1 0 100px;" disabled>Tamam</button>
+    </div>
+    <div id="leadWarn" style="font-size:12.5px;color:var(--muted);margin-top:8px;"></div>
   </div>
 </div>
 
@@ -900,7 +946,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.19-7";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.20-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1130,6 +1176,81 @@ function refresh(){
   $("btnAdd").disabled = mPrice(sel)==null;
 }
 
+
+/* ================= TEKLİF BİLGİLERİ (LEAD) ================= */
+const COUNTRY_CODES = ["AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AR", "AT", "AU", "AW", "AZ", "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BM", "BN", "BO", "BR", "BS", "BT", "BW", "BY", "BZ", "CA", "CD", "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN", "CO", "CR", "CU", "CV", "CW", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE", "EG", "ER", "ES", "ET", "FI", "FJ", "FK", "FM", "FO", "FR", "GA", "GB", "GD", "GE", "GF", "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ", "GR", "GT", "GU", "GW", "GY", "HK", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IQ", "IR", "IS", "IT", "JE", "JM", "JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC", "LI", "LK", "LR", "LS", "LT", "LU", "LV", "LY", "MA", "MC", "MD", "ME", "MG", "MH", "MK", "ML", "MM", "MN", "MO", "MQ", "MR", "MS", "MT", "MU", "MV", "MW", "MX", "MY", "MZ", "NA", "NC", "NE", "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ", "OM", "PA", "PE", "PF", "PG", "PH", "PK", "PL", "PM", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS", "RU", "RW", "SA", "SB", "SC", "SD", "SE", "SG", "SI", "SK", "SL", "SM", "SN", "SO", "SR", "SS", "ST", "SV", "SX", "SY", "SZ", "TC", "TD", "TG", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW", "TZ", "UA", "UG", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI", "VN", "VU", "WS", "XK", "YE", "ZA", "ZM", "ZW"];
+const OPP_MAP = {"F01":"Bayi Üzerinden Satış Fırsatı","F02":"Perakende Satış Fırsatı","F03":"Proje Satış Fırsatı","F10":"Bayiye Satış Fırsatı"};
+const LEAD_KEY = "yq_lead";
+let leadData = {};
+try{ leadData = JSON.parse(localStorage.getItem(LEAD_KEY) || "{}"); }catch(e){ leadData = {}; }
+
+function countryName(code){
+  try{ return new Intl.DisplayNames(["tr"], {type:"region"}).of(code) || code; }catch(e){ return code; }
+}
+(function fillCountries(){
+  const sel = $("leadCountry");
+  const list = COUNTRY_CODES.map(c => ({c, n: countryName(c)}))
+    .sort((a,b) => a.n.localeCompare(b.n, "tr"));
+  list.forEach(o => {
+    const op = document.createElement("option");
+    op.value = o.c; op.textContent = o.c + " — " + o.n;
+    sel.appendChild(op);
+  });
+})();
+function leadValid(){
+  const src = leadData.src || "";
+  if(!src) return false;
+  if(src === "F" && !$("leadFair").value) return false;
+  return !!($("leadCountry").value && $("leadOpp").value && $("leadStart").value && $("leadEnd").value);
+}
+function leadRefresh(){
+  [...$("leadSrc").children].forEach(b => b.classList.toggle("on", b.dataset.src === leadData.src));
+  $("leadFairWrap").style.display = leadData.src === "F" ? "" : "none";
+  $("leadNote").style.display = $("leadNoteOn").checked ? "" : "none";
+  const ok = leadValid();
+  $("leadOk").disabled = !ok;
+  $("leadWarn").textContent = ok ? "" : "Tamam için: kaynak, " + (leadData.src === "F" ? "fuar, " : "") + "ülke, fırsat tipi ve tarihler gerekli.";
+}
+function leadFill(){
+  leadData.src = leadData.src || (localStorage.getItem("yq_mode") === "S" ? "S" : localStorage.getItem("yq_mode") === "F" ? "F" : "D");
+  $("leadFair").value = leadData.fair || "";
+  $("leadCountry").value = leadData.cc || "";
+  $("leadOpp").value = leadData.opp || "";
+  $("leadStart").value = leadData.start || new Date().toISOString().slice(0,10);
+  $("leadEnd").value = leadData.end || "";
+  $("leadNoteOn").checked = !!leadData.note;
+  $("leadNote").value = leadData.note || "";
+  leadRefresh();
+}
+[...$("leadSrc").children].forEach(b => b.onclick = () => { leadData.src = b.dataset.src; if(b.dataset.src !== "F") $("leadFair").value = ""; leadRefresh(); });
+["leadFair","leadCountry","leadOpp","leadStart","leadEnd"].forEach(id => { $(id).onchange = leadRefresh; $(id).oninput = leadRefresh; });
+$("leadNoteOn").onchange = leadRefresh;
+$("leadClear").onclick = () => {
+  leadData = {};
+  localStorage.removeItem(LEAD_KEY);
+  ["leadFair","leadCountry","leadOpp","leadEnd","leadNote"].forEach(id => $(id).value = "");
+  $("leadStart").value = new Date().toISOString().slice(0,10);
+  $("leadNoteOn").checked = false;
+  leadFill();
+};
+$("leadCancel").onclick = () => $("leadModal").classList.remove("open");
+$("leadOk").onclick = () => {
+  if(!leadValid()) return;
+  leadData = {
+    src: leadData.src,
+    srcName: MODE_NAMES[leadData.src] || leadData.src,
+    fair: leadData.src === "F" ? $("leadFair").value : "",
+    cc: $("leadCountry").value, cname: countryName($("leadCountry").value),
+    opp: $("leadOpp").value, oppDesc: OPP_MAP[$("leadOpp").value] || "",
+    start: $("leadStart").value, end: $("leadEnd").value,
+    note: $("leadNoteOn").checked ? $("leadNote").value.trim() : ""
+  };
+  localStorage.setItem(LEAD_KEY, JSON.stringify(leadData));
+  $("leadModal").classList.remove("open");
+  showQuote();
+};
+$("leadModal").onclick = e => { if(e.target === $("leadModal")) $("leadCancel").onclick(); };
+
 /* ================= QUOTE ================= */
 function devPrefix(){
   const letter = localStorage.getItem("yq_mode") || "";
@@ -1214,7 +1335,7 @@ function showQuote(){
   renderQuote();
   window.scrollTo(0,0);
 }
-$("btnQuote").onclick = showQuote;
+$("btnQuote").onclick = () => { leadFill(); $("leadModal").classList.add("open"); };
 $("btnBack").onclick = () => { $("quotePage").classList.add("hidden"); $("calcPage").classList.remove("hidden"); };
 $("btnClear").onclick = async () => { if(await uiConfirm("Teklif listesi silinsin mi?")){ quote = []; saveQuote(); clearCard(); clearCustomer(); renderQuote(); } };
 $("btnDisc").onclick = () => {
@@ -1330,48 +1451,50 @@ async function makePdf(){
   el.classList.remove("pdfmode");
   return new File([blob], opt.filename, {type:"application/pdf"});
 }
+function currentQuoteRecord(){
+  const qcur2 = quote.length ? (quote[0].cur || "EUR") : cur;
+  return {
+    no: $("pfNo").value, ts: Date.now(),
+    date: new Date().toLocaleDateString("tr-TR"),
+    company: $("cCompany").value, person: $("cPerson").value,
+    phone: $("cPhone").value, mail: $("cMail").value,
+    mode: localStorage.getItem("yq_mode") || "", user: (localStorage.getItem("yq_dev") || ""),
+    cur: qcur2, incoTerm: $("incoTerm").value, incoPlace: $("incoPlace").value,
+    delTerm: $("delTerm").value, delPlace: $("delPlace").value, payment: $("cPayment").value,
+    freight: parseAmt($("exFreightAmt").value), insurance: parseAmt($("exInsAmt").value),
+    listTotal: quoteListTotal(), netTotal: quoteTotal(),
+    items: JSON.parse(JSON.stringify(quote)),
+    lead: JSON.parse(JSON.stringify(leadData || {})),
+    total: fmtQ(quoteTotal()), card: cardData
+  };
+}
 $("btnPdf").onclick = async () => {
   if(!quote.length){ uiAlert("Teklif listesi boş."); return; }
   const b = $("btnPdf"); b.textContent = "Hazırlanıyor…"; b.disabled = true;
+
+  // 1) Teklifi ÖNCE kaydet — PDF oluşmasa bile kayıt ve merkezi gönderim yapılsın
+  const rec = currentQuoteRecord();
+  try{ await pdfArchivePut(rec); }catch(e){}
+  try{ sheetSend(rec); }catch(e){}
+
+  // 2) PDF üret ve paylaş
   if(!await ensureLib("html2pdf")){
     b.textContent = "PDF Paylaş"; b.disabled = false;
-    if(await uiConfirm("PDF aracı indirilemedi (internet gerekiyor).\n\nYazdır ekranını açayım mı?\n(Oradan 'PDF olarak kaydet' seçebilirsiniz)")) window.print();
+    if(await uiConfirm("Teklif kaydedildi (" + rec.no + ").\n\nPDF aracı indirilemedi (internet gerekiyor).\nYazdır ekranını açayım mı?\n(Oradan 'PDF olarak kaydet' seçebilirsiniz)")) window.print();
     return;
   }
   try{
     const file = await makePdf();
-    try{
-      const qcur2 = quote.length ? (quote[0].cur || "EUR") : cur;
-      await pdfArchivePut({
-        no: $("pfNo").value, ts: Date.now(),
-        date: new Date().toLocaleDateString("tr-TR"),
-        company: $("cCompany").value, person: $("cPerson").value,
-        phone: $("cPhone").value, mail: $("cMail").value,
-        mode: localStorage.getItem("yq_mode") || "", user: (localStorage.getItem("yq_dev") || ""),
-        cur: qcur2, incoTerm: $("incoTerm").value, incoPlace: $("incoPlace").value,
-        delTerm: $("delTerm").value, delPlace: $("delPlace").value, payment: $("cPayment").value,
-        freight: parseAmt($("exFreightAmt").value), insurance: parseAmt($("exInsAmt").value),
-        listTotal: quoteListTotal(), netTotal: quoteTotal(),
-        items: JSON.parse(JSON.stringify(quote)),
-        total: fmtQ(quoteTotal()), blob: file, card: cardData
-      });
-      sheetSend({
-        no: $("pfNo").value, date: new Date().toLocaleDateString("tr-TR"),
-        company: $("cCompany").value, person: $("cPerson").value, phone: $("cPhone").value, mail: $("cMail").value,
-        mode: localStorage.getItem("yq_mode") || "", user: (localStorage.getItem("yq_dev") || ""),
-        cur: qcur2, incoTerm: $("incoTerm").value, incoPlace: $("incoPlace").value,
-        delTerm: $("delTerm").value, delPlace: $("delPlace").value, payment: $("cPayment").value,
-        freight: parseAmt($("exFreightAmt").value), insurance: parseAmt($("exInsAmt").value),
-        listTotal: quoteListTotal(), netTotal: quoteTotal(), items: JSON.parse(JSON.stringify(quote))
-      });
-    }catch(e){ /* arşiv desteklenmiyorsa paylaşım yine de sürsün */ }
+    try{ await pdfArchivePut(Object.assign({}, rec, {blob: file})); }catch(e){}
     if(navigator.canShare && navigator.canShare({files:[file]})){
       await navigator.share({files:[file], title:"Proforma Invoice"});
     } else {
       const url = URL.createObjectURL(file);
       const a = document.createElement("a"); a.href = url; a.download = file.name; a.click();
     }
-  }catch(e){ if(e.name !== "AbortError") uiAlert("PDF oluşturulamadı: " + e.message + "\nYazdır ekranından PDF kaydedebilirsiniz."); }
+  }catch(e){
+    if(e.name !== "AbortError") uiAlert("Teklif kaydedildi (" + rec.no + ") ama PDF oluşturulamadı:\n" + e.message + "\nYazdır ekranından PDF kaydedebilirsiniz.");
+  }
   b.textContent = "PDF Paylaş"; b.disabled = false;
 };
 
@@ -2078,8 +2201,9 @@ async function renderHist(){
           <div style="font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.company || r.person || "-"} • ${r.total}</div>
         </div>
         ${r.card ? '<button class="btn sec hcard" style="flex:none;padding:8px 10px;font-size:13px;">🪪</button>' : ''}
-        <button class="btn pri hopen" style="flex:none;padding:8px 12px;font-size:13px;">Aç</button>
-        <button class="btn sec hshare" style="flex:none;padding:8px 12px;font-size:13px;">Paylaş</button>
+        ${r.blob ? '<button class="btn pri hopen" style="flex:none;padding:8px 12px;font-size:13px;">Aç</button>' +
+                   '<button class="btn sec hshare" style="flex:none;padding:8px 12px;font-size:13px;">Paylaş</button>'
+                 : '<span style="font-size:12px;color:var(--muted);white-space:nowrap;">PDF yok</span>'}
         <button class="delx hdel" style="flex:none;">✕</button>`;
       const hc = row.querySelector(".hcard");
       if(hc) hc.onclick = () => {
@@ -2087,14 +2211,16 @@ async function renderHist(){
         $("pdfViewFrame").src = r.card;
         $("pdfView").style.display = "flex";
       };
-      row.querySelector(".hopen").onclick = () => {
+      const hopenBtn = row.querySelector(".hopen");
+      if(hopenBtn) hopenBtn.onclick = () => {
         const f = r.blob instanceof File ? r.blob : new File([r.blob], "Teklif_" + r.no + ".pdf", {type:"application/pdf"});
         const v = document.getElementById("pdfView");
         document.getElementById("pdfViewTitle").textContent = "Teklif " + r.no;
         document.getElementById("pdfViewFrame").src = URL.createObjectURL(f);
         v.style.display = "flex";
       };
-      row.querySelector(".hshare").onclick = async () => {
+      const hshareBtn = row.querySelector(".hshare");
+      if(hshareBtn) hshareBtn.onclick = async () => {
         try{
           const f = r.blob instanceof File ? r.blob : new File([r.blob], "Teklif_" + r.no + ".pdf", {type:"application/pdf"});
           if(navigator.canShare && navigator.canShare({files:[f]})) await navigator.share({files:[f]});
@@ -2137,16 +2263,21 @@ function csvCell(v){
 }
 function numCell(n){ return (n == null || isNaN(n)) ? "" : String(Math.round(n * 100) / 100).replace(".", ","); }
 function buildCsv(recs){
-  const head = ["Teklif No","Tarih","Mod","Kullanıcı","Firma","İlgili Kişi","Telefon","E-posta","Para Birimi",
+  const head = ["Teklif No","Tarih","Mod","Kullanıcı",
+    "Lead Kaynağı","Fuar Adı","Ülke Kodu","Ülke Adı","Fırsat Kodu","Fırsat Açıklaması","Başlangıç Tarihi","Bitiş Tarihi","Not",
+    "Firma","İlgili Kişi","Telefon","E-posta","Para Birimi",
     "Sıra","Tür","Kod","Ad","Adet","Liste Fiyat","İskonto %","Artı İskonto %","Birim Net","Tutar",
     "Teslim Şekli","Teslim Yeri","Incoterm","Incoterm Yeri","Ödeme","Navlun","Sigorta",
     "Teklif Liste Toplamı","Teklif Net Toplamı"];
   const rows = [head];
-  const MODES = {F:"Fuar", S:"Seyahat", O:"Ofis"};
+  const MODES = {F:"Fuar", S:"Seyahat", D:"Direkt", O:"Direkt"};
   recs.forEach(r => {
     const items = r.items || [];
+    const L = r.lead || {};
+    const leadCols = [L.srcName || MODES[L.src] || "", L.fair || "", L.cc || "", L.cname || "",
+                      L.opp || "", L.oppDesc || "", L.start || "", L.end || "", L.note || ""];
     if(!items.length){
-      rows.push([r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", r.company || "", r.person || "",
+      rows.push([r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", ...leadCols, r.company || "", r.person || "",
         r.phone || "", r.mail || "", r.cur || "", "", "", "", "", "", "", "", "", "", "",
         r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
         numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal)]);
@@ -2156,7 +2287,7 @@ function buildCsv(recs){
     items.forEach(it => {
       n++;
       const push = (tur, code, name, qty, unitList, unitNet) => rows.push([
-        r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", r.company || "", r.person || "",
+        r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", ...leadCols, r.company || "", r.person || "",
         r.phone || "", r.mail || "", r.cur || "", n, tur, code, name,
         qty, numCell(unitList), numCell(it.d1), numCell(it.d2), numCell(unitNet), numCell(unitNet * qty),
         r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
@@ -2234,8 +2365,11 @@ function sheetRows(r){
   // her kalem için bir satır (CSV ile aynı kolonlar)
   const MODES = {F:"Fuar", S:"Seyahat", O:"Ofis"};
   const rows = [];
-  const base = [r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", r.company || "", r.person || "",
-                r.phone || "", r.mail || "", r.cur || ""];
+  const L = r.lead || {};
+  const base = [r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "",
+                L.srcName || MODES[L.src] || "", L.fair || "", L.cc || "", L.cname || "",
+                L.opp || "", L.oppDesc || "", L.start || "", L.end || "", L.note || "",
+                r.company || "", r.person || "", r.phone || "", r.mail || "", r.cur || ""];
   const tail = [r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
                 r.freight || 0, r.insurance || 0, r.listTotal || 0, r.netTotal || 0];
   let n = 0;
@@ -2551,7 +2685,7 @@ $("setClose").onclick = () => {
 };
 $("setModal").onclick = e => { if(e.target === $("setModal")) $("setModal").classList.remove("open"); };
 
-const MODE_NAMES = {F:"Fuar", S:"Seyahat", O:"Ofis"};
+const MODE_NAMES = {F:"Fuar", S:"Seyahat", D:"Direkt", O:"Direkt"};   // O = eski "Ofis" kaydı
 let selMode = localStorage.getItem("yq_mode") || "";
 function paintModeBtns(){
   document.querySelectorAll("#splash .modebtn").forEach(b => b.classList.toggle("on", b.dataset.mode === selMode));
