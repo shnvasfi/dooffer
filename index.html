@@ -408,6 +408,7 @@ table.pf .optrow .oname{padding-left:16px;}
     <div class="qtools noprint">
       <button class="btn sec" id="btnBack">‹ Hesaplamaya Dön</button>
       <button class="btn pri" id="btnSaveQ" style="background:#0a6ea8;">💾 Teklifi Kaydet</button>
+      <button class="btn sec" id="btnSaveNew">🆕 Yeni Teklif Olarak Kaydet</button>
       <button class="btn pri" id="btnPdf">PDF Paylaş</button>
       <button class="btn sec" id="btnHist">🕘 Geçmiş Teklifler</button>
       <button class="btn sec" id="btnDisc">İskonto: Gizli</button>
@@ -947,7 +948,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.20-7";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.08.20-8";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1505,14 +1506,30 @@ async function persistQuote(){
   }
   return {rec, file};
 }
-$("btnSaveQ").onclick = async () => {
+async function runSave(btn, forceNew){
   if(!quote.length){ uiAlert("Teklif listesi boş."); return; }
-  const b = $("btnSaveQ"); const t0 = b.textContent; b.textContent = "Kaydediliyor…"; b.disabled = true;
+  let no = ($("pfNo").value || "").trim();
+  let mevcut = null;
+  try{ mevcut = await pdfArchiveGet(no); }catch(e){}
+
+  if(forceNew){
+    nextQuoteNo();                       // her hâlükârda yeni numara
+  } else if(mevcut){
+    const c = await uiChoice(
+      "Bu teklif zaten kayıtlı:\n" + no + "\n(" + (mevcut.company || "firma yok") + " • " + (mevcut.total || "") + ")\n\n" +
+      "Aynı teklifte değişiklik mi yaptınız, yoksa bu ayrı bir teklif mi?",
+      "Yeni No ile Kaydet", "Aynı No: Güncelle");
+    if(c === 0) return;                  // vazgeç
+    if(c === 1) nextQuoteNo();           // yeni numara al
+  }
+  const t0 = btn.textContent; btn.textContent = "Kaydediliyor…"; btn.disabled = true;
   const {rec, file} = await persistQuote();
-  b.textContent = t0; b.disabled = false;
+  btn.textContent = t0; btn.disabled = false;
   uiAlert("Teklif kaydedildi: " + rec.no + "\n" +
     (file ? "PDF de kaydedildi. (Geçmiş Teklifler > Aç)" : "PDF oluşturulamadı; kayıt bilgileri saklandı."));
-};
+}
+$("btnSaveQ").onclick = () => runSave($("btnSaveQ"), false);
+$("btnSaveNew").onclick = () => runSave($("btnSaveNew"), true);
 $("btnPdf").onclick = async () => {
   if(!quote.length){ uiAlert("Teklif listesi boş."); return; }
   const b = $("btnPdf"); b.textContent = "Hazırlanıyor…"; b.disabled = true;
@@ -2219,6 +2236,14 @@ async function pdfArchiveAll(){
   return new Promise((res, rej) => {
     const rq = db.transaction("pdfs").objectStore("pdfs").getAll();
     rq.onsuccess = () => res(rq.result || []);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function pdfArchiveGet(no){
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const rq = db.transaction("pdfs").objectStore("pdfs").get(no);
+    rq.onsuccess = () => res(rq.result || null);
     rq.onerror = () => rej(rq.error);
   });
 }
