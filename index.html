@@ -957,7 +957,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.08.21-4";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.09.11-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2592,6 +2592,10 @@ window.addEventListener("online", sheetFlush);
 
 /* ================= ŞİFRELİ FİYAT PAKETİ (prices.enc) ================= */
 const PKG_URL = "prices.enc";
+// Uygulama hangi adresten açılırsa açılsın paketin bulunacağı sabit kaynaklar
+const PKG_FALLBACKS = [
+  "https://shnvasfi.github.io/dooffer/prices.enc"
+];
 const ADM_KEY = "yq_adm";      // yönetici kodu (basit koruma)
 const PASS_KEY = "yq_pass";    // paket şifresi
 const STAMP_KEY = "yq_pkgstamp";
@@ -2651,19 +2655,41 @@ async function checkPricePackage(silent){
   const stored = localStorage.getItem(PASS_KEY);
   const passList = [...new Set([stored, BUILTIN_PASS].filter(Boolean))];
   try{
-    // birkaç olası adresi dene (alt klasör / önbellek sorunlarına karşı)
-    const base = location.href.replace(/[?#].*$/, "").replace(/[^/]*$/, "");
-    const tries = [PKG_URL, "./" + PKG_URL, base + PKG_URL];
-    let txt = null, lastStatus = "";
+    // olası tüm adresleri dene (eğik çizgisiz adres, alt klasör, önbellek sorunları)
+    const tries = [];
+    const pushU = u => { if(u && tries.indexOf(u) === -1) tries.push(u); };
+    try{ pushU(localStorage.getItem("yq_pkgurl")); }catch(e){}          // en son çalışan adres
+    try{ pushU(new URL(PKG_URL, document.baseURI).href); }catch(e){}
+    try{ pushU(new URL(PKG_URL, location.href).href); }catch(e){}
+    const dir = location.pathname.replace(/[^/]*$/, "");
+    pushU(location.origin + dir + PKG_URL);
+    pushU(location.origin + dir.replace(/\/$/, "") + "/" + PKG_URL);
+    const seg1 = location.pathname.split("/").filter(Boolean)[0];
+    if(seg1 && !/\.(html?|enc|js|json)$/i.test(seg1)) pushU(location.origin + "/" + seg1 + "/" + PKG_URL);
+    pushU(location.origin + "/" + PKG_URL);
+    try{
+      const ctrl = navigator.serviceWorker && navigator.serviceWorker.controller;
+      if(ctrl) pushU(new URL(PKG_URL, ctrl.scriptURL).href);
+    }catch(e){}
+    PKG_FALLBACKS.forEach(pushU);        // son çare: merkezi kaynak
+
+    let txt = null, lastStatus = "", denenen = [];
     for(const u of tries){
+      denenen.push(u);
       try{
         const res = await fetch(u + "?t=" + Date.now(), {cache:"no-store"});
-        if(res.ok){ txt = await res.text(); break; }
+        if(res.ok){
+          txt = await res.text();
+          try{ localStorage.setItem("yq_pkgurl", u); }catch(e){}
+          break;
+        }
         lastStatus = res.status + " " + (res.statusText || "");
       }catch(err){ lastStatus = err.message; }
     }
     if(txt == null){
-      if(!silent) uiAlert("Fiyat paketi indirilemedi (" + (lastStatus || "bağlantı yok") + ").\n\nDeneyin:\n• Ayarlar > Programı Güncelle > Kontrol Et\n• İnternet bağlantısını kontrol edin\n• Dosyanın depoda prices.enc adıyla durduğunu doğrulayın");
+      try{ localStorage.removeItem("yq_pkgurl"); }catch(e){}
+      if(!silent) uiAlert("Fiyat paketi indirilemedi (" + (lastStatus || "bağlantı yok") + ").\n\nDenenen adresler:\n" +
+        denenen.slice(0, 4).join("\n") + "\n\nDeneyin:\n• Ayarlar > Programı Güncelle > Kontrol Et\n• İnternet bağlantısını kontrol edin");
       return;
     }
     if(txt.trim().startsWith("<")){ if(!silent) uiAlert("Paket yerine web sayfası geldi.\nDosya adı prices.enc olmalı ve uygulamayla aynı klasörde bulunmalı."); return; }
