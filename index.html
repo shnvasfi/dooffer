@@ -957,7 +957,7 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.04-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.04-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1226,8 +1226,8 @@ function leadRefresh(){
   const ok = leadValid();
   $("leadOk").disabled = !ok;
   $("leadWarn").textContent = ok ? ""
-    : (direkt ? "Tamam için: ülke ve fırsat tipi gerekli."
-              : "Tamam için: kaynak, " + (leadData.src === "F" ? "fuar, " : "") + "ülke, fırsat tipi ve tarihler gerekli.");
+    : (direkt ? "Devam için: ülke ve fırsat tipi gerekli."
+              : "Devam için: kaynak, " + (leadData.src === "F" ? "fuar, " : "") + "ülke, fırsat tipi ve tarihler gerekli.");
 }
 function leadFill(){
   leadData.src = leadData.src || (localStorage.getItem("yq_mode") === "S" ? "S" : localStorage.getItem("yq_mode") === "F" ? "F" : "D");
@@ -1251,7 +1251,15 @@ $("leadClear").onclick = () => {
   $("leadNoteOn").checked = false;
   leadFill();
 };
-$("leadCancel").onclick = () => $("leadModal").classList.remove("open");
+// Lead penceresi artık Kaydet / PDF Paylaş anında açılır; Tamam'a basınca bekleyen işlem yürür.
+let leadPending = null;
+function askLead(action, okText){
+  leadPending = action;
+  $("leadOk").textContent = okText || "Tamam";
+  leadFill();
+  $("leadModal").classList.add("open");
+}
+$("leadCancel").onclick = () => { leadPending = null; $("leadModal").classList.remove("open"); };
 $("leadOk").onclick = () => {
   if(!leadValid()) return;
   leadData = {
@@ -1267,7 +1275,8 @@ $("leadOk").onclick = () => {
   localStorage.setItem(LEAD_KEY, JSON.stringify(leadData));
   syncQuoteNo();                                   // kaynak değiştiyse teklif no ön ekini düzelt
   $("leadModal").classList.remove("open");
-  showQuote();
+  const act = leadPending; leadPending = null;
+  if(act) act(); else showQuote();
 };
 $("leadModal").onclick = e => { if(e.target === $("leadModal")) $("leadCancel").onclick(); };
 
@@ -1359,7 +1368,7 @@ function showQuote(){
   renderQuote();
   window.scrollTo(0,0);
 }
-$("btnQuote").onclick = () => { leadFill(); $("leadModal").classList.add("open"); };
+$("btnQuote").onclick = () => showQuote();          // lead bilgileri kayıt/paylaşım anında sorulur
 $("btnBack").onclick = () => { $("quotePage").classList.add("hidden"); $("calcPage").classList.remove("hidden"); };
 $("btnClear").onclick = async () => { if(await uiConfirm("Teklif listesi silinsin mi?")){ quote = []; saveQuote(); clearCard(); clearCustomer(); editingNo = null; renderQuote(); } };
 $("btnDisc").onclick = () => {
@@ -1533,10 +1542,19 @@ async function runSave(btn, forceNew){
   uiAlert("Teklif kaydedildi: " + rec.no + "\n" +
     (file ? "PDF de kaydedildi. (Geçmiş Teklifler > Aç)" : "PDF oluşturulamadı; kayıt bilgileri saklandı."));
 }
-$("btnSaveQ").onclick = () => runSave($("btnSaveQ"), false);
-$("btnSaveNew").onclick = () => runSave($("btnSaveNew"), true);
-$("btnPdf").onclick = async () => {
+$("btnSaveQ").onclick = () => {
   if(!quote.length){ uiAlert("Teklif listesi boş."); return; }
+  askLead(() => runSave($("btnSaveQ"), false), "Kaydet");
+};
+$("btnSaveNew").onclick = () => {
+  if(!quote.length){ uiAlert("Teklif listesi boş."); return; }
+  askLead(() => runSave($("btnSaveNew"), true), "Kaydet");
+};
+$("btnPdf").onclick = () => {
+  if(!quote.length){ uiAlert("Teklif listesi boş."); return; }
+  askLead(sharePdf, "Paylaş");
+};
+async function sharePdf(){
   const b = $("btnPdf"); b.textContent = "Hazırlanıyor…"; b.disabled = true;
   const {rec, file} = await persistQuote();          // paylaşmadan ÖNCE kaydedilir
   b.textContent = "PDF Paylaş"; b.disabled = false;
@@ -1546,7 +1564,7 @@ $("btnPdf").onclick = async () => {
   }
   try{ await deliverFile(file, "Proforma Invoice"); }
   catch(e){ /* paylaşmaktan vazgeçilse de kayıt duruyor */ }
-};
+}
 
 /* ================= EXCEL IMPORT ================= */
 function updateImpInfo(){
