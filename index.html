@@ -38,9 +38,9 @@ header.top .hq{white-space:nowrap;}
 header.top .home{justify-self:start;display:flex;align-items:center;justify-content:center;width:38px;height:34px;
   border-radius:10px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.4);padding:0;}
 header.top .home svg{width:20px;height:20px;}
-@media (max-width:420px){ header.top{padding-left:10px;padding-right:10px;}
-  header.top .brand{font-size:15px;gap:6px;} header.top .hq{padding:5px 8px;font-size:13px;} header.top .hql{display:none;} header.top .hqs{display:inline;} }
 header.top .hqs{display:none;}
+@media (max-width:480px){ header.top{padding-left:10px;padding-right:10px;}
+  header.top .brand{font-size:15px;gap:6px;} header.top .hq{padding:5px 8px;font-size:13px;} header.top .hql{display:none;} header.top .hqs{display:inline;} }
 main{flex:1;padding:10px 12px 16px;}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px;box-shadow:0 1px 2px rgba(16,32,48,.05);}
 .lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
@@ -58,6 +58,8 @@ main{flex:1;padding:10px 12px 16px;}
 .mselect .txt.ph{color:var(--muted);font-weight:600;}
 .mselect .varr{border-left:2px solid #000;display:flex;align-items:center;padding:0 11px;font-weight:700;font-size:15px;}
 .mname{margin-top:7px;font-size:14.5px;font-weight:600;padding-left:2px;}
+#machineCard.xl .mselect .txt:not(.ph){white-space:normal;font-size:14.5px;line-height:1.25;padding:8px 8px;}
+#machineCard.xl .mname{font-size:12px;font-weight:500;color:var(--muted);margin-top:5px;}
 .pbox{display:flex;justify-content:space-between;align-items:center;border:2px solid #000;
   padding:10px 10px;background:#fff;min-height:46px;}
 .pbox .sym{font-size:19px;font-weight:700;}
@@ -969,7 +971,8 @@ const D2_VALUES = [0,3,4,5];
    PDF: Türkçe teklifte yalnız Türkçe; diğer dillerde ana dil + altında küçük, soluk Türkçe.
    Kapsam: satış ekranları + PDF. Yönetici/ayar ekranları Türkçe kalır.
    Merkezi tabloya giden veriler (kaynak, ülke, fırsat açıklaması) her zaman Türkçe saklanır. */
-const LANGS = ["tr", "en", "ru", "es"];
+const LANGS_ALL = ["tr", "en", "ru", "es"];      // çevirileri hazır diller
+const LANGS = ["tr", "en"];                        // şu an seçilebilen diller (RU/ES ileride açılacak: buraya eklemek yeterli)
 const LANG_NAMES = {tr:"TÜRKÇE", en:"ENGLISH", ru:"РУССКИЙ", es:"ESPAÑOL"};
 let UI_LANG = (function(){ try{ const v = localStorage.getItem("yq_lang"); return LANGS.indexOf(v) >= 0 ? v : "tr"; }catch(e){ return "tr"; } })();
 let DOC_LANG = (function(){ try{ const v = localStorage.getItem("yq_doclang"); return LANGS.indexOf(v) >= 0 ? v : UI_LANG; }catch(e){ return "tr"; } })();
@@ -1113,7 +1116,7 @@ const I18N = {
                "Modo edición: {no}\n\nHaga los cambios y pulse \"Guardar oferta\"; la oferta se actualiza con el mismo número.\nPara una oferta distinta, use \"Guardar como nueva\"."],
   cardDel:    ["Kartvizit silinsin mi?", "Delete the business card?", "Удалить визитку?", "¿Eliminar la tarjeta?"]
 };
-const LI = {tr:0, en:1, ru:2, es:3};
+const LI = {tr:0, en:1, ru:2, es:3};   // sözlük sütunları (LANGS_ALL sırası)
 function t(key, vars){
   const row = I18N[key];
   let s = row ? (row[LI[UI_LANG]] || row[0]) : key;
@@ -1276,7 +1279,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.05-14";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.06-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1447,9 +1450,12 @@ function selectMachine(m){
   resetSegs();
   $("picker").classList.remove("open");
   const mp = mPrice(m);
-  $("pickLabel").textContent = m.code;
+  // Excel listesi: kutuda makine adı (büyük, koyu), altında stok kodu (küçük, soluk). PDF listesi: kutuda kod, altında ad.
+  const xl = DB.src === "excel";
+  $("machineCard").classList.toggle("xl", xl);
+  $("pickLabel").textContent = xl ? nameOf(m) : m.code;
   $("pickLabel").classList.remove("ph");
-  $("mName").textContent = nameOf(m);
+  $("mName").textContent = xl ? m.code : nameOf(m);
   $("curSym").textContent = cur === "TL" ? "₺" : "€";
   $("curSym").style.display = mp==null ? "none" : "";
   $("mPrice").textContent = mp==null ? t("askPrice") : fmtNum(mp);
