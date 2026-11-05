@@ -271,8 +271,12 @@ table.pf .optrow .oname{padding-left:16px;}
 .pdfval{display:none;}
 /* gün.ay.yıl tarih kutusu: görünen metin + gizli takvim */
 .dwrap{position:relative;display:flex;align-items:center;}
-.dwrap .dtxt{width:100%;padding-right:42px;box-sizing:border-box;}
-.dwrap .dbtn{position:absolute;right:6px;background:none;border:none;font-size:18px;cursor:pointer;padding:4px;}
+.dwrap .dtxt{width:100%;min-width:0;padding-left:8px;padding-right:28px;box-sizing:border-box;font-size:15px;}
+.dwrap .dstep{flex:none;width:26px;height:40px;margin:0 3px;border:1.5px solid var(--line);border-radius:10px;background:#fff;
+  color:var(--blue-dark);font-size:13px;cursor:pointer;padding:0;}
+#leadEndUp{order:3;}
+.dwrap.has-up .dbtn{right:33px;}
+.dwrap .dbtn{position:absolute;right:2px;background:none;border:none;font-size:15px;cursor:pointer;padding:4px;}
 .dwrap .dhid{position:absolute;right:6px;bottom:0;width:30px;height:1px;opacity:0;pointer-events:none;border:0;padding:0;}
 @media print{
   body{background:#fff;}
@@ -460,8 +464,8 @@ table.pf .optrow .oname{padding-left:16px;}
       </div>
       <div class="pf-sechead">CONTACT INFORMATION</div>
       <div class="pf-grid">
-        <div class="k">CONTACT PERSON</div><div><input id="cPerson" placeholder=""></div>
-        <div class="k">COMPANY NAME</div><div><input id="cCompany" placeholder=""></div>
+        <div class="k">CONTACT PERSON</div><div><input id="cPerson" placeholder="" list="dlPerson" autocomplete="off"></div>
+        <div class="k">COMPANY NAME</div><div><input id="cCompany" placeholder="" list="dlCompany" autocomplete="off"></div>
         <div class="k">PHONE NUMBER</div><div><input id="cPhone" placeholder=""></div>
         <div class="k">E MAIL</div><div><input id="cMail" placeholder=""></div>
       </div>
@@ -569,21 +573,24 @@ table.pf .optrow .oname{padding-left:16px;}
       <select id="leadFair" class="leadsel"><option value="">— Seçiniz —</option><option value="AVRASYA PENCERE FUARI">AVRASYA PENCERE FUARI</option><option value="BATIMAT">BATIMAT</option><option value="BAU">BAU</option><option value="BIG 5">BIG 5</option><option value="CONCRETA">CONCRETA</option><option value="EDIFICA">EDIFICA</option><option value="EXPO CAMACOL">EXPO CAMACOL</option><option value="FENSTERBAU FRONTALE">FENSTERBAU FRONTALE</option><option value="GLASSTECH MEXICO">GLASSTECH MEXICO</option><option value="VETECO">VETECO</option></select>
     </div>
 
-    <div class="lbl">Ülke</div>
-    <select id="leadCountry" class="leadsel"><option value="">— Seçiniz —</option></select>
+    <div id="leadCountryWrap">
+      <div class="lbl">Ülke</div>
+      <input id="leadCountryQ" class="leadsel" placeholder="🔍 Ülke ara (ad veya kod)…" autocomplete="off" style="margin-bottom:6px;">
+      <select id="leadCountry" class="leadsel"><option value="">— Seçiniz —</option></select>
+    </div>
 
     <div class="lbl">Fırsat Tipi</div>
     <select id="leadOpp" class="leadsel"><option value="">— Seçiniz —</option><option value="F01">F01 Bayi Üzerinden Satış Fırsatı</option><option value="F02">F02 Perakende Satış Fırsatı</option><option value="F03">F03 Proje Satış Fırsatı</option><option value="F10">F10 Bayiye Satış Fırsatı</option></select>
 
     <div id="leadDateWrap" style="display:flex;gap:10px;">
       <div style="flex:1;min-width:0;"><div class="lbl">Başlangıç Tarihi</div>
-        <div class="dwrap"><input id="leadStartTxt" class="leadsel dtxt" inputmode="numeric" placeholder="GG.AA.YYYY" maxlength="10" autocomplete="off">
+        <div class="dwrap"><button type="button" class="dstep" id="leadStartDown" title="1 gün geri" aria-label="1 gün geri">▼</button><input id="leadStartTxt" class="leadsel dtxt" inputmode="numeric" placeholder="GG.AA.YYYY" maxlength="10" autocomplete="off">
         <button type="button" class="dbtn" data-for="leadStart" aria-label="Takvim">📅</button>
         <input type="date" id="leadStart" class="dhid" tabindex="-1"></div></div>
       <div style="flex:1;min-width:0;"><div class="lbl">Bitiş Tarihi</div>
-        <div class="dwrap"><input id="leadEndTxt" class="leadsel dtxt" inputmode="numeric" placeholder="GG.AA.YYYY" maxlength="10" autocomplete="off">
+        <div class="dwrap has-up"><input id="leadEndTxt" class="leadsel dtxt" inputmode="numeric" placeholder="GG.AA.YYYY" maxlength="10" autocomplete="off">
         <button type="button" class="dbtn" data-for="leadEnd" aria-label="Takvim">📅</button>
-        <input type="date" id="leadEnd" class="dhid" tabindex="-1"></div></div>
+        <input type="date" id="leadEnd" class="dhid" tabindex="-1"><button type="button" class="dstep" id="leadEndUp" title="1 gün ileri" aria-label="1 gün ileri">▲</button></div></div>
     </div>
 
     <label id="leadNoteLbl" style="display:flex;align-items:center;gap:10px;margin:12px 0 6px;font-size:14.5px;font-weight:600;">
@@ -1013,7 +1020,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.05-9";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.05-10";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1161,7 +1168,7 @@ function renderPicker(filter){
     items.forEach(m => {
       const p = mPrice(m);
       const r = document.createElement("div"); r.className = "mrow";
-      r.innerHTML = `<div style="flex:1;min-width:0;"><div class="c">${m.code}</div><div class="n">${nameOf(m)}</div></div>
+      r.innerHTML = `<div style="flex:1;min-width:0;">${DB.src === "excel" ? `<div class="c">${nameOf(m)}</div><div class="n">${m.code}</div>` : `<div class="c">${m.code}</div><div class="n">${nameOf(m)}</div>`}</div>
         <div class="p ${p==null?'req':''}">${p==null ? "Fiyat Sorunuz" : fmt(p)}</div>`;
       r.onclick = () => selectMachine(m);
       list.appendChild(r);
@@ -1262,16 +1269,22 @@ try{ leadData = JSON.parse(localStorage.getItem(LEAD_KEY) || "{}"); }catch(e){ l
 function countryName(code){
   try{ return new Intl.DisplayNames(["tr"], {type:"region"}).of(code) || code; }catch(e){ return code; }
 }
-(function fillCountries(){
-  const sel = $("leadCountry");
-  const list = COUNTRY_CODES.map(c => ({c, n: countryName(c)}))
-    .sort((a,b) => a.n.localeCompare(b.n, "tr"));
-  list.forEach(o => {
-    const op = document.createElement("option");
-    op.value = o.c; op.textContent = o.c + " — " + o.n;
-    sel.appendChild(op);
-  });
-})();
+const COUNTRY_LIST = COUNTRY_CODES.map(c => ({c, n: countryName(c)})).sort((a,b) => a.n.localeCompare(b.n, "tr"));
+const trLow = t => String(t || "").toLocaleLowerCase("tr");
+function fillCountries(q){
+  const sel = $("leadCountry"), keep = sel.value;
+  const f = trLow(q).trim();
+  const list = f ? COUNTRY_LIST.filter(o => trLow(o.n).includes(f) || trLow(o.c) === f || trLow(o.c + " " + o.n).includes(f)) : COUNTRY_LIST;
+  sel.innerHTML = "";
+  const ph = document.createElement("option"); ph.value = "";
+  ph.textContent = f ? (list.length ? "— " + list.length + " ülke bulundu —" : "— bulunamadı —") : "— Seçiniz —";
+  sel.appendChild(ph);
+  list.forEach(o => { const op = document.createElement("option"); op.value = o.c; op.textContent = o.c + " — " + o.n; sel.appendChild(op); });
+  if(keep && list.some(o => o.c === keep)) sel.value = keep;
+  else if(list.length === 1) sel.value = list[0].c;             // tek sonuç: kendiliğinden seç
+}
+fillCountries("");
+$("leadCountryQ").oninput = e => { fillCountries(e.target.value); leadRefresh(); };
 function leadValid(){
   const src = leadData.src || "";
   if(!src) return false;
@@ -1285,8 +1298,7 @@ function leadRefresh(){
   [...$("leadSrc").children].forEach(b => b.classList.toggle("on", b.dataset.src === leadData.src));
   $("leadFairWrap").style.display = leadData.src === "F" ? "" : "none";
   const fc = leadData.src === "F" && (FAIR_CC[$("leadFair").value] || !$("leadFair").value);   // fuar: ülke fuardan gelir
-  $("leadCountry").style.display = fc ? "none" : "";
-  $("leadCountry").previousElementSibling.style.display = fc ? "none" : "";
+  $("leadCountryWrap").style.display = fc ? "none" : "";
   $("leadDateWrap").style.display = direkt ? "none" : "flex";      // Direkt'te tarih sorulmaz
   $("leadNoteLbl").style.display = "flex";                          // not her kaynakta sorulur
   $("leadNote").style.display = $("leadNoteOn").checked ? "" : "none";
@@ -1303,8 +1315,9 @@ function leadFill(){
   $("leadFair").value = leadData.fair || "";
   $("leadCountry").value = leadData.cc || "";
   $("leadOpp").value = leadData.opp || "";
-  $("leadStart").value = leadData.start || new Date().toISOString().slice(0,10);
-  $("leadEnd").value = leadData.end || "";
+  $("leadStart").value = leadData.start || todayIso();
+  $("leadEnd").value = leadData.end || todayIso();
+  $("leadCountryQ").value = ""; fillCountries("");
   $("leadNoteOn").checked = !!leadData.note;
   $("leadNote").value = leadData.note || "";
   leadRefresh();
@@ -1336,6 +1349,18 @@ function syncDateTxt(){
   t.onblur = () => { t.value = isoToTr(h.value) || (t.value.length ? t.value : ""); };
   h.onchange = () => { t.value = isoToTr(h.value); leadRefresh(); };
 });
+const todayIso = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); };
+function shiftIso(iso, days){
+  const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const d = m ? new Date(+m[1], +m[2]-1, +m[3]) : new Date();
+  d.setDate(d.getDate() + days);
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+$("leadStartDown").onclick = () => { $("leadStart").value = shiftIso($("leadStart").value, -1); $("leadStartTxt").blur(); leadRefresh(); };
+$("leadEndUp").onclick = () => {
+  const base = $("leadEnd").value || $("leadStart").value || todayIso();
+  $("leadEnd").value = shiftIso(base, +1); $("leadEndTxt").blur(); leadRefresh();
+};
 document.querySelectorAll(".dbtn").forEach(b => b.onclick = () => {
   const h = $(b.dataset.for);
   try{ if(h.showPicker){ h.showPicker(); return; } }catch(e){}
@@ -1346,7 +1371,7 @@ $("leadClear").onclick = () => {
   leadData = {};
   localStorage.removeItem(LEAD_KEY);
   ["leadFair","leadCountry","leadOpp","leadEnd","leadNote"].forEach(id => $(id).value = "");
-  $("leadStart").value = new Date().toISOString().slice(0,10);
+  $("leadStart").value = todayIso();
   $("leadNoteOn").checked = false;
   leadFill();
 };
@@ -1462,6 +1487,7 @@ $("btnWipe").onclick = async () => {
 };
 
 function showQuote(){
+  loadCustomers();
   $("calcPage").classList.add("hidden");
   $("quotePage").classList.remove("hidden");
   renderQuote();
@@ -1555,6 +1581,50 @@ function renderQuote(){
   const save = () => localStorage.setItem("yq_" + id, el.value);
   el.oninput = save; el.onchange = save;
 });
+
+/* ================= MÜŞTERİ KAYITLARI (eski tekliflerden öneri) =================
+   Firma adı / ilgili kişi yazarken eski tekliflerdeki müşteriler önerilir; seçilince diğer alanlar dolar.
+   Elle yeni müşteri de yazılabilir. Kaynak: bu cihazdaki teklif arşivi (en yeni kayıt geçerli). */
+let CUSTOMERS = [];
+(function mkLists(){
+  ["dlCompany","dlPerson"].forEach(id => { if(!$(id)){ const dl = document.createElement("datalist"); dl.id = id; document.body.appendChild(dl); } });
+})();
+async function loadCustomers(){
+  let recs = [];
+  try{ recs = await pdfArchiveAll(); }catch(e){ return; }
+  const seen = {}, out = [];
+  recs.slice().sort((a,b) => (b.ts || 0) - (a.ts || 0)).forEach(r => {
+    const company = (r.company || "").trim(), person = (r.person || "").trim();
+    if(!company && !person) return;
+    const k = (company + "|" + person).toLocaleLowerCase("tr");
+    if(seen[k]) return; seen[k] = 1;
+    out.push({company, person, phone: (r.phone || "").trim(), mail: (r.mail || "").trim()});
+  });
+  CUSTOMERS = out;
+  const fill = (id, rows) => { const dl = $(id); dl.innerHTML = ""; rows.forEach(([v, lbl]) => { const o = document.createElement("option"); o.value = v; if(lbl) o.label = lbl; dl.appendChild(o); }); };
+  const comps = {}; out.forEach(c => { if(c.company && !comps[c.company]) comps[c.company] = c.person; });
+  fill("dlCompany", Object.keys(comps).map(k => [k, comps[k]]));
+  fill("dlPerson", out.filter(c => c.person).map(c => [c.person, c.company]));
+}
+function applyCustomer(c){
+  if(!c) return;
+  [["cCompany", c.company], ["cPerson", c.person], ["cPhone", c.phone], ["cMail", c.mail]].forEach(([id, v]) => {
+    if(v == null) return; $(id).value = v; localStorage.setItem("yq_" + id, v);
+  });
+}
+$("cCompany").addEventListener("change", () => {
+  const v = $("cCompany").value.trim().toLocaleLowerCase("tr"); if(!v) return;
+  const p = $("cPerson").value.trim().toLocaleLowerCase("tr");
+  const hit = CUSTOMERS.find(c => c.company.toLocaleLowerCase("tr") === v && (!p || c.person.toLocaleLowerCase("tr") === p))
+           || CUSTOMERS.find(c => c.company.toLocaleLowerCase("tr") === v);
+  if(hit) applyCustomer(hit);
+});
+$("cPerson").addEventListener("change", () => {
+  const v = $("cPerson").value.trim().toLocaleLowerCase("tr"); if(!v) return;
+  const hit = CUSTOMERS.find(c => c.person.toLocaleLowerCase("tr") === v);
+  if(hit) applyCustomer(hit);
+});
+setTimeout(loadCustomers, 1500);
 
 /* ================= PDF & MAIL ================= */
 async function makePdf(){
