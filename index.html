@@ -658,6 +658,13 @@ table.pf .optrow .oname{padding-left:16px;}
       <span>Programı Güncelle<br><span style="font-size:12px;color:var(--muted);" id="buildInfo"></span></span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnAppUpd">Kontrol Et</button>
     </div>
+    <div class="setrow" style="display:block;">
+      <span>Fiyat Kaynağı<br><span style="font-size:12px;color:var(--muted);">PDF listesi veya Caniasta Excel listesi — ikisi ayrı saklanır</span></span>
+      <div class="seg" id="srcSeg" style="margin-top:8px;">
+        <button data-src="pdf">📄 PDF Listesi</button>
+        <button data-src="excel">📊 Excel Listesi</button>
+      </div>
+    </div>
     <div class="setrow">
       <span>Fiyat Listesi<br><span style="font-size:12px;color:var(--muted);" id="pkgInfo"></span></span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnPkgCheck">Güncelle</button>
@@ -687,7 +694,7 @@ table.pf .optrow .oname{padding-left:16px;}
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnSetupLink">Oluştur</button>
     </div>
     <div class="setrow">
-      <span>Fiyat Paketi Oluştur<br><span style="font-size:12px;color:var(--muted);">prices.enc — GitHub'a yüklenir</span></span>
+      <span>Fiyat Paketi Oluştur<br><span style="font-size:12px;color:var(--muted);">seçili kaynağa göre price_pdf.enc / price_excel.enc</span></span>
       <button class="btn pri" style="flex:none;padding:8px 14px;" id="btnPkgMake">Oluştur</button>
     </div>
     <div class="setrow" style="display:block;">
@@ -953,13 +960,41 @@ function normalizeEmbedded(){
     opts: Object.fromEntries(Object.entries(OPTS).map(([k,o]) => [k, {code:o[0], name:o[1], info:o[2], eur:o[3], tl:null}]))
   };
 }
+/* Fiyat kaynağı: "pdf" (varsayılan, eski akış) veya "excel" (Caniasta). Her kaynağın verisi, paketi ve damgası ayrı. */
+const SRC_KEY = "yq_src";
+function curSrc(){ return localStorage.getItem(SRC_KEY) === "excel" ? "excel" : "pdf"; }
+const SKEY = (base, src) => (src || curSrc()) === "excel" ? base + "_excel" : base;   // pdf eski anahtarları kullanır
+const dbKey    = src => SKEY("yq_db", src);
+const infoKey  = src => SKEY("yq_dbinfo", src);
+const stampKey = src => SKEY("yq_pkgstamp", src);
+const urlKey   = src => SKEY("yq_pkgurl", src);
+const PKG_NAMES = {pdf: ["price_pdf.enc", "prices.enc"], excel: ["price_excel.enc"]};   // prices.enc = eski sürüm paketi
+const SRC_NAMES = {pdf: "PDF", excel: "Excel"};
+function emptyExcelDb(){ return {src:"excel", machines:[], opts:{}}; }
+function saveDb(){ localStorage.setItem(dbKey(DB.src === "excel" ? "excel" : "pdf"), JSON.stringify(DB)); }
+// 2026.11.04-3'te Excel listesi yq_db'ye yazılıyordu → kendi anahtarına taşı
+try{
+  const old = JSON.parse(localStorage.getItem("yq_db") || "null");
+  if(old && old.src === "excel"){
+    if(!localStorage.getItem("yq_db_excel")) localStorage.setItem("yq_db_excel", JSON.stringify(old));
+    const inf = localStorage.getItem("yq_dbinfo"); if(inf && !localStorage.getItem("yq_dbinfo_excel")) localStorage.setItem("yq_dbinfo_excel", inf);
+    localStorage.removeItem("yq_db"); localStorage.removeItem("yq_dbinfo"); localStorage.removeItem("yq_pkgstamp");
+    if(!localStorage.getItem(SRC_KEY)) localStorage.setItem(SRC_KEY, "excel");
+  }
+}catch(e){}
+function loadDb(src){
+  let d = null;
+  try{ d = JSON.parse(localStorage.getItem(dbKey(src))); }catch(e){}
+  if(src === "excel") return (d && d.machines) ? d : emptyExcelDb();
+  return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
+}
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.04-3";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.05-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
-try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
+try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
   DB = normalizeEmbedded();
-} else if(DB.src !== "excel" && (parseInt(localStorage.getItem("yq_dbver")) || 0) < DB_VERSION){
+} else if((parseInt(localStorage.getItem("yq_dbver")) || 0) < DB_VERSION){
   // Program güncellendi: makine/opsiyon yapısını yenile, cihazdaki FİYATLARI koru
   const keep = {};
   DB.machines.forEach(m => { keep["M:" + m.code] = {eur:m.eur, tl:m.tl}; });
@@ -974,6 +1009,7 @@ if(!DB || !DB.machines || !DB.machines.length){
   dbNotice = "Program güncellendi. Makine listesi yenilendi, fiyatlarınız korundu (" + kept + " kalem).";
 }
 localStorage.setItem("yq_dbver", String(DB_VERSION));
+if(curSrc() === "excel") DB = loadDb("excel");
 
 let cur = localStorage.getItem("yq_cur") === "TL" ? "TL" : "EUR";
 const NF = {minimumFractionDigits:2, maximumFractionDigits:2};
@@ -1568,7 +1604,7 @@ async function sharePdf(){
 
 /* ================= EXCEL IMPORT ================= */
 function updateImpInfo(){
-  $("impInfo").textContent = "Aktif liste: " + (localStorage.getItem("yq_dbinfo") || "Fiyatlar yüklü değil — PDF yükleyin");
+  $("impInfo").textContent = "Aktif liste (" + SRC_NAMES[curSrc()] + "): " + (localStorage.getItem(infoKey()) || "Fiyatlar yüklü değil");
 }
 function pickPlaceholder(){ return cur === "EUR" ? "Select" : "Seçiniz"; }
 function resetSel(){
@@ -1611,19 +1647,20 @@ $("fileInp").onchange = async e => {
     }));
     if(!machines.length) throw new Error("'Makineler' sayfasında satır bulunamadı");
     DB = {machines, opts};
-    localStorage.setItem("yq_db", JSON.stringify(DB));
+    localStorage.setItem(SRC_KEY, "pdf"); paintSrcSeg();   // eski biçim Excel PDF yapısındadır
+    saveDb();
     localStorage.setItem("yq_dbver", String(DB_VERSION));
-    localStorage.setItem("yq_dbinfo", f.name + " (" + new Date().toLocaleDateString("tr-TR") + ")");
+    localStorage.setItem(infoKey("pdf"), f.name + " (" + new Date().toLocaleDateString("tr-TR") + ")");
     updateImpInfo(); resetSel(); renderEmptyState();
     uiAlert("Yüklendi: " + machines.length + " makine, " + Object.keys(opts).length + " opsiyon.");
   }catch(err){ uiAlert("Excel okunamadı: " + err.message); }
   e.target.value = "";
 };
 $("btnResetDb").onclick = async () => {
-  if(await uiConfirm("Tüm fiyatlar silinsin mi?\n(Sonra PDF'ten yeniden yüklemeniz gerekir)")){
-    localStorage.removeItem("yq_db"); localStorage.removeItem("yq_dbinfo");
+  if(await uiConfirm("Aktif listenin (" + SRC_NAMES[curSrc()] + ") fiyatları silinsin mi?\n(Sonra Fiyat Listesi > Güncelle ile yeniden alınır)")){
+    localStorage.removeItem(dbKey()); localStorage.removeItem(infoKey()); localStorage.removeItem(stampKey());
     localStorage.setItem("yq_dbver", String(DB_VERSION));
-    DB = normalizeEmbedded(); updateImpInfo(); resetSel(); renderEmptyState();
+    DB = loadDb(curSrc()); updateImpInfo(); updatePkgInfo(); resetSel(); renderEmptyState();
   }
 };
 
@@ -1696,15 +1733,15 @@ async function applyCaniasta(cx, fname){
     "• ₺ fiyatlı makine: " + cnt(ms, "tl") + " • Fiyat Sorunuz: " + (ms.length - cnt(ms, "tl")) + "\n" +
     (noEn ? "• İngilizce adı boş: " + noEn + " kalem (Türkçe ad kullanılacak)\n" : "") +
     (skipped ? "• Makinesi listede olmayan opsiyon satırı: " + skipped + " (alınmadı)\n" : "") +
-    "\nMevcut liste tamamen bu Excel ile değiştirilecek.\nUygulansın mı?";
+    "\nExcel listesi bu dosyayla kurulacak (PDF listesi olduğu gibi korunur).\nUygulansın mı?";
   if(!await uiConfirm(msg)) return;
   DB = db;
-  localStorage.setItem("yq_db", JSON.stringify(DB));
-  localStorage.setItem("yq_dbver", String(DB_VERSION));
-  localStorage.setItem("yq_dbinfo", "Excel: " + fname + " (" + new Date().toLocaleDateString("tr-TR") + ")");
+  localStorage.setItem(SRC_KEY, "excel"); paintSrcSeg();
+  saveDb();
+  localStorage.setItem(infoKey("excel"), "Excel: " + fname + " (" + new Date().toLocaleDateString("tr-TR") + ")");
   updateImpInfo(); resetSel(); renderEmptyState();
   uiAlert("Excel listesi yüklendi.\nMakine: " + ms.length + " • Opsiyon: " + os.length +
-    "\n\nTelefonlara göndermek için: Fiyat Paketi Oluştur → prices.enc'i GitHub'a yükleyin.");
+    "\n\nFiyat kaynağı Excel'e alındı.\nTelefonlara göndermek için: Fiyat Paketi Oluştur → price_excel.enc'i GitHub'a yükleyin.");
 }
 
 /* ================= PDF PRICE UPDATE ================= */
@@ -1961,7 +1998,6 @@ function bindPdfBtn(btnId, field){
 bindPdfBtn("btnPdfEur", "eur");
 bindPdfBtn("btnPdfTl", "tl");
 $("btnSrcPdf").onclick = async () => {
-  if(DB.src === "excel" && !await uiConfirm("Şu an Excel'den okunmuş liste aktif.\n\nPDF'ten okursanız liste PDF yapısına döner (Excel'deki stok kodlu liste kalkar).\nDevam edilsin mi?")) return;
   const c = await uiChoice("Hangi PDF fiyat listesi okunacak?", "€ EUR", "₺ TL");
   if(c === 1) $("btnPdfEur").onclick();
   else if(c === 2) $("btnPdfTl").onclick();
@@ -1972,8 +2008,10 @@ $("pdfInp").onchange = async e => {
     const lines = await pdfToLines(f);
     const rows = parsePdfRows(lines);
     if(!rows.length) throw new Error("PDF içinde kod + fiyat satırı bulunamadı");
+    const wasSrc = curSrc();
+    if(wasSrc !== "pdf") DB = loadDb("pdf");             // PDF her zaman PDF listesine uygulanır (Excel listesi korunur)
     const backup = JSON.stringify(DB);
-    if(DB.src === "excel") DB = normalizeEmbedded();     // Excel yapısından PDF yapısına dönüş
+    const toPdf = () => { localStorage.setItem(SRC_KEY, "pdf"); paintSrcSeg(); updateImpInfo(); updatePkgInfo(); resetSel(); renderEmptyState(); };
     const askSet = parseAskCodes(lines);
     const {changes, misses, asked} = applyPdfPrices(parsePdfPrices(lines), pdfTarget, askSet);
     const added = addNewFromPdf(rows, pdfTarget);
@@ -1985,13 +2023,13 @@ $("pdfInp").onchange = async e => {
     if(added.length) msg += "YENİ KALEMLER\n" + added.slice(0,12).join("\n") + (added.length > 12 ? "\n… ve " + (added.length-12) + " tane daha" : "") + "\n\n";
     if(changes.length) msg += "FİYAT DEĞİŞİKLİKLERİ\n" + changes.slice(0,12).join("\n") + (changes.length > 12 ? "\n… ve " + (changes.length-12) + " tane daha" : "");
     if(!changes.length && !added.length){
-      DB = JSON.parse(backup);
-      uiAlert(msg + "Liste zaten güncel — değişiklik yok.");
+      DB = JSON.parse(backup); toPdf();
+      uiAlert(msg + "Liste zaten güncel — değişiklik yok." + (wasSrc !== "pdf" ? "\nFiyat kaynağı PDF'e alındı." : ""));
     } else if(await uiConfirm(msg + "\n\nUygulansın mı?")){
-      localStorage.setItem("yq_db", JSON.stringify(DB));
+      localStorage.setItem(dbKey("pdf"), JSON.stringify(DB));
       localStorage.setItem("yq_dbver", String(DB_VERSION));
-      localStorage.setItem("yq_dbinfo", f.name + " (" + new Date().toLocaleDateString("tr-TR") + ")");
-      updateImpInfo(); resetSel(); renderEmptyState();
+      localStorage.setItem(infoKey("pdf"), f.name + " (" + new Date().toLocaleDateString("tr-TR") + ")");
+      toPdf();
       let extraMsg = "";
       if(misses.length){
         const ask = "Bu " + misses.length + " kalem yeni PDF'te yok (üretimden kalkmış olabilir):\n\n"
@@ -2000,14 +2038,14 @@ $("pdfInp").onchange = async e => {
         const ans = await uiChoice(ask, "Listede Kalsın", "Listeden Kaldır");
         if(ans === 2){
           const rm = removeMissingFromDb(misses);
-          localStorage.setItem("yq_db", JSON.stringify(DB));
+          localStorage.setItem(dbKey("pdf"), JSON.stringify(DB));
           resetSel(); if(typeof renderEmptyState === "function") renderEmptyState();
           extraMsg = "\nKaldırılan: " + (rm.removedM.length + rm.removedO.length) + " kalem";
         }
       }
       uiAlert("Fiyat listesi güncellendi.\nDeğişen: " + changes.length + " • Yeni: " + added.length + extraMsg);
-    } else DB = JSON.parse(backup);
-  }catch(err){ uiAlert("PDF okunamadı: " + err.message); }
+    } else DB = (wasSrc !== "pdf") ? loadDb(wasSrc) : JSON.parse(backup);
+  }catch(err){ DB = loadDb(curSrc()); uiAlert("PDF okunamadı: " + err.message); }
   e.target.value = "";
 };
 
@@ -2698,14 +2736,13 @@ setTimeout(sheetFlush, 3000);
 window.addEventListener("online", sheetFlush);
 
 /* ================= ŞİFRELİ FİYAT PAKETİ (prices.enc) ================= */
-const PKG_URL = "prices.enc";
+// Paket adı fiyat kaynağına göre: price_pdf.enc / price_excel.enc (PDF için eski prices.enc de denenir)
 // Uygulama hangi adresten açılırsa açılsın paketin bulunacağı sabit kaynaklar
-const PKG_FALLBACKS = [
-  "https://shnvasfi.github.io/dooffer/prices.enc"
+const PKG_BASES = [
+  "https://shnvasfi.github.io/dooffer/"
 ];
 const ADM_KEY = "yq_adm";      // yönetici kodu (basit koruma)
 const PASS_KEY = "yq_pass";    // paket şifresi
-const STAMP_KEY = "yq_pkgstamp";
 const BUILTIN_PASS = "DO24-qPaz0JWoGnmBo160ud6LEF9gnLZD";   // paket anahtarı (uygulamaya gömülü — kurulum gerekmez)
 
 const b64 = {
@@ -2732,25 +2769,27 @@ async function pkgDecrypt(text, pass){
   return JSON.parse(new TextDecoder().decode(pt));
 }
 function updatePkgInfo(){
-  const st = localStorage.getItem(STAMP_KEY);
+  const st = localStorage.getItem(stampKey());
   const el = $("pkgInfo");
-  if(el) el.textContent = st ? ("Paket: " + st) : (localStorage.getItem("yq_dbinfo") || "Paket yüklenmedi");
+  if(el) el.textContent = SRC_NAMES[curSrc()] + " • " + (st ? ("Paket: " + st) : (localStorage.getItem(infoKey()) || "Paket yüklenmedi"));
 }
 /* Yönetici: mevcut fiyatlardan şifreli paket üret */
 $("btnPkgMake").onclick = async () => {
   if(!cryptoReady()){ uiAlert("Bu ortamda şifreleme kullanılamıyor.\nUygulamayı https adresinden açın."); return; }
   const pass = ($("passInp").value || "").trim() || BUILTIN_PASS;
-  if(!DB.machines.some(m => m.eur != null || m.tl != null)){ uiAlert("Önce fiyatları yükleyin (PDF veya Excel)."); return; }
+  if(!DB.machines.some(m => m.eur != null || m.tl != null)){ uiAlert("Önce " + SRC_NAMES[curSrc()] + " listesinin fiyatlarını yükleyin."); return; }
   const b = $("btnPkgMake"); b.textContent = "…"; b.disabled = true;
   try{
     const stamp = new Date().toLocaleDateString("tr-TR") + " " + new Date().toLocaleTimeString("tr-TR").slice(0,5);
-    const text = await pkgEncrypt({ver:DB_VERSION, stamp, db:DB}, pass);
+    const src = DB.src === "excel" ? "excel" : "pdf";
+    const fname = PKG_NAMES[src][0];
+    const text = await pkgEncrypt({ver:DB_VERSION, stamp, src, db:DB}, pass);
     if(pass !== BUILTIN_PASS) localStorage.setItem(PASS_KEY, pass);
-    localStorage.setItem(STAMP_KEY, stamp);
+    localStorage.setItem(stampKey(src), stamp);
     updatePkgInfo();
-    const file = new File([text], "prices.enc", {type:"application/octet-stream"});
-    await deliverFile(file, "prices.enc");
-    uiAlert("Paket hazır: prices.enc\n\nAnahtar: " + (pass === BUILTIN_PASS ? "uygulama anahtarı (kurulum gerekmez)" : "özel şifre (her telefona girilmeli)") +
+    const file = new File([text], fname, {type:"application/octet-stream"});
+    await deliverFile(file, fname);
+    uiAlert("Paket hazır: " + fname + " (" + SRC_NAMES[src] + " listesi, " + DB.machines.length + " makine)\n\nAnahtar: " + (pass === BUILTIN_PASS ? "uygulama anahtarı (kurulum gerekmez)" : "özel şifre (her telefona girilmeli)") +
       "\nPaket tarihi: " + stamp + "\n\nGitHub deposuna yükleyin (Add file > Upload files).");
   }catch(e){ uiAlert("Paket oluşturulamadı: " + e.message); }
   b.textContent = "Oluştur"; b.disabled = false;
@@ -2763,22 +2802,23 @@ async function checkPricePackage(silent){
   const passList = [...new Set([stored, BUILTIN_PASS].filter(Boolean))];
   try{
     // olası tüm adresleri dene (eğik çizgisiz adres, alt klasör, önbellek sorunları)
+    const src = curSrc();
     const tries = [];
     const pushU = u => { if(u && tries.indexOf(u) === -1) tries.push(u); };
-    try{ pushU(localStorage.getItem("yq_pkgurl")); }catch(e){}          // en son çalışan adres
-    try{ pushU(new URL(PKG_URL, document.baseURI).href); }catch(e){}
-    try{ pushU(new URL(PKG_URL, location.href).href); }catch(e){}
+    try{ pushU(localStorage.getItem(urlKey(src))); }catch(e){}          // en son çalışan adres
     const dir = location.pathname.replace(/[^/]*$/, "");
-    pushU(location.origin + dir + PKG_URL);
-    pushU(location.origin + dir.replace(/\/$/, "") + "/" + PKG_URL);
     const seg1 = location.pathname.split("/").filter(Boolean)[0];
-    if(seg1 && !/\.(html?|enc|js|json)$/i.test(seg1)) pushU(location.origin + "/" + seg1 + "/" + PKG_URL);
-    pushU(location.origin + "/" + PKG_URL);
-    try{
-      const ctrl = navigator.serviceWorker && navigator.serviceWorker.controller;
-      if(ctrl) pushU(new URL(PKG_URL, ctrl.scriptURL).href);
-    }catch(e){}
-    PKG_FALLBACKS.forEach(pushU);        // son çare: merkezi kaynak
+    let ctrl = null; try{ ctrl = navigator.serviceWorker && navigator.serviceWorker.controller; }catch(e){}
+    PKG_NAMES[src].forEach(PKG_URL => {
+      try{ pushU(new URL(PKG_URL, document.baseURI).href); }catch(e){}
+      try{ pushU(new URL(PKG_URL, location.href).href); }catch(e){}
+      pushU(location.origin + dir + PKG_URL);
+      pushU(location.origin + dir.replace(/\/$/, "") + "/" + PKG_URL);
+      if(seg1 && !/\.(html?|enc|js|json)$/i.test(seg1)) pushU(location.origin + "/" + seg1 + "/" + PKG_URL);
+      pushU(location.origin + "/" + PKG_URL);
+      try{ if(ctrl) pushU(new URL(PKG_URL, ctrl.scriptURL).href); }catch(e){}
+      PKG_BASES.forEach(b => pushU(b + PKG_URL));        // son çare: merkezi kaynak
+    });
 
     let txt = null, lastStatus = "", denenen = [];
     for(const u of tries){
@@ -2787,19 +2827,19 @@ async function checkPricePackage(silent){
         const res = await fetch(u + "?t=" + Date.now(), {cache:"no-store"});
         if(res.ok){
           txt = await res.text();
-          try{ localStorage.setItem("yq_pkgurl", u); }catch(e){}
+          try{ localStorage.setItem(urlKey(src), u); }catch(e){}
           break;
         }
         lastStatus = res.status + " " + (res.statusText || "");
       }catch(err){ lastStatus = err.message; }
     }
     if(txt == null){
-      try{ localStorage.removeItem("yq_pkgurl"); }catch(e){}
-      if(!silent) uiAlert("Fiyat paketi indirilemedi (" + (lastStatus || "bağlantı yok") + ").\n\nDenenen adresler:\n" +
+      try{ localStorage.removeItem(urlKey(src)); }catch(e){}
+      if(!silent) uiAlert(SRC_NAMES[src] + " fiyat paketi (" + PKG_NAMES[src][0] + ") indirilemedi (" + (lastStatus || "bağlantı yok") + ").\n\nDenenen adresler:\n" +
         denenen.slice(0, 4).join("\n") + "\n\nDeneyin:\n• Ayarlar > Programı Güncelle > Kontrol Et\n• İnternet bağlantısını kontrol edin");
       return;
     }
-    if(txt.trim().startsWith("<")){ if(!silent) uiAlert("Paket yerine web sayfası geldi.\nDosya adı prices.enc olmalı ve uygulamayla aynı klasörde bulunmalı."); return; }
+    if(txt.trim().startsWith("<")){ if(!silent) uiAlert("Paket yerine web sayfası geldi.\nDosya adı " + PKG_NAMES[src][0] + " olmalı ve uygulamayla aynı klasörde bulunmalı."); return; }
     let pkg = null, usedPass = null, lastErr = null;
     for(const cand of passList){
       try{ pkg = await pkgDecrypt(txt, cand); usedPass = cand; break; }
@@ -2808,20 +2848,35 @@ async function checkPricePackage(silent){
     if(!pkg) throw (lastErr || new Error("paket çözülemedi"));
     if(usedPass === BUILTIN_PASS && stored && stored !== BUILTIN_PASS) localStorage.removeItem(PASS_KEY);  // eski şifre kaydını temizle
     if(!pkg || !pkg.db || !pkg.db.machines){ throw new Error("paket içeriği okunamadı"); }
-    if(pkg.stamp && pkg.stamp === localStorage.getItem(STAMP_KEY)){ if(!silent) uiAlert("Fiyat listesi güncel.\nPaket: " + pkg.stamp); return; }
+    const pkgSrc = pkg.db.src === "excel" ? "excel" : "pdf";
+    if(pkgSrc !== src){ if(!silent) uiAlert("İndirilen paket " + SRC_NAMES[pkgSrc] + " listesi, seçili kaynak " + SRC_NAMES[src] + ".\nYönetici " + PKG_NAMES[src][0] + " dosyasını yüklemeli."); return; }
+    if(curSrc() !== src) return;                         // indirme sırasında kaynak değiştirildi
+    if(pkg.stamp && pkg.stamp === localStorage.getItem(stampKey(src)) && DB.machines.length){ if(!silent) uiAlert(SRC_NAMES[src] + " fiyat listesi güncel.\nPaket: " + pkg.stamp); return; }
     DB = pkg.db;
-    localStorage.setItem("yq_db", JSON.stringify(DB));
-    localStorage.setItem("yq_dbver", String(pkg.ver || DB_VERSION));
-    localStorage.setItem(STAMP_KEY, pkg.stamp || "");
-    localStorage.setItem("yq_dbinfo", "Merkezi paket (" + (pkg.stamp || "") + ")");
+    saveDb();
+    if(src === "pdf") localStorage.setItem("yq_dbver", String(pkg.ver || DB_VERSION));
+    localStorage.setItem(stampKey(src), pkg.stamp || "");
+    localStorage.setItem(infoKey(src), "Merkezi paket (" + (pkg.stamp || "") + ")");
     updateImpInfo(); updatePkgInfo();
   updateBuildInfo(); resetSel(); renderEmptyState();
-    uiAlert("Fiyat listesi güncellendi.\nPaket: " + (pkg.stamp || "") + "\nMakine: " + DB.machines.length);
+    uiAlert(SRC_NAMES[src] + " fiyat listesi güncellendi.\nPaket: " + (pkg.stamp || "") + "\nMakine: " + DB.machines.length);
   }catch(e){
     if(!silent) uiAlert("Fiyat paketi bu telefonda açılamadı.\n\nPaket büyük olasılıkla özel bir şifreyle üretilmiş.\nYönetici şunu yapmalı: Ayarlar > Yönetici Modu > Paket Şifresi alanını BOŞ bırakıp\n\"Fiyat Paketi Oluştur\" ile yeniden üretip depoya yüklemeli.");
   }
 }
 $("btnPkgCheck").onclick = () => checkPricePackage(false);
+
+/* Fiyat kaynağı seçimi (herkese açık) */
+function paintSrcSeg(){ [...$("srcSeg").children].forEach(b => b.classList.toggle("on", b.dataset.src === curSrc())); }
+function setSource(src){
+  if(src === curSrc()) return;
+  localStorage.setItem(SRC_KEY, src);
+  DB = loadDb(src);
+  paintSrcSeg(); updateImpInfo(); updatePkgInfo(); resetSel(); renderEmptyState();
+  checkPricePackage(DB.machines.length > 0);             // liste boşsa sonucu göster
+}
+[...$("srcSeg").children].forEach(b => b.onclick = () => setSource(b.dataset.src));
+paintSrcSeg();
 
 /* Yönetici: telefonlara gönderilecek kurulum bağlantısı (şifreyi taşır) */
 $("btnSheet").onclick = async () => {
