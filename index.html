@@ -682,11 +682,11 @@ table.pf .optrow .oname{padding-left:16px;}
       <input class="pininp" id="passInp" type="password" style="width:120px;letter-spacing:2px;" placeholder="(isteğe bağlı)">
     </div>
     <div class="setrow">
-      <span>Merkezi Tablo (görüntüleme)<br><span style="font-size:12px;color:var(--muted);" id="tableInfo"></span></span>
+      <span>Toplu Teklif Tablosu<br><span style="font-size:11.5px;color:var(--muted);">Google E-Tablo bağlantısı — sadece görüntüleme</span><br><span style="font-size:12px;color:var(--muted);" id="tableInfo"></span></span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnTableUrl">Ayarla</button>
     </div>
     <div class="setrow">
-      <span>Merkezi Kayıt Adresi<br><span style="font-size:12px;color:var(--muted);" id="sheetInfo"></span></span>
+      <span>Teklif Gönderim Adresi<br><span style="font-size:11.5px;color:var(--muted);">Google Form — teklifler buraya gönderilir</span><br><span style="font-size:12px;color:var(--muted);" id="sheetInfo"></span></span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnSheet">Ayarla</button>
     </div>
     <div class="setrow">
@@ -989,7 +989,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.05-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.05-6";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2651,9 +2651,22 @@ paintSplashVer(localStorage.getItem("yq_srvbuild") && localStorage.getItem("yq_s
 setTimeout(checkAppUpdate, 1200);
 
 /* ================= MERKEZİ TEKLİF KAYDI (Google Sheets) ================= */
-const SHEET_URL_BUILTIN = "https://docs.google.com/forms/d/e/1FAIpQLScLNHMVK3RwBhjRV0lp-Kw-qMEMj31a_hTZM2kc8Pfy5gh4xA/viewform?usp=pp_url&entry.1239226715=test";   // merkezi kayıt (Google Form) — tüm cihazlar buraya yazar
+const SHEET_URL_BUILTIN = "https://script.google.com/macros/s/AKfycbwBfLCX3i4eaSVjRo7Sc02djb3ndsD98d-rXoAXuCj8Ao9JHYIUwSyu4pKy-JpCqojZHQ/exec";   // merkezi kayıt: kullanıcının E-Tablosundaki Apps Script (tablo/DO_Offer_Tablo.gs) — tüm cihazlar buraya yazar
 const SHEET_KEY = "yq_sheeturl";
 const SHEETQ_KEY = "yq_sheetq";
+const isSpreadsheetUrl = u => /docs\.google\.com\/spreadsheets\//.test(u || "");
+const isScriptUrl = u => /script\.google(usercontent)?\.com\//.test(u || "");
+// Gönderim adresi yalnızca Google Form (veya Apps Script) olabilir. E-Tablo bağlantısı yanlışlıkla
+// buraya yazıldıysa yok sayılır, Toplu Teklif Tablosu alanına taşınır ve gömülü forma dönülür.
+(function fixSheetSetting(){
+  try{
+    const v = (localStorage.getItem(SHEET_KEY) || "").trim();
+    if(v && !isFormUrl(v) && !isScriptUrl(v)){
+      if(isSpreadsheetUrl(v) && !localStorage.getItem("yq_tableurl")) localStorage.setItem("yq_tableurl", v);
+      localStorage.removeItem(SHEET_KEY);
+    }
+  }catch(e){}
+})();
 function sheetUrl(){ return (localStorage.getItem(SHEET_KEY) || SHEET_URL_BUILTIN || "").trim(); }
 function sheetRows(r){
   // her kalem için bir satır (CSV ile aynı kolonlar)
@@ -2705,10 +2718,11 @@ async function sheetPost(payload){
       return true;
     }catch(e){ return false; }
   }
-  // 2) Apps Script
+  // 2) Apps Script (tabloya doğrudan kolonlu yazar — tablo/DO_Offer_Tablo.gs)
+  //    no-cors: yanıt okunamaz ama ağ hatası yoksa gönderim yapılmıştır; aynı teklif no tekrar gelirse betik eskisini siler
   try{
-    const res = await fetch(url, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(payload)});
-    return res.ok;
+    await fetch(url, {method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(payload)});
+    return true;
   }catch(e){ return false; }
 }
 function sheetQueue(payload){
@@ -2732,7 +2746,7 @@ async function sheetSend(rec){
   const payload = {no:rec.no, rows:sheetRows(rec)};
   if(!await sheetPost(payload)) sheetQueue(payload);
 }
-setTimeout(sheetFlush, 3000);
+setTimeout(() => sheetFlush().then(() => { try{ updateSheetInfo(); }catch(e){} }), 3000);
 window.addEventListener("online", sheetFlush);
 
 /* ================= ŞİFRELİ FİYAT PAKETİ (prices.enc) ================= */
@@ -2881,28 +2895,39 @@ paintSrcSeg();
 /* Yönetici: telefonlara gönderilecek kurulum bağlantısı (şifreyi taşır) */
 $("btnSheet").onclick = async () => {
   const cur0 = localStorage.getItem(SHEET_KEY) || "";
-  const v = await uiPrompt("Merkezi kayıt adresi\n\n• Google Form ön dolgulu bağlantısını yapıştırın\n• Boş bırakıp Tamam derseniz kayıt kapanır", cur0, "https://docs.google.com/forms/...");
+  const v = await uiPrompt("Teklif gönderim adresi\n\n• Tablonuzdaki Apps Script'in web uygulaması adresini yapıştırın\n  (script.google.com/macros/s/.../exec — kurulum: TABLO_KURULUM.md)\n• veya Google Form ön dolgulu bağlantısı\n• Boş = programdaki hazır adres\n\nE-Tablo (spreadsheets) bağlantısı buraya YAZILMAZ — o, Toplu Teklif Tablosu alanına yazılır.", cur0, "https://script.google.com/macros/s/.../exec");
   if(v === null) return;
   const t = v.trim();
+  if(t && isSpreadsheetUrl(t)){
+    if(await uiConfirm("Bu bir E-Tablo bağlantısı, gönderim adresi değil.\nTeklifler Google Form üzerinden gönderilir.\n\nBu bağlantı Toplu Teklif Tablosu olarak kaydedilsin mi?")){
+      localStorage.setItem(TABLE_KEY, t); renderHistTools();
+    }
+    localStorage.removeItem(SHEET_KEY); updateSheetInfo(); sheetFlush().then(updateSheetInfo);
+    return;
+  }
+  if(t && !isFormUrl(t) && !isScriptUrl(t)){ uiAlert("Bu bağlantı tanınmadı.\nApps Script adresi script.google.com/macros/s/.../exec ile, Google Form bağlantısı docs.google.com/forms/... ile başlar."); return; }
   if(t) localStorage.setItem(SHEET_KEY, t); else localStorage.removeItem(SHEET_KEY);
   updateSheetInfo();
+  if(!t){ await sheetFlush(); updateSheetInfo(); uiAlert("Programdaki hazır form kullanılıyor.\nBekleyen teklifler gönderildi."); return; }
   if(t){
     if(isFormUrl(t) && !parseFormLink(t)){
       uiAlert("Bu bağlantıda alan kimliği (entry...) yok.\n\nFormda 'Ön dolgulu bağlantı al' ile TEST yazıp aldığınız bağlantıyı yapıştırın.");
       return;
     }
-    const ok = await sheetPost({test:true, rows:[["TEST","-","-","-","-","-","-","-","-",1,"Test","-","bağlantı denemesi",0,0,0,0,0,0,"-","-","-","-","-",0,0,0,0]]});
+    const testRow = ["TEST", new Date().toLocaleDateString("tr-TR"), "-", localStorage.getItem("yq_dev") || "-", "", "", "", "", "", "", "", "", "bağlantı denemesi"];
+    const ok = await sheetPost({test:true, rows:[testRow]});
     uiAlert(ok
-      ? (isFormUrl(t) ? "Kayıt açıldı. Form tablosuna bir TEST satırı gönderildi (silebilirsiniz)." : "Bağlantı çalışıyor. Tabloya bir TEST satırı yazıldı.")
+      ? (isFormUrl(t) ? "Kayıt açıldı. Form tablosuna bir TEST satırı gönderildi (silebilirsiniz)." : "Gönderildi. Tablonuzun \"Teklifler\" sayfasında bir TEST satırı görmelisiniz (silebilirsiniz).\nGörünmüyorsa: dağıtımda \"Erişimi olanlar: Herkes\" seçili olmalı.")
       : "Adres kaydedildi ama gönderim doğrulanamadı. İnternet bağlantısını kontrol edin.");
   }
 };
 const TABLE_KEY = "yq_tableurl";
 $("btnTableUrl").onclick = async () => {
-  const v = await uiPrompt("Merkezi tablo adresi\n\nGoogle E-Tablolar bağlantısını yapıştırın.\n(Geçmiş Teklifler penceresinde \"Merkezi Tablo\" düğmesi çıkar)",
+  const v = await uiPrompt("Toplu teklif tablosu\n\nFormun yanıt tablosunun (Google E-Tablo) bağlantısını yapıştırın.\nGeçmiş Teklifler penceresinde \"Merkezi Tablo\" düğmesi çıkar; tüm cihazların teklifleri orada görünür.",
     localStorage.getItem(TABLE_KEY) || "", "https://docs.google.com/spreadsheets/...");
   if(v === null) return;
   const t = v.trim();
+  if(t && isFormUrl(t)){ uiAlert("Bu bir Form bağlantısı. Buraya formun yanıt tablosunun (docs.google.com/spreadsheets/...) bağlantısı yazılır.\nForm bağlantısı Teklif Gönderim Adresi alanına aittir."); return; }
   if(t) localStorage.setItem(TABLE_KEY, t); else localStorage.removeItem(TABLE_KEY);
   updateSheetInfo(); renderHistTools();
 };
@@ -2916,7 +2941,8 @@ function updateSheetInfo(){
   const el = $("sheetInfo"); if(!el) return;
   const u = sheetUrl();
   let q = 0; try{ q = JSON.parse(localStorage.getItem(SHEETQ_KEY) || "[]").length; }catch(e){}
-  el.textContent = u ? ((isFormUrl(u) ? "Açık (Google Form)" : "Açık (Apps Script)") + (q ? " • bekleyen: " + q : "")) : "Kapalı — teklifler yalnızca cihazda";
+  const tip = !localStorage.getItem(SHEET_KEY) ? "Açık (merkezi teklif tablosu)" : isFormUrl(u) ? "Açık (özel Google Form)" : "Açık (Apps Script)";
+  el.textContent = u ? (tip + (q ? " • gönderilmeyi bekleyen: " + q : "")) : "Kapalı — teklifler yalnızca cihazda";
 }
 $("btnSetupLink").onclick = async () => {
   const pass = (localStorage.getItem(PASS_KEY) || $("passInp").value || "").trim();
