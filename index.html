@@ -158,7 +158,6 @@ table.pf .optrow .oname{padding-left:16px;}
 .pf-extra .exr .c{padding:2px 0;text-align:center;}
 .pf-extra .exr .v{padding:2px 10px;white-space:nowrap;display:grid;grid-template-columns:16px 1fr;align-items:baseline;gap:4px;}
 .pf-extra .exr .excur{text-align:left;font-weight:800;}
-.pf-extra .exr .v .pdfval{display:block;text-align:right;width:100%;}
 .pf-extra .exr input{width:100%;text-align:right;border:none;border-bottom:1px dashed #999;background:#fffbe8;
   font-family:inherit;font-size:13px;font-weight:800;padding:0;}
 .pf-extra .exr.tot{border-top:1px solid #000;background:#f4f6f8;}
@@ -270,6 +269,11 @@ table.pf .optrow .oname{padding-left:16px;}
 .pdfmode .pf-extra .exr .v .pdfval{display:block !important;text-align:right !important;width:100% !important;}
 .pdfmode .pf-extra .exr .v{display:grid !important;grid-template-columns:16px 1fr !important;}
 .pdfval{display:none;}
+/* gün.ay.yıl tarih kutusu: görünen metin + gizli takvim */
+.dwrap{position:relative;display:flex;align-items:center;}
+.dwrap .dtxt{width:100%;padding-right:42px;box-sizing:border-box;}
+.dwrap .dbtn{position:absolute;right:6px;background:none;border:none;font-size:18px;cursor:pointer;padding:4px;}
+.dwrap .dhid{position:absolute;right:6px;bottom:0;width:30px;height:1px;opacity:0;pointer-events:none;border:0;padding:0;}
 @media print{
   body{background:#fff;}
   body *{visibility:hidden;}
@@ -572,8 +576,14 @@ table.pf .optrow .oname{padding-left:16px;}
     <select id="leadOpp" class="leadsel"><option value="">— Seçiniz —</option><option value="F01">F01 Bayi Üzerinden Satış Fırsatı</option><option value="F02">F02 Perakende Satış Fırsatı</option><option value="F03">F03 Proje Satış Fırsatı</option><option value="F10">F10 Bayiye Satış Fırsatı</option></select>
 
     <div id="leadDateWrap" style="display:flex;gap:10px;">
-      <div style="flex:1;"><div class="lbl">Başlangıç Tarihi</div><input type="date" id="leadStart" class="leadsel"></div>
-      <div style="flex:1;"><div class="lbl">Bitiş Tarihi</div><input type="date" id="leadEnd" class="leadsel"></div>
+      <div style="flex:1;min-width:0;"><div class="lbl">Başlangıç Tarihi</div>
+        <div class="dwrap"><input id="leadStartTxt" class="leadsel dtxt" inputmode="numeric" placeholder="GG.AA.YYYY" maxlength="10" autocomplete="off">
+        <button type="button" class="dbtn" data-for="leadStart" aria-label="Takvim">📅</button>
+        <input type="date" id="leadStart" class="dhid" tabindex="-1"></div></div>
+      <div style="flex:1;min-width:0;"><div class="lbl">Bitiş Tarihi</div>
+        <div class="dwrap"><input id="leadEndTxt" class="leadsel dtxt" inputmode="numeric" placeholder="GG.AA.YYYY" maxlength="10" autocomplete="off">
+        <button type="button" class="dbtn" data-for="leadEnd" aria-label="Takvim">📅</button>
+        <input type="date" id="leadEnd" class="dhid" tabindex="-1"></div></div>
     </div>
 
     <label id="leadNoteLbl" style="display:flex;align-items:center;gap:10px;margin:12px 0 6px;font-size:14.5px;font-weight:600;">
@@ -629,7 +639,7 @@ table.pf .optrow .oname{padding-left:16px;}
 </div>
 
 <!-- MESSAGE MODAL -->
-<div class="modal" id="msgModal" style="align-items:center;">
+<div class="modal" id="msgModal" style="align-items:center;z-index:500;">
   <div class="mbox" style="border-radius:18px;max-width:420px;margin:0 14px;">
     <div id="msgText" style="font-size:15px;line-height:1.5;white-space:pre-wrap;max-height:55vh;overflow-y:auto;"></div>
     <input id="msgInput" style="display:none;width:100%;margin-top:12px;padding:10px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;" autocapitalize="off" autocorrect="off" spellcheck="false">
@@ -1003,7 +1013,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.05-8";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.05-9";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1280,6 +1290,7 @@ function leadRefresh(){
   $("leadDateWrap").style.display = direkt ? "none" : "flex";      // Direkt'te tarih sorulmaz
   $("leadNoteLbl").style.display = "flex";                          // not her kaynakta sorulur
   $("leadNote").style.display = $("leadNoteOn").checked ? "" : "none";
+  syncDateTxt();
   const ok = leadValid();
   $("leadOk").disabled = !ok;
   $("leadWarn").textContent = ok ? ""
@@ -1300,6 +1311,36 @@ function leadFill(){
 }
 [...$("leadSrc").children].forEach(b => b.onclick = () => { leadData.src = b.dataset.src; if(b.dataset.src !== "F") $("leadFair").value = ""; leadRefresh(); });
 ["leadFair","leadCountry","leadOpp","leadStart","leadEnd"].forEach(id => { $(id).onchange = leadRefresh; $(id).oninput = leadRefresh; });
+/* Tarihler GG.AA.YYYY gösterilir; içeride ISO (YYYY-AA-GG) saklanır */
+const isoToTr = v => /^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v.slice(8,10) + "." + v.slice(5,7) + "." + v.slice(0,4) : (v || "");
+function trToIso(t){
+  const m = String(t || "").match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+  if(!m) return "";
+  const d = +m[1], mo = +m[2], y = +m[3], dt = new Date(y, mo - 1, d);
+  if(dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return "";
+  return y + "-" + String(mo).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+}
+function syncDateTxt(){
+  ["leadStart","leadEnd"].forEach(id => { const t = $(id + "Txt"); if(document.activeElement !== t) t.value = isoToTr($(id).value); });
+}
+["leadStart","leadEnd"].forEach(id => {
+  const t = $(id + "Txt"), h = $(id);
+  t.oninput = () => {
+    let v = t.value.replace(/[^\d]/g, "").slice(0, 8);               // 21112026 → 21.11.2026
+    if(v.length > 4) v = v.slice(0,2) + "." + v.slice(2,4) + "." + v.slice(4);
+    else if(v.length > 2) v = v.slice(0,2) + "." + v.slice(2);
+    t.value = v;
+    h.value = trToIso(v);
+    leadRefresh();
+  };
+  t.onblur = () => { t.value = isoToTr(h.value) || (t.value.length ? t.value : ""); };
+  h.onchange = () => { t.value = isoToTr(h.value); leadRefresh(); };
+});
+document.querySelectorAll(".dbtn").forEach(b => b.onclick = () => {
+  const h = $(b.dataset.for);
+  try{ if(h.showPicker){ h.showPicker(); return; } }catch(e){}
+  h.style.pointerEvents = "auto"; h.focus(); h.click(); h.style.pointerEvents = "none";
+});
 $("leadNoteOn").onchange = leadRefresh;
 $("leadClear").onclick = () => {
   leadData = {};
@@ -1541,8 +1582,12 @@ async function makePdf(){
     html2canvas: {scale:2, useCORS:true},
     jsPDF: {unit:"mm", format:"a4", orientation:"portrait"}
   };
-  const blob = await html2pdf().set(opt).from(el).outputPdf("blob");
-  el.classList.remove("pdfmode");
+  let blob;
+  try{ blob = await html2pdf().set(opt).from(el).outputPdf("blob"); }
+  finally{
+    el.classList.remove("pdfmode");
+    el.querySelectorAll(".pdfval").forEach(sp => sp.remove());   // PDF metinleri ekranda kalmasın
+  }
   return new File([blob], opt.filename, {type:"application/pdf"});
 }
 function currentQuoteRecord(){
@@ -2550,7 +2595,7 @@ function buildCsv(recs){
     const items = r.items || [];
     const L = r.lead || {};
     const leadCols = [L.srcName || MODES[L.src] || "", L.fair || "", L.cc || "", L.cname || "",
-                      L.opp || "", L.oppDesc || "", L.start || "", L.end || "", L.note || ""];
+                      L.opp || "", L.oppDesc || "", isoToTr(L.start), isoToTr(L.end), L.note || ""];
     if(!items.length){
       rows.push([r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", ...leadCols, r.company || "", r.person || "",
         r.phone || "", r.mail || "", r.cur || "", "", "", "", "", "", "", "", "", "", "",
@@ -2696,7 +2741,7 @@ function sheetRows(r){
   const L = r.lead || {};
   const base = [r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "",
                 L.srcName || MODES[L.src] || "", L.fair || "", L.cc || "", L.cname || "",
-                L.opp || "", L.oppDesc || "", L.start || "", L.end || "", L.note || "",
+                L.opp || "", L.oppDesc || "", isoToTr(L.start), isoToTr(L.end), L.note || "",
                 r.company || "", r.person || "", r.phone || "", r.mail || "", r.cur || ""];
   const tail = [r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
                 r.freight || 0, r.insurance || 0, r.listTotal || 0, r.netTotal || 0];
