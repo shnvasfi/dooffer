@@ -690,18 +690,15 @@ table.pf .optrow .oname{padding-left:16px;}
       <span>Fiyat Paketi Oluştur<br><span style="font-size:12px;color:var(--muted);">prices.enc — GitHub'a yüklenir</span></span>
       <button class="btn pri" style="flex:none;padding:8px 14px;" id="btnPkgMake">Oluştur</button>
     </div>
-    <div class="setrow">
-      <span>PDF'ten Fiyat Güncelle</span>
-      <span style="display:flex;gap:6px;">
-        <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnPdfEur">€ EUR</button>
-        <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnPdfTl">₺ TL</button>
-      </span>
+    <div class="setrow" style="display:block;">
+      <span>Fiyat Listesi Güncelle<br><span style="font-size:12px;color:var(--muted);">PDF (€ ve ₺ ayrı dosya) veya Caniasta Excel (€ + ₺ birlikte)</span></span>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn sec" style="flex:1;padding:9px 6px;" id="btnSrcPdf">📄 PDF'ten Oku</button>
+        <button class="btn sec" style="flex:1;padding:9px 6px;" id="btnImport">📊 Excel'den Oku</button>
+      </div>
     </div>
+    <button id="btnPdfEur" style="display:none;"></button><button id="btnPdfTl" style="display:none;"></button>
     <input type="file" id="pdfInp" accept=".pdf" style="display:none;">
-    <div class="setrow">
-      <span>Excel'den Fiyat Yükle</span>
-      <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnImport">Dosya Seç</button>
-    </div>
     <div class="setrow">
       <span>Fiyatları sıfırla</span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnResetDb">Sıfırla</button>
@@ -957,12 +954,12 @@ function normalizeEmbedded(){
   };
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.04-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.04-3";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}
 if(!DB || !DB.machines || !DB.machines.length){
   DB = normalizeEmbedded();
-} else if((parseInt(localStorage.getItem("yq_dbver")) || 0) < DB_VERSION){
+} else if(DB.src !== "excel" && (parseInt(localStorage.getItem("yq_dbver")) || 0) < DB_VERSION){
   // Program güncellendi: makine/opsiyon yapısını yenile, cihazdaki FİYATLARI koru
   const keep = {};
   DB.machines.forEach(m => { keep["M:" + m.code] = {eur:m.eur, tl:m.tl}; });
@@ -987,6 +984,8 @@ const fmtNum = n => n.toLocaleString("tr-TR", NF);
 const fmt = n => fmtC(n, cur);
 const $ = id => document.getElementById(id);
 const mPrice = m => cur === "EUR" ? m.eur : m.tl;
+// Excel listesinden gelen kalemler iki dillidir: EUR → İngilizce, TL → Türkçe; İngilizce boşsa Türkçe
+const nameOf = x => (cur === "EUR" && x.nameEn) ? x.nameEn : x.name;
 const oPrice = o => cur === "EUR" ? o.eur : o.tl;
 
 let sel = null;            // selected machine object
@@ -1085,6 +1084,7 @@ buildSeg($("segD2"), D2_VALUES, "+%", v => d2 = v);
 /* ================= UI: PICKER ================= */
 function catList(){
   const cats = [...new Set(DB.machines.map(m => m.cat))];
+  if(DB.src === "excel") return cats.sort((a,b) => (a === "Diğer") - (b === "Diğer") || a.localeCompare(b, "tr", {numeric:true}));
   return cats.sort((a,b) => {
     const ia = CAT_ORDER.indexOf(a), ib = CAT_ORDER.indexOf(b);
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
@@ -1095,13 +1095,13 @@ function renderPicker(filter){
   const f = (filter || "").toLocaleLowerCase("tr");
   catList().forEach(cat => {
     const items = DB.machines.filter(m => m.cat === cat &&
-      (!f || (m.code+" "+m.name+" "+m.desc).toLocaleLowerCase("tr").includes(f)));
+      (!f || (m.code+" "+m.name+" "+(m.nameEn||"")+" "+m.desc+" "+m.cat).toLocaleLowerCase("tr").includes(f)));
     if(!items.length) return;
     const h = document.createElement("div"); h.className = "cathead"; h.textContent = cat; list.appendChild(h);
     items.forEach(m => {
       const p = mPrice(m);
       const r = document.createElement("div"); r.className = "mrow";
-      r.innerHTML = `<div style="flex:1;min-width:0;"><div class="c">${m.code}</div><div class="n">${m.name}</div></div>
+      r.innerHTML = `<div style="flex:1;min-width:0;"><div class="c">${m.code}</div><div class="n">${nameOf(m)}</div></div>
         <div class="p ${p==null?'req':''}">${p==null ? "Fiyat Sorunuz" : fmt(p)}</div>`;
       r.onclick = () => selectMachine(m);
       list.appendChild(r);
@@ -1123,7 +1123,7 @@ function selectMachine(m){
   const mp = mPrice(m);
   $("pickLabel").textContent = m.code;
   $("pickLabel").classList.remove("ph");
-  $("mName").textContent = m.name;
+  $("mName").textContent = nameOf(m);
   $("curSym").textContent = cur === "TL" ? "₺" : "€";
   $("curSym").style.display = mp==null ? "none" : "";
   $("mPrice").textContent = mp==null ? "Fiyat Sorunuz" : fmtNum(mp);
@@ -1139,7 +1139,7 @@ function selectMachine(m){
     const row = document.createElement("label"); row.className = "opt";
     row.style.borderBottom = "none";
     row.innerHTML = `<input type="checkbox" data-oid="${id}" ${op==null?"disabled":""}>
-      <div class="oi"><div class="on">${o.name}</div><div class="od">${o.code} • ${o.info}</div></div>
+      <div class="oi"><div class="on">${nameOf(o)}</div><div class="od">${o.code}${o.info ? " • " + o.info : ""}</div></div>
       <div class="op ${op==null?'req':''}">${op==null ? "Fiyat Sorunuz" : fmt(op)}</div>`;
     const qrow = document.createElement("div");
     qrow.style.cssText = "display:none;align-items:center;justify-content:space-between;padding:2px 0 10px 32px;";
@@ -1345,10 +1345,10 @@ $("btnAdd").onclick = () => {
   const k1 = 1 - d1/100, k2 = 1 - d2/100;
   if(quote.length === 0) nextQuoteNo();
   quote.push({
-    code: sel.code, name: sel.name, desc: sel.desc, qty: mQty, cur,
+    code: sel.code, name: nameOf(sel), desc: sel.desc, qty: mQty, cur,
     unitList: mPrice(sel), unitNet: mPrice(sel) * k1 * k2,
     opts: [...selOpts].filter(id => oPrice(DB.opts[id]) != null)
-      .map(id => ({code: DB.opts[id].code, name: DB.opts[id].name, qty: optQtys[id] || 1, unitList: oPrice(DB.opts[id]), unitNet: oPrice(DB.opts[id]) * k1 * k2})),
+      .map(id => ({code: DB.opts[id].code, name: nameOf(DB.opts[id]), qty: optQtys[id] || 1, unitList: oPrice(DB.opts[id]), unitNet: oPrice(DB.opts[id]) * k1 * k2})),
     d1, d2
   });
   saveQuote();
@@ -1589,6 +1589,8 @@ $("fileInp").onchange = async e => {
   const f = e.target.files[0]; if(!f) return;
   try{
     const wb = XLSX.read(await f.arrayBuffer());
+    const cx = parseCaniastaWb(wb);
+    if(cx){ await applyCaniasta(cx, f.name); e.target.value = ""; return; }
     const ms = wb.Sheets["Makineler"] || wb.Sheets[wb.SheetNames[0]];
     const os = wb.Sheets["Opsiyonlar"] || wb.Sheets[wb.SheetNames[1]];
     const num = v => {
@@ -1624,6 +1626,86 @@ $("btnResetDb").onclick = async () => {
     DB = normalizeEmbedded(); updateImpInfo(); resetSel(); renderEmptyState();
   }
 };
+
+/* ================= CANIASTA EXCEL (Satış Fiyat Listesi - Opsiyonlu) ================= */
+// Kolonlar: MAKİNE | MAKİNE KODU | OPSİYON KODU | TÜRKÇE AÇIKLAMA | İNGİLİZCE AÇIKLAMA | TL Fiyat | EUR Fiyat
+// Makine = MAKİNE KODU "4UN" ile başlayan ve OPSİYON KODU boş satır. Opsiyon = aynı makine kodunun opsiyon satırları.
+// Diğer satırlar (yedek parça vb.) alınmaz. "Fiyat Sorunuz" veya boş → null (fiyat uydurulmaz).
+const CX_MACHINE_PREFIX = "4UN";
+function cxNum(v){
+  if(v == null) return null;
+  if(typeof v === "number") return isFinite(v) && v > 0 ? v : null;
+  const t = String(v).trim().replace(/[€₺\s]/g, "");
+  if(!t || !/\d/.test(t)) return null;                       // "Fiyat Sorunuz", boş
+  const p = parseFloat(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t.replace(/\.(?=\d{3}(\D|$))/g, ""));
+  return isNaN(p) || p <= 0 ? null : p;
+}
+function cxKey(h){ return String(h == null ? "" : h).toLocaleUpperCase("tr").replace(/[\s_]/g, ""); }
+function parseCaniastaWb(wb){
+  for(const sn of wb.SheetNames){
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, defval:"", raw:true});
+    const hi = rows.slice(0, 15).findIndex(r => r.some(c => cxKey(c) === "MAKİNEKODU"));
+    if(hi < 0) continue;
+    const H = rows[hi].map(cxKey), col = k => H.indexOf(k);
+    const C = {grp:col("MAKİNE"), mc:col("MAKİNEKODU"), oc:col("OPSİYONKODU"), tr:col("TÜRKÇEAÇIKLAMA"),
+               en:col("İNGİLİZCEAÇIKLAMA"), tl:col("TLFİYAT"), eur:col("EURFİYAT")};
+    if(C.mc < 0 || C.oc < 0 || C.tr < 0 || (C.tl < 0 && C.eur < 0)) continue;
+    return {rows: rows.slice(hi + 1), C};
+  }
+  return null;
+}
+function buildCaniastaDb(cx){
+  const {rows, C} = cx;
+  const S = (r, i) => i < 0 ? "" : String(r[i] == null ? "" : r[i]).trim();
+  const machines = [], byCode = {}, opts = {}, optKey = {};
+  let skipped = 0;
+  rows.forEach(r => {
+    const mc = S(r, C.mc).toUpperCase(), oc = S(r, C.oc);
+    if(!mc.startsWith(CX_MACHINE_PREFIX) || oc) return;
+    if(byCode[mc]) return;                                     // aynı makine iki kez gelmez
+    let grp = S(r, C.grp); if(!grp || grp === "*") grp = "Diğer";
+    const m = {code: mc, name: S(r, C.tr), nameEn: S(r, C.en), desc: grp, cat: grp,
+               eur: cxNum(C.eur < 0 ? null : r[C.eur]), tl: cxNum(C.tl < 0 ? null : r[C.tl]), opts: []};
+    byCode[mc] = m; machines.push(m);
+  });
+  rows.forEach(r => {
+    const mc = S(r, C.mc).toUpperCase(), oc = S(r, C.oc);
+    if(!oc) return;
+    const m = byCode[mc];
+    if(!m){ if(mc.startsWith(CX_MACHINE_PREFIX)) skipped++; return; }
+    const o = {code: oc, name: S(r, C.tr), nameEn: S(r, C.en), info: "",
+               eur: cxNum(C.eur < 0 ? null : r[C.eur]), tl: cxNum(C.tl < 0 ? null : r[C.tl])};
+    const k = [o.code, o.name, o.nameEn, o.eur, o.tl].join("|");   // aynı opsiyon farklı makinede farklı fiyatlı olabilir
+    let id = optKey[k];
+    if(!id){ id = "x" + (Object.keys(opts).length + 1); optKey[k] = id; opts[id] = o; }
+    if(m.opts.indexOf(id) < 0) m.opts.push(id);
+  });
+  return {db: {src: "excel", machines, opts}, skipped};
+}
+async function applyCaniasta(cx, fname){
+  const {db, skipped} = buildCaniastaDb(cx);
+  if(!db.machines.length){ uiAlert("Excel'de " + CX_MACHINE_PREFIX + " ile başlayan makine satırı bulunamadı."); return; }
+  const ms = db.machines, os = Object.values(db.opts);
+  const grpN = new Set(ms.map(m => m.cat)).size;
+  const cnt = (arr, f) => arr.filter(x => x[f] != null).length;
+  const noEn = ms.filter(m => !m.nameEn).length + os.filter(o => !o.nameEn).length;
+  const msg = fname + "\n\n" +
+    "• Makine: " + ms.length + " (" + grpN + " grup)\n" +
+    "• Opsiyon: " + new Set(os.map(o => o.code)).size + " farklı kod, " + ms.reduce((a, m) => a + m.opts.length, 0) + " bağlantı\n" +
+    "• € fiyatlı makine: " + cnt(ms, "eur") + " • Fiyat Sorunuz: " + (ms.length - cnt(ms, "eur")) + "\n" +
+    "• ₺ fiyatlı makine: " + cnt(ms, "tl") + " • Fiyat Sorunuz: " + (ms.length - cnt(ms, "tl")) + "\n" +
+    (noEn ? "• İngilizce adı boş: " + noEn + " kalem (Türkçe ad kullanılacak)\n" : "") +
+    (skipped ? "• Makinesi listede olmayan opsiyon satırı: " + skipped + " (alınmadı)\n" : "") +
+    "\nMevcut liste tamamen bu Excel ile değiştirilecek.\nUygulansın mı?";
+  if(!await uiConfirm(msg)) return;
+  DB = db;
+  localStorage.setItem("yq_db", JSON.stringify(DB));
+  localStorage.setItem("yq_dbver", String(DB_VERSION));
+  localStorage.setItem("yq_dbinfo", "Excel: " + fname + " (" + new Date().toLocaleDateString("tr-TR") + ")");
+  updateImpInfo(); resetSel(); renderEmptyState();
+  uiAlert("Excel listesi yüklendi.\nMakine: " + ms.length + " • Opsiyon: " + os.length +
+    "\n\nTelefonlara göndermek için: Fiyat Paketi Oluştur → prices.enc'i GitHub'a yükleyin.");
+}
 
 /* ================= PDF PRICE UPDATE ================= */
 let pdfTarget = "eur";
@@ -1878,6 +1960,12 @@ function bindPdfBtn(btnId, field){
 }
 bindPdfBtn("btnPdfEur", "eur");
 bindPdfBtn("btnPdfTl", "tl");
+$("btnSrcPdf").onclick = async () => {
+  if(DB.src === "excel" && !await uiConfirm("Şu an Excel'den okunmuş liste aktif.\n\nPDF'ten okursanız liste PDF yapısına döner (Excel'deki stok kodlu liste kalkar).\nDevam edilsin mi?")) return;
+  const c = await uiChoice("Hangi PDF fiyat listesi okunacak?", "€ EUR", "₺ TL");
+  if(c === 1) $("btnPdfEur").onclick();
+  else if(c === 2) $("btnPdfTl").onclick();
+};
 $("pdfInp").onchange = async e => {
   const f = e.target.files[0]; if(!f) return;
   try{
@@ -1885,6 +1973,7 @@ $("pdfInp").onchange = async e => {
     const rows = parsePdfRows(lines);
     if(!rows.length) throw new Error("PDF içinde kod + fiyat satırı bulunamadı");
     const backup = JSON.stringify(DB);
+    if(DB.src === "excel") DB = normalizeEmbedded();     // Excel yapısından PDF yapısına dönüş
     const askSet = parseAskCodes(lines);
     const {changes, misses, asked} = applyPdfPrices(parsePdfPrices(lines), pdfTarget, askSet);
     const added = addNewFromPdf(rows, pdfTarget);
@@ -2651,7 +2740,7 @@ function updatePkgInfo(){
 $("btnPkgMake").onclick = async () => {
   if(!cryptoReady()){ uiAlert("Bu ortamda şifreleme kullanılamıyor.\nUygulamayı https adresinden açın."); return; }
   const pass = ($("passInp").value || "").trim() || BUILTIN_PASS;
-  if(!DB.machines.some(m => m.eur != null || m.tl != null)){ uiAlert("Önce PDF'ten fiyatları yükleyin."); return; }
+  if(!DB.machines.some(m => m.eur != null || m.tl != null)){ uiAlert("Önce fiyatları yükleyin (PDF veya Excel)."); return; }
   const b = $("btnPkgMake"); b.textContent = "…"; b.disabled = true;
   try{
     const stamp = new Date().toLocaleDateString("tr-TR") + " " + new Date().toLocaleTimeString("tr-TR").slice(0,5);
