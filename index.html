@@ -333,6 +333,7 @@ svg.flag{width:22px;height:15px;border-radius:2px;flex:none;box-shadow:0 0 0 1px
       <div class="modelbl" style="margin-bottom:6px;" data-i18n="iniLbl">Kullanıcı kodu: ad + soyad baş harfleri</div>
       <input id="iniInp" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="Örn: VS" data-i18n-ph="iniPh"
         style="width:100%;box-sizing:border-box;text-align:center;font-size:18px;font-weight:800;letter-spacing:3px;padding:8px;border-radius:12px;border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.08);color:#fff;">
+      <div id="iniMsg" style="display:none;margin-top:7px;font-size:13px;line-height:1.35;color:#ffb4b4;text-align:center;"></div>
     </div>
     <div class="modelbl" data-i18n="choose">Lütfen seçiminizi yapınız</div>
     <div class="modebtns">
@@ -707,7 +708,8 @@ svg.flag{width:22px;height:15px;border-radius:2px;flex:none;box-shadow:0 0 0 1px
       <span style="display:flex;align-items:center;gap:4px;">
         <span id="devLetter" style="font-weight:900;font-size:18px;min-width:22px;text-align:center;">—</span>
         <span style="font-weight:900;">-</span>
-        <input class="pininp" id="devInp" style="letter-spacing:2px;width:74px;" maxlength="4" placeholder="AB">
+        <input class="pininp" id="devInp" style="letter-spacing:2px;width:74px;" maxlength="4" placeholder="AB" readonly title="Kod, giriş ile belirlenir">
+        <button class="btn sec" id="btnLogout" style="flex:none;padding:6px 10px;font-size:12.5px;margin-left:4px;">Çıkış</button>
       </span>
     </div>
     <div class="setrow">
@@ -1117,7 +1119,13 @@ const I18N = {
                "Edit mode: {no}\n\nMake your changes and tap \"Save Quote\"; the quote is updated under the same number.\nTo make it a separate quote, use \"Save as New Quote\".",
                "Режим редактирования: {no}\n\nВнесите изменения и нажмите «Сохранить»; предложение обновится под тем же номером.\nЧтобы создать отдельное предложение, нажмите «Сохранить как новое».",
                "Modo edición: {no}\n\nHaga los cambios y pulse \"Guardar oferta\"; la oferta se actualiza con el mismo número.\nPara una oferta distinta, use \"Guardar como nueva\"."],
-  cardDel:    ["Kartvizit silinsin mi?", "Delete the business card?", "Удалить визитку?", "¿Eliminar la tarjeta?"]
+  cardDel:    ["Kartvizit silinsin mi?", "Delete the business card?", "Удалить визитку?", "¿Eliminar la tarjeta?"],
+  authCheck:  ["Kontrol ediliyor…", "Checking…", "Проверка…", "Comprobando…"],
+  authUnknown:["Bu kullanıcı kodu tanımlı değil. Yöneticinize başvurun.", "This user code is not registered. Please contact your administrator.", "This user code is not registered. Please contact your administrator.", "This user code is not registered. Please contact your administrator."],
+  authPassive:["Bu kullanıcı kodu pasif. Yöneticinize başvurun.", "This user code is inactive. Please contact your administrator.", "This user code is inactive. Please contact your administrator.", "This user code is inactive. Please contact your administrator."],
+  authNet:    ["Kod doğrulanamadı: internet bağlantısı gerekiyor.", "The code could not be verified: an internet connection is required.", "The code could not be verified: an internet connection is required.", "The code could not be verified: an internet connection is required."],
+  authStale:  ["Son doğrulama 7 günden eski. İnternete bağlanıp kodunuzla tekrar giriş yapın.", "Last verification is older than 7 days. Connect to the internet and sign in again.", "Last verification is older than 7 days. Connect to the internet and sign in again.", "Last verification is older than 7 days. Connect to the internet and sign in again."],
+  authFirst:  ["Önce kullanıcı kodunuzla giriş yapın.", "Please sign in with your user code first.", "Please sign in with your user code first.", "Please sign in with your user code first."]
 };
 const LI = {tr:0, en:1, ru:2, es:3};   // sözlük sütunları (LANGS_ALL sırası)
 function t(key, vars){
@@ -1282,7 +1290,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.06-3";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.06-4";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2884,13 +2892,14 @@ function openHistory(){ return $("btnHist").onclick(); }
 $("btnHistMain").onclick = () => openHistory();
 $("btnHistSplash").onclick = (e) => {
   e.stopPropagation();
+  if(needLogin()){ iniMsg(t("authFirst")); return; }
   const sp = document.getElementById("splash");
   sp.classList.add("bye");
   setTimeout(() => { sp.style.display = "none"; }, 400);
   setTimeout(openHistory, 250);
 };
 $("btnHist").onclick = async () => {
-  renderHistTools(); loadTableCfg();
+  renderHistTools(); reverify();
   $("histModal").classList.add("open");
   await renderHist();       // CSV için pencerede "Bu Cihaz (CSV)" düğmesi var; soru sorulmaz
 };
@@ -3199,7 +3208,9 @@ function updatePkgInfo(){
 /* Yönetici: mevcut fiyatlardan şifreli paket üret */
 $("btnPkgMake").onclick = async () => {
   if(!cryptoReady()){ uiAlert("Bu ortamda şifreleme kullanılamıyor.\nUygulamayı https adresinden açın."); return; }
-  const pass = ($("passInp").value || "").trim() || BUILTIN_PASS;
+  let authPass = ""; try{ authPass = (JSON.parse(localStorage.getItem("yq_auth") || "null") || {}).pkgPass || ""; }catch(e){}
+  const pass = ($("passInp").value || "").trim() || authPass || BUILTIN_PASS;    // öncelik: elle yazılan, sonra tablodaki F2 şifresi
+  if(pass === BUILTIN_PASS && !await uiConfirm("Tablonun Ayarlar sayfasında fiyat paketi şifresi (F2) boş görünüyor.\nPaket uygulamanın kendi anahtarıyla (kilitsiz) üretilecek.\n\nDevam edilsin mi?")) return;
   if(!DB.machines.some(m => m.eur != null || m.tl != null)){ uiAlert("Önce " + SRC_NAMES[curSrc()] + " listesinin fiyatlarını yükleyin."); return; }
   const b = $("btnPkgMake"); b.textContent = "…"; b.disabled = true;
   try{
@@ -3222,7 +3233,8 @@ async function checkPricePackage(silent){
   if(!/^https?:$/.test(location.protocol)){ if(!silent) uiAlert("Paket güncellemesi yalnızca internet adresinden açıldığında çalışır."); return; }
   if(!cryptoReady()){ if(!silent) uiAlert("Bu ortamda şifreleme kullanılamıyor (https gerekir)."); return; }
   const stored = localStorage.getItem(PASS_KEY);
-  const passList = [...new Set([stored, BUILTIN_PASS].filter(Boolean))];
+  let authPass = ""; try{ authPass = (JSON.parse(localStorage.getItem("yq_auth") || "null") || {}).pkgPass || ""; }catch(e){}
+  const passList = [...new Set([authPass, stored, BUILTIN_PASS].filter(Boolean))];   // girişten gelen tablo şifresi önce
   try{
     // olası tüm adresleri dene (eğik çizgisiz adres, alt klasör, önbellek sorunları)
     const src = curSrc();
@@ -3347,6 +3359,8 @@ const normIni = v => String(v || "").toLocaleUpperCase("tr").replace(/[^A-ZÇĞ�
 function tableLink(){
   const own = localStorage.getItem(TABLE_KEY);             // yönetici modunda bu cihaza elle girilen bağlantı
   if(own) return own;
+  try{ const a = JSON.parse(localStorage.getItem("yq_auth") || "null"); if(a && a.table && a.tableUrl) return a.tableUrl; }catch(e){}   // girişten gelen yetki
+  if(localStorage.getItem("yq_auth")) return "";          // giriş varsa yalnız giriş yetkisi geçerli
   try{
     const c = JSON.parse(localStorage.getItem(TCFG_KEY) || "null");
     const me = normIni(localStorage.getItem("yq_dev"));
@@ -3364,7 +3378,8 @@ async function loadTableCfg(){
     if(j && Array.isArray(j.users)){ localStorage.setItem(TCFG_KEY, JSON.stringify(j)); renderHistTools(); }
   }catch(e){}
 }
-setTimeout(loadTableCfg, 2500);
+// (eski yöntem: ?cfg=1 listesi — yalnız girişi olmayan eski kurulumlarda kullanılır)
+setTimeout(() => { if(!localStorage.getItem("yq_auth")) loadTableCfg(); }, 2500);
 function renderHistTools(){
   const btn = $("btnTable");
   if(btn) btn.style.display = tableLink() ? "" : "none";
@@ -3521,9 +3536,7 @@ $("btnSeqReset").onclick = async () => {
   }
 };
 $("setClose").onclick = () => {
-  const dev = cleanIni($("devInp").value);
-  if(!iniValid(dev)){ uiAlert("Cihaz (kullanıcı) kodu boş olamaz.\nAdınızın ve soyadınızın baş harflerini girin (en az 2 harf, örn: VS)."); return; }
-  if(dev !== localStorage.getItem("yq_dev")){ localStorage.setItem("yq_dev", dev); syncQuoteNo(); }
+  // kullanıcı kodu artık giriş ile belirlenir (Ayarlar'dan değiştirilemez; "Çıkış" ile başka kodla girilir)
   const sq = parseInt($("seqInp").value);
   if(sq && sq > 0) localStorage.setItem("yq_seq", String(sq));
   if($("pinToggle").checked){
@@ -3540,16 +3553,10 @@ let selMode = localStorage.getItem("yq_mode") || "";
 /* Kullanıcı kodu (ad-soyad baş harfleri) zorunlu: her teklif no'da ve merkezi tabloda görünür */
 const cleanIni = v => String(v || "").toLocaleUpperCase("tr").replace(/[^A-ZÇĞİÖŞÜ]/g, "").slice(0, 4);
 const iniValid = v => cleanIni(v).length >= 2;
-const needIni = () => !iniValid(localStorage.getItem("yq_dev"));
-if(needIni()){
-  document.getElementById("iniBox").style.display = "";
-  const lg = document.getElementById("doLogo"); if(lg) lg.style.width = "min(40vw,160px)";   // alan açmak için logo küçülür
-  const wl = document.querySelector("#splash .welcome"); if(wl) wl.style.display = "none";
-}
-document.getElementById("iniInp").oninput = e => { const c = cleanIni(e.target.value); if(c !== e.target.value) e.target.value = c; paintModeBtns(); };
+document.getElementById("iniInp").oninput = e => { const c = cleanIni(e.target.value); if(c !== e.target.value) e.target.value = c; iniMsg(""); paintModeBtns(); };
 function paintModeBtns(){
   document.querySelectorAll("#splash .modebtn").forEach(b => b.classList.toggle("on", b.dataset.mode === selMode));
-  document.getElementById("modeOk").disabled = !selMode || (needIni() && !iniValid(document.getElementById("iniInp").value));
+  document.getElementById("modeOk").disabled = !selMode || (needLogin() && !iniValid(document.getElementById("iniInp").value));
 }
 // Kayıttan önce: kod yoksa sor (eski kurulumlar için)
 async function ensureIni(){
@@ -3560,17 +3567,96 @@ async function ensureIni(){
     if(iniValid(v)){ localStorage.setItem("yq_dev", cleanIni(v)); syncQuoteNo(); return true; }
   }
 }
+/* ================= KULLANICI GİRİŞİ =================
+   Programa yalnız merkezi tablonun "Ayarlar" sayfasında tanımlı ve AKTİF kullanıcı kodları girebilir.
+   Giriş betikte doğrulanır (?login=KOD). Telefon girişi hatırlar; internet varken her açılışta yeniden doğrular.
+   İnternetsiz en fazla AUTH_GRACE_DAYS gün çalışır. Pasif yapılan / silinen kullanıcı ilk doğrulamada çıkarılır.
+   Giriş cevabı tablo düğmesi yetkisini (table) ve fiyat paketi şifresini (pkgPass) da getirir. */
+const AUTH_KEY = "yq_auth", AUTH_GRACE_DAYS = 7;
+function getAuth(){ try{ return JSON.parse(localStorage.getItem(AUTH_KEY) || "null"); }catch(e){ return null; } }
+function authValid(){
+  const a = getAuth();
+  if(!a || !a.code || cleanIni(localStorage.getItem("yq_dev")) !== a.code) return false;
+  return (Date.now() - (a.ts || 0)) < AUTH_GRACE_DAYS * 864e5;
+}
+const needLogin = () => !authValid();
+async function authCheck(code){
+  const u = sheetUrl();
+  if(!isScriptUrl(u)) return {net: true};
+  try{
+    const r = await fetch(u + (u.indexOf("?") >= 0 ? "&" : "?") + "login=" + encodeURIComponent(code) + "&t=" + Date.now(), {cache: "no-store"});
+    if(!r.ok) return {net: true};
+    const j = await r.json();
+    return (j && typeof j.ok === "boolean") ? j : {net: true};
+  }catch(e){ return {net: true}; }
+}
+function applyAuth(j){
+  localStorage.setItem(AUTH_KEY, JSON.stringify({code: j.code, name: j.name || "", table: !!j.table, tableUrl: j.tableUrl || "", pkgPass: j.pkgPass || "", ts: Date.now()}));
+  if(localStorage.getItem("yq_dev") !== j.code){ localStorage.setItem("yq_dev", j.code); try{ syncQuoteNo(); }catch(e){} }
+}
+function iniMsg(m){ const el = document.getElementById("iniMsg"); el.textContent = m || ""; el.style.display = m ? "" : "none"; }
+function paintLoginBox(msg){
+  const show = needLogin();
+  document.getElementById("iniBox").style.display = show ? "" : "none";
+  const lg = document.getElementById("doLogo"); if(lg) lg.style.width = show ? "min(40vw,160px)" : "min(58vw,240px)";
+  const wl = document.querySelector("#splash .welcome"); if(wl) wl.style.display = show ? "none" : "";
+  if(show){ const inp = document.getElementById("iniInp"); if(!inp.value) inp.value = cleanIni(localStorage.getItem("yq_dev") || ""); }
+  iniMsg(show ? (msg || "") : "");
+  paintModeBtns();
+}
+function showLogin(msg){
+  document.querySelectorAll(".modal.open").forEach(m => m.classList.remove("open"));
+  const sp = document.getElementById("splash");
+  sp.style.display = "flex"; setTimeout(() => sp.classList.remove("bye"), 20);
+  paintLoginBox(msg);
+}
+function logout(msg){ localStorage.removeItem(AUTH_KEY); document.getElementById("iniInp").value = ""; showLogin(msg); }
+// Arka planda yeniden doğrula (açılışta, internet gelince, geçmiş açılınca)
+let reverifyBusy = false;
+async function reverify(){
+  const a = getAuth(); if(!a || reverifyBusy) return;
+  reverifyBusy = true;
+  try{
+    const j = await authCheck(a.code);
+    if(j.net){ if(!authValid()) showLogin(t("authStale")); return; }
+    if(j.ok){
+      const oldPass = a.pkgPass || "";
+      applyAuth(j); renderHistTools();
+      if((j.pkgPass || "") !== oldPass) checkPricePackage(true);
+    } else logout(j.reason === "pasif" ? t("authPassive") : t("authUnknown"));
+  } finally { reverifyBusy = false; }
+}
+setTimeout(reverify, 1500);
+window.addEventListener("online", () => { reverify(); });
+$("btnLogout").onclick = async () => {
+  if(!await uiConfirm("Bu cihazdan çıkış yapılsın mı?\nTekrar girmek için tabloda tanımlı bir kullanıcı kodu gerekir.\n(Teklifler ve fiyatlar silinmez.)")) return;
+  $("setModal").classList.remove("open");
+  logout("");
+};
+if(needLogin()){
+  const a0 = getAuth();
+  setTimeout(() => paintLoginBox(a0 && a0.code ? t("authStale") : ""), 0);
+}
+
 document.querySelectorAll("#splash .modebtn").forEach(b => {
   b.onclick = () => { selMode = b.dataset.mode; paintModeBtns(); };
 });
 paintModeBtns();
-document.getElementById("modeOk").onclick = () => {
+document.getElementById("modeOk").onclick = async () => {
   if(!selMode) return;
-  if(needIni()){
-    const ini = document.getElementById("iniInp").value;
+  if(needLogin()){
+    const ini = cleanIni(document.getElementById("iniInp").value);
     if(!iniValid(ini)) return;
-    localStorage.setItem("yq_dev", cleanIni(ini));
+    const b = document.getElementById("modeOk"), t0 = b.textContent;
+    b.textContent = t("authCheck"); b.disabled = true;
+    const j = await authCheck(ini);
+    b.textContent = t0; b.disabled = false;
+    if(j.net){ iniMsg(t("authNet")); return; }
+    if(!j.ok){ iniMsg(j.reason === "pasif" ? t("authPassive") : t("authUnknown")); return; }
+    applyAuth(j);
     document.getElementById("iniBox").style.display = "none";
+    renderHistTools();
+    checkPricePackage(true);
   }
   localStorage.setItem("yq_mode", selMode);
   // açılışta seçilen kaynak, teklif bilgileri penceresine de yansısın
