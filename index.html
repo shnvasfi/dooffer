@@ -1345,7 +1345,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.07-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.07-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1828,7 +1828,7 @@ $("btnAdd").onclick = () => {
   const k1 = 1 - d1/100, k2 = 1 - d2/100;
   if(quote.length === 0) nextQuoteNo();
   quote.push({
-    code: sel.code, name: nameOf(sel), desc: sel.desc, qty: mQty, cur,
+    code: sel.code, name: nameOf(sel), desc: sel.desc, qty: mQty, cur, src: DB.src,
     nameTr: DB.src === "excel" ? sel.name : "", nameEn: DB.src === "excel" ? (sel.nameEn || sel.name) : sel.name,
     unitList: mPrice(sel), unitNet: mPrice(sel) * k1 * k2,
     opts: [...selOpts].filter(id => oPrice(DB.opts[id]) != null)
@@ -3018,6 +3018,18 @@ function loadQuoteForEdit(r){
   uiAlert(t("editMode", {no: r.no}));
 }
 
+/* ---- tabloya / CSV'ye giden ürün kolonları: Makine Adı | Stok Kodu | Stok Adı ----
+   Excel listesi: makine adı = grup (kartta en altta), stok kodu = 4UN… kodu, stok adı = ürün adı
+   PDF listesi:   makine adı = kod (AIM 3410 gibi), stok kodu boş, stok adı = ürün adı
+   Opsiyon:       makine adı boş, stok kodu = opsiyon kodu, stok adı = opsiyon adı */
+const isStockCode = c => /^\d[A-Z]{2}\d{6}-\d{4}$/i.test(String(c || "").trim());
+function itemCols(it){
+  const xl = it.src ? it.src === "excel" : isStockCode(it.code);
+  const ad = it.nameTr || it.name || "";
+  return xl ? [it.desc || "", it.code || "", ad] : [it.code || "", "", ad];
+}
+const optCols = o => ["", o.code || "", o.nameTr || o.name || ""];
+
 /* ---- teklif kayıtlarını CSV (Excel) olarak ver ---- */
 function csvCell(v){
   const t = (v == null ? "" : String(v)).replace(/"/g, '""');
@@ -3028,7 +3040,7 @@ function buildCsv(recs){
   const head = ["Teklif No","Tarih","Mod","Kullanıcı",
     "Lead Kaynağı","Fuar Adı","Ülke Kodu","Ülke Adı","Fırsat Kodu","Fırsat Açıklaması","Başlangıç Tarihi","Bitiş Tarihi","Not",
     "Firma","İlgili Kişi","Telefon","E-posta","Para Birimi",
-    "Sıra","Tür","Kod","Ad","Adet","Liste Fiyat","İskonto %","Artı İskonto %","Birim Net","Tutar",
+    "Sıra","Tür","Makine Adı","Stok Kodu","Stok Adı","Adet","Liste Fiyat","İskonto %","Artı İskonto %","Birim Net","Tutar",
     "Teslim Şekli","Teslim Yeri","Incoterm","Incoterm Yeri","Ödeme","Navlun","Sigorta",
     "Teklif Liste Toplamı","Teklif Net Toplamı"];
   const rows = [head];
@@ -3040,7 +3052,7 @@ function buildCsv(recs){
                       L.opp || "", L.oppDesc || "", isoToTr(L.start), isoToTr(L.end), L.note || ""];
     if(!items.length){
       rows.push([r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", ...leadCols, r.company || "", r.person || "",
-        r.phone || "", r.mail || "", r.cur || "", "", "", "", "", "", "", "", "", "", "",
+        r.phone || "", r.mail || "", r.cur || "", "", "", "", "", "", "", "", "", "", "", "",
         r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
         numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal)]);
       return;
@@ -3048,15 +3060,15 @@ function buildCsv(recs){
     let n = 0;
     items.forEach(it => {
       n++;
-      const push = (tur, code, name, qty, unitList, unitNet, o) => rows.push([
+      const push = (tur, cols, qty, unitList, unitNet, o) => rows.push([
         r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", ...leadCols, r.company || "", r.person || "",
-        r.phone || "", r.mail || "", r.cur || "", n, tur, code, name,
+        r.phone || "", r.mail || "", r.cur || "", n, tur, ...cols,
         qty, numCell(unitList), numCell(o && o.od != null ? o.od : it.d1), numCell(o && o.od != null ? 0 : it.d2), numCell(unitNet), numCell(unitNet * qty),
         r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
         numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal)
       ]);
-      push("Makine", it.code, it.name, it.qty, it.unitList, it.unitNet);
-      (it.opts || []).forEach(o => { n++; push("Opsiyon", o.code, o.name, (o.qty != null ? o.qty : it.qty), o.unitList, o.unitNet, o); });
+      push("Makine", itemCols(it), it.qty, it.unitList, it.unitNet);
+      (it.opts || []).forEach(o => { n++; push("Opsiyon", optCols(o), (o.qty != null ? o.qty : it.qty), o.unitList, o.unitNet, o); });
     });
   });
   return "\uFEFF" + rows.map(r => r.map(csvCell).join(";")).join("\r\n");
@@ -3178,7 +3190,7 @@ const isScriptUrl = u => /script\.google(usercontent)?\.com\//.test(u || "");
 function sheetUrl(){ return (localStorage.getItem(SHEET_KEY) || SHEET_URL_BUILTIN || "").trim(); }
 function sheetRows(r){
   // her kalem için bir satır (CSV ile aynı kolonlar)
-  const MODES = {F:"Fuar", S:"Seyahat", O:"Ofis"};
+  const MODES = {F:"Fuar", S:"Seyahat", D:"Direkt", O:"Direkt"};
   const rows = [];
   const L = r.lead || {};
   const base = [r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "",
@@ -3190,11 +3202,11 @@ function sheetRows(r){
   let n = 0;
   (r.items || []).forEach(it => {
     n++;
-    rows.push([...base, n, "Makine", it.code, it.name, it.qty, it.unitList, it.d1, it.d2, it.unitNet, it.unitNet * it.qty, ...tail]);
+    rows.push([...base, n, "Makine", ...itemCols(it), it.qty, it.unitList, it.d1, it.d2, it.unitNet, it.unitNet * it.qty, ...tail]);
     (it.opts || []).forEach(o => {
       n++;
       const q = (o.qty != null ? o.qty : it.qty);
-      rows.push([...base, n, "Opsiyon", o.code, o.name, q, o.unitList, o.od != null ? o.od : it.d1, o.od != null ? 0 : it.d2, o.unitNet, o.unitNet * q, ...tail]);
+      rows.push([...base, n, "Opsiyon", ...optCols(o), q, o.unitList, o.od != null ? o.od : it.d1, o.od != null ? 0 : it.d2, o.unitNet, o.unitNet * q, ...tail]);
     });
   });
   return rows;
@@ -3251,7 +3263,7 @@ async function sheetFlush(){
 }
 async function sheetSend(rec){
   if(!sheetUrl()) return;
-  const payload = {no:rec.no, rows:sheetRows(rec)};
+  const payload = {no:rec.no, v:2, rows:sheetRows(rec)};   // v:2 = Makine Adı | Stok Kodu | Stok Adı kolonları
   if(!await sheetPost(payload)) sheetQueue(payload);
 }
 setTimeout(() => sheetFlush().then(() => { try{ updateSheetInfo(); }catch(e){} }), 3000);
