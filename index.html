@@ -333,6 +333,8 @@ svg.flag{width:22px;height:15px;border-radius:2px;flex:none;box-shadow:0 0 0 1px
       <div class="modelbl" style="margin-bottom:6px;" data-i18n="iniLbl">Kullanıcı kodu: ad + soyad baş harfleri</div>
       <input id="iniInp" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="Örn: VS" data-i18n-ph="iniPh"
         style="width:100%;box-sizing:border-box;text-align:center;font-size:18px;font-weight:800;letter-spacing:3px;padding:8px;border-radius:12px;border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.08);color:#fff;">
+      <input id="pinLoginInp" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="PIN (ilk girişte)" data-i18n-ph="pinPh"
+        style="width:100%;box-sizing:border-box;text-align:center;font-size:17px;font-weight:700;letter-spacing:4px;padding:7px;margin-top:7px;border-radius:12px;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);color:#fff;">
       <div id="iniMsg" style="display:none;margin-top:7px;font-size:13px;line-height:1.35;color:#ffb4b4;text-align:center;"></div>
     </div>
     <div class="modelbl" data-i18n="choose">Lütfen seçiminizi yapınız</div>
@@ -1125,6 +1127,11 @@ const I18N = {
   authPassive:["Bu kullanıcı kodu pasif. Yöneticinize başvurun.", "This user code is inactive. Please contact your administrator.", "This user code is inactive. Please contact your administrator.", "This user code is inactive. Please contact your administrator."],
   authNet:    ["Kod doğrulanamadı: internet bağlantısı gerekiyor.", "The code could not be verified: an internet connection is required.", "The code could not be verified: an internet connection is required.", "The code could not be verified: an internet connection is required."],
   authStale:  ["Son doğrulama 7 günden eski. İnternete bağlanıp kodunuzla tekrar giriş yapın.", "Last verification is older than 7 days. Connect to the internet and sign in again.", "Last verification is older than 7 days. Connect to the internet and sign in again.", "Last verification is older than 7 days. Connect to the internet and sign in again."],
+  pinPh:      ["PIN (ilk girişte)", "PIN (first sign-in)", "PIN (first sign-in)", "PIN (first sign-in)"],
+  authPin:    ["PIN hatalı.", "Wrong PIN.", "Wrong PIN.", "Wrong PIN."],
+  authPinReq: ["Bu kullanıcı kodu için PIN gerekli.", "A PIN is required for this user code.", "A PIN is required for this user code.", "A PIN is required for this user code."],
+  authLock:   ["Çok fazla hatalı deneme. 15 dakika sonra tekrar deneyin.", "Too many wrong attempts. Try again in 15 minutes.", "Too many wrong attempts. Try again in 15 minutes.", "Too many wrong attempts. Try again in 15 minutes."],
+  authPinAgain:["Bu kod için PIN tanımlandı veya değiştirildi. Kodunuz ve PIN'inizle bir kez tekrar giriş yapın.", "A PIN was set or changed for this code. Sign in once more with your code and PIN.", "A PIN was set or changed for this code. Sign in once more with your code and PIN.", "A PIN was set or changed for this code. Sign in once more with your code and PIN."],
   authFirst:  ["Önce kullanıcı kodunuzla giriş yapın.", "Please sign in with your user code first.", "Please sign in with your user code first.", "Please sign in with your user code first."]
 };
 const LI = {tr:0, en:1, ru:2, es:3};   // sözlük sütunları (LANGS_ALL sırası)
@@ -1290,7 +1297,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.06-4";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.06-5";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -3580,19 +3587,29 @@ function authValid(){
   return (Date.now() - (a.ts || 0)) < AUTH_GRACE_DAYS * 864e5;
 }
 const needLogin = () => !authValid();
-async function authCheck(code){
+async function authCheck(code, pin, token){
   const u = sheetUrl();
   if(!isScriptUrl(u)) return {net: true};
   try{
-    const r = await fetch(u + (u.indexOf("?") >= 0 ? "&" : "?") + "login=" + encodeURIComponent(code) + "&t=" + Date.now(), {cache: "no-store"});
+    let q = "login=" + encodeURIComponent(code);
+    if(pin) q += "&pin=" + encodeURIComponent(pin);
+    if(token) q += "&token=" + encodeURIComponent(token);
+    const r = await fetch(u + (u.indexOf("?") >= 0 ? "&" : "?") + q + "&t=" + Date.now(), {cache: "no-store"});
     if(!r.ok) return {net: true};
     const j = await r.json();
     return (j && typeof j.ok === "boolean") ? j : {net: true};
   }catch(e){ return {net: true}; }
 }
 function applyAuth(j){
-  localStorage.setItem(AUTH_KEY, JSON.stringify({code: j.code, name: j.name || "", table: !!j.table, tableUrl: j.tableUrl || "", pkgPass: j.pkgPass || "", ts: Date.now()}));
+  localStorage.setItem(AUTH_KEY, JSON.stringify({code: j.code, name: j.name || "", table: !!j.table, tableUrl: j.tableUrl || "", pkgPass: j.pkgPass || "", token: j.token || "", ts: Date.now()}));
   if(localStorage.getItem("yq_dev") !== j.code){ localStorage.setItem("yq_dev", j.code); try{ syncQuoteNo(); }catch(e){} }
+}
+function authReasonMsg(r, again){
+  if(r === "pasif") return t("authPassive");
+  if(r === "pin") return t("authPin");
+  if(r === "pinGerekli") return again ? t("authPinAgain") : t("authPinReq");
+  if(r === "kilit") return t("authLock");
+  return t("authUnknown");
 }
 function iniMsg(m){ const el = document.getElementById("iniMsg"); el.textContent = m || ""; el.style.display = m ? "" : "none"; }
 function paintLoginBox(msg){
@@ -3610,20 +3627,20 @@ function showLogin(msg){
   sp.style.display = "flex"; setTimeout(() => sp.classList.remove("bye"), 20);
   paintLoginBox(msg);
 }
-function logout(msg){ localStorage.removeItem(AUTH_KEY); document.getElementById("iniInp").value = ""; showLogin(msg); }
+function logout(msg){ localStorage.removeItem(AUTH_KEY); document.getElementById("iniInp").value = ""; document.getElementById("pinLoginInp").value = ""; showLogin(msg); }
 // Arka planda yeniden doğrula (açılışta, internet gelince, geçmiş açılınca)
 let reverifyBusy = false;
 async function reverify(){
   const a = getAuth(); if(!a || reverifyBusy) return;
   reverifyBusy = true;
   try{
-    const j = await authCheck(a.code);
-    if(j.net){ if(!authValid()) showLogin(t("authStale")); return; }
+    const j = await authCheck(a.code, "", a.token || "");      // PIN tekrar sorulmaz: cihaz anahtarı gönderilir
+    if(j.net || j.reason === "kilit"){ if(!authValid()) showLogin(t("authStale")); return; }
     if(j.ok){
       const oldPass = a.pkgPass || "";
       applyAuth(j); renderHistTools();
       if((j.pkgPass || "") !== oldPass) checkPricePackage(true);
-    } else logout(j.reason === "pasif" ? t("authPassive") : t("authUnknown"));
+    } else logout(authReasonMsg(j.reason, true));
   } finally { reverifyBusy = false; }
 }
 setTimeout(reverify, 1500);
@@ -3649,10 +3666,13 @@ document.getElementById("modeOk").onclick = async () => {
     if(!iniValid(ini)) return;
     const b = document.getElementById("modeOk"), t0 = b.textContent;
     b.textContent = t("authCheck"); b.disabled = true;
-    const j = await authCheck(ini);
+    const pinEl = document.getElementById("pinLoginInp");
+    const prev = getAuth();                                   // 7 gün sonra yeniden girişte aynı kodun cihaz anahtarı geçerliyse PIN sorulmaz
+    const j = await authCheck(ini, pinEl.value.trim(), prev && prev.code === ini ? (prev.token || "") : "");
     b.textContent = t0; b.disabled = false;
     if(j.net){ iniMsg(t("authNet")); return; }
-    if(!j.ok){ iniMsg(j.reason === "pasif" ? t("authPassive") : t("authUnknown")); return; }
+    if(!j.ok){ iniMsg(authReasonMsg(j.reason, false)); if(j.reason === "pin" || j.reason === "pinGerekli"){ pinEl.value = ""; pinEl.focus(); } return; }
+    pinEl.value = "";
     applyAuth(j);
     document.getElementById("iniBox").style.display = "none";
     renderHistTools();
