@@ -139,6 +139,8 @@ main{flex:1;padding:10px 12px 16px;}
 .pf-grid{display:grid;grid-template-columns:170px 1fr;border-left:1px solid #000;border-top:1px solid #000;}
 .pf-grid>div{border-right:1px solid #000;border-bottom:1px solid #000;padding:4px 8px;font-size:12.5px;min-height:24px;}
 .pf-grid .k{font-weight:800;}
+.pdfmode #pfTotalBar #incoPlace + .pdfval{font-size:10px !important;line-height:1.15 !important;}
+.pf-grid input.reqmiss{background:#ffd9d9 !important;box-shadow:inset 0 0 0 2px #c8102e;}
 .pf-grid input{border:none;width:100%;font-size:13px;font-family:inherit;outline:none;background:#fffbe8;}
 .pf-meta{display:flex;flex-direction:column;gap:2px;font-size:12.5px;min-width:170px;padding-top:6px;}
 .pf-meta .mr{display:flex;justify-content:space-between;gap:10px;}
@@ -530,10 +532,12 @@ svg.flag{width:22px;height:15px;border-radius:2px;flex:none;box-shadow:0 0 0 1px
       </div>
       <div class="pf-sechead acc-c" data-pf="contact">CONTACT INFORMATION</div>
       <div class="pf-grid acc-c">
-        <div class="k" data-pf="person">CONTACT PERSON</div><div><input id="cPerson" placeholder="" list="dlPerson" autocomplete="off"></div>
         <div class="k" data-pf="company">COMPANY NAME</div><div><input id="cCompany" placeholder="" list="dlCompany" autocomplete="off"></div>
+        <div class="k" data-pf="person">CONTACT PERSON</div><div><input id="cPerson" placeholder="" list="dlPerson" autocomplete="off"></div>
         <div class="k" data-pf="phone">PHONE NUMBER</div><div><input id="cPhone" placeholder=""></div>
         <div class="k" data-pf="mail">E MAIL</div><div><input id="cMail" placeholder=""></div>
+        <div class="k" data-pf="city">CITY / ADDRESS</div><div><input id="cCity" placeholder="" autocomplete="off"></div>
+        <div class="k" data-pf="ccountry">COUNTRY</div><div><input id="cCountry" placeholder="" list="dlCountry" autocomplete="off"></div>
       </div>
       <div class="pf-scroll">
       <table class="pf">
@@ -1132,6 +1136,8 @@ const I18N = {
   edQty:      ["Adet", "Quantity", "Количество", "Cantidad"],
   edList:     ["Liste", "List", "Прайс", "Lista"],
   edUnit:     ["birim ", "unit ", "за ед. ", "unidad "],
+  needFirm:   ["Firma adı veya ilgili kişiden en az birini yazın.", "Enter the company name or the contact person (at least one).", "Укажите название компании или контактное лицо.", "Indique la empresa o la persona de contacto."],
+  needCountry:["Müşterinin ülkesini yazın (zorunlu).", "Enter the customer's country (required).", "Укажите страну клиента (обязательно).", "Indique el país del cliente (obligatorio)."],
   emptyQuote: ["Teklif listesi boş.", "The quote is empty.", "Предложение пусто.", "La oferta está vacía."],
   curMix:     ["Teklif listesinde {c} kalemler var. Aynı teklifte iki para birimi olamaz.\nÖnce teklifi paylaşıp temizleyin.",
                "The quote already has {c} items. A quote cannot contain two currencies.\nShare and clear the quote first.",
@@ -1200,6 +1206,8 @@ const PF = {
   company:   ["FİRMA ADI", "COMPANY NAME", "НАЗВАНИЕ КОМПАНИИ", "EMPRESA"],
   phone:     ["TELEFON", "PHONE NUMBER", "ТЕЛЕФОН", "TELÉFONO"],
   mail:      ["E-POSTA", "E MAIL", "ЭЛ. ПОЧТА", "CORREO ELECTRÓNICO"],
+  city:      ["ŞEHİR / ADRES", "CITY / ADDRESS", "ГОРОД / АДРЕС", "CIUDAD / DIRECCIÓN"],
+  ccountry:  ["ÜLKE", "COUNTRY", "СТРАНА", "PAÍS"],
   thMachine: ["MAKİNE", "MACHINE", "ОБОРУДОВАНИЕ", "MÁQUINA"],
   thDesc:    ["AÇIKLAMA", "DESCRIPTION", "ОПИСАНИЕ", "DESCRIPCIÓN"],
   thQty:     ["ADET", "QTY", "КОЛ-ВО", "CANT."],
@@ -1345,7 +1353,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.07-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.08-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1632,6 +1640,12 @@ function buildCountryList(){
   COUNTRY_LIST = COUNTRY_CODES.map(c => ({c, n: countryDisp(c), tr: countryName(c)})).sort((a,b) => a.n.localeCompare(b.n, UI_LANG));
 }
 buildCountryList();
+function fillCountryDl(){
+  let dl = $("dlCountry");
+  if(!dl){ dl = document.createElement("datalist"); dl.id = "dlCountry"; document.body.appendChild(dl); }
+  dl.innerHTML = COUNTRY_LIST.map(x => `<option value="${escH(x.n)}"></option>`).join("");
+}
+setTimeout(fillCountryDl, 0);
 const trLow = t => String(t || "").toLocaleLowerCase("tr");
 function fillCountries(q){
   const sel = $("leadCountry"), keep = sel.value;
@@ -1939,12 +1953,30 @@ function renderQuote(){
 }
 
 /* customer info persistence */
-["cPerson","cCompany","cPhone","cMail","cPayment","incoTerm","incoPlace","delTerm","delPlace","pfNo"].forEach(id => {
+["cPerson","cCompany","cPhone","cMail","cCity","cCountry","cPayment","incoTerm","incoPlace","delTerm","delPlace","pfNo"].forEach(id => {
   const el = $(id);
   el.value = localStorage.getItem("yq_" + id) || (id === "pfNo" ? "000000" : "");
   const save = () => localStorage.setItem("yq_" + id, el.value);
   el.oninput = save; el.onchange = save;
 });
+
+/* INCOTERMS: EXW seçilince yer, teklif diline göre fabrika adresiyle dolar ve teslim şekli EXW olur; başka terimde yer boşalır */
+const EXW_PLACE = {tr: "YILMAZ MAKİNE DİLOVASI / KOCAELİ", en: "YILMAZ FACTORY DILOVASI / KOCAELI"};
+const exwPlace = () => EXW_PLACE[DOC_LANG] || EXW_PLACE.en;
+const isExwDefault = v => Object.values(EXW_PLACE).indexOf(String(v || "").trim()) >= 0;
+function setSaved(id, v){ $(id).value = v; localStorage.setItem("yq_" + id, v); }
+$("incoTerm").addEventListener("change", () => {
+  if($("incoTerm").value === "EXW"){
+    setSaved("incoPlace", exwPlace());
+    setSaved("delTerm", "EXW");
+    if(typeof renderExtra === "function") renderExtra();
+  } else setSaved("incoPlace", "");
+});
+// teklif dili değişince varsayılan EXW yeri de o dile geçer (elle yazılmışsa dokunulmaz)
+function syncExwPlace(){
+  if($("incoTerm").value === "EXW" && (isExwDefault($("incoPlace").value) || !$("incoPlace").value.trim())) setSaved("incoPlace", exwPlace());
+}
+setTimeout(syncExwPlace, 0);
 
 /* ================= MÜŞTERİ KAYITLARI (eski tekliflerden öneri) =================
    Firma adı / ilgili kişi yazarken eski tekliflerdeki müşteriler önerilir; seçilince diğer alanlar dolar.
@@ -1962,7 +1994,7 @@ async function loadCustomers(){
     if(!company && !person) return;
     const k = (company + "|" + person).toLocaleLowerCase("tr");
     if(seen[k]) return; seen[k] = 1;
-    out.push({company, person, phone: (r.phone || "").trim(), mail: (r.mail || "").trim()});
+    out.push({company, person, phone: (r.phone || "").trim(), mail: (r.mail || "").trim(), city: (r.city || "").trim(), country: (r.country || "").trim()});
   });
   CUSTOMERS = out;
   const fill = (id, rows) => { const dl = $(id); dl.innerHTML = ""; rows.forEach(([v, lbl]) => { const o = document.createElement("option"); o.value = v; if(lbl) o.label = lbl; dl.appendChild(o); }); };
@@ -1972,8 +2004,8 @@ async function loadCustomers(){
 }
 function applyCustomer(c){
   if(!c) return;
-  [["cCompany", c.company], ["cPerson", c.person], ["cPhone", c.phone], ["cMail", c.mail]].forEach(([id, v]) => {
-    if(v == null) return; $(id).value = v; localStorage.setItem("yq_" + id, v);
+  [["cCompany", c.company], ["cPerson", c.person], ["cPhone", c.phone], ["cMail", c.mail], ["cCity", c.city], ["cCountry", c.country]].forEach(([id, v]) => {
+    if(v == null || (v === "" && (id === "cCity" || id === "cCountry"))) return; $(id).value = v; localStorage.setItem("yq_" + id, v);
   });
 }
 $("cCompany").addEventListener("change", () => {
@@ -2030,7 +2062,7 @@ function currentQuoteRecord(){
     no: $("pfNo").value, ts: Date.now(),
     date: new Date().toLocaleDateString("tr-TR"),
     company: $("cCompany").value, person: $("cPerson").value,
-    phone: $("cPhone").value, mail: $("cMail").value,
+    phone: $("cPhone").value, mail: $("cMail").value, city: $("cCity").value.trim(), country: $("cCountry").value.trim(),
     mode: localStorage.getItem("yq_mode") || "", user: (localStorage.getItem("yq_dev") || ""),
     cur: qcur2, incoTerm: $("incoTerm").value, incoPlace: $("incoPlace").value,
     delTerm: $("delTerm").value, delPlace: $("delPlace").value, payment: $("cPayment").value,
@@ -2077,18 +2109,32 @@ async function runSave(btn, forceNew){
   btn.textContent = t0; btn.disabled = false;
   uiAlert(t("saved") + rec.no + "\n" + (file ? t("pdfSaved") : t("pdfFail")));
 }
+// Zorunlu müşteri bilgileri: firma adı VEYA ilgili kişi + ülke
+async function checkContact(){
+  const miss = (id, msg) => {
+    const el = $(id); el.classList.add("reqmiss"); el.scrollIntoView({block: "center", behavior: "smooth"});
+    setTimeout(() => el.classList.remove("reqmiss"), 4000);
+    return uiAlert(t(msg)).then(() => { try{ el.focus(); }catch(e){} return false; });
+  };
+  if(!$("cCompany").value.trim() && !$("cPerson").value.trim()) return miss("cCompany", "needFirm");
+  if(!$("cCountry").value.trim()) return miss("cCountry", "needCountry");
+  return true;
+}
 $("btnSaveQ").onclick = async () => {
   if(!quote.length){ uiAlert(t("emptyQuote")); return; }
+  if(!await checkContact()) return;
   if(!await ensureIni()) return;
   askLead(() => runSave($("btnSaveQ"), false), t("okSave"));
 };
 $("btnSaveNew").onclick = async () => {
   if(!quote.length){ uiAlert(t("emptyQuote")); return; }
+  if(!await checkContact()) return;
   if(!await ensureIni()) return;
   askLead(() => runSave($("btnSaveNew"), true), t("okSave"));
 };
 $("btnPdf").onclick = async () => {
   if(!quote.length){ uiAlert(t("emptyQuote")); return; }
+  if(!await checkContact()) return;
   if(!await ensureIni()) return;
   askLead(sharePdf, t("okShare"));
 };
@@ -2785,7 +2831,7 @@ function renderCard(){
 }
 function clearCard(){ cardData = null; localStorage.removeItem("yq_card"); renderCard(); }
 function clearCustomer(){
-  ["cPerson","cCompany","cPhone","cMail","cPayment","incoTerm","incoPlace","delTerm","delPlace","exFreightAmt","exInsAmt"].forEach(id => {
+  ["cPerson","cCompany","cPhone","cMail","cCity","cCountry","cPayment","incoTerm","incoPlace","delTerm","delPlace","exFreightAmt","exInsAmt"].forEach(id => {
     $(id).value = ""; localStorage.removeItem("yq_" + id);
   });
   if(typeof renderExtra === "function") renderExtra();
@@ -3001,6 +3047,7 @@ function loadQuoteForEdit(r){
   saveQuote();
   const setF = (id, v) => { $(id).value = v || ""; localStorage.setItem("yq_" + id, v || ""); };
   setF("cPerson", r.person); setF("cCompany", r.company); setF("cPhone", r.phone); setF("cMail", r.mail);
+  setF("cCity", r.city); setF("cCountry", r.country);
   setF("cPayment", r.payment); setF("incoTerm", r.incoTerm); setF("incoPlace", r.incoPlace);
   setF("delTerm", r.delTerm); setF("delPlace", r.delPlace);
   setF("exFreightAmt", r.freight ? String(r.freight).replace(".", ",") : "");
@@ -3042,7 +3089,7 @@ function buildCsv(recs){
     "Firma","İlgili Kişi","Telefon","E-posta","Para Birimi",
     "Sıra","Tür","Makine Adı","Stok Kodu","Stok Adı","Adet","Liste Fiyat","İskonto %","Artı İskonto %","Birim Net","Tutar",
     "Teslim Şekli","Teslim Yeri","Incoterm","Incoterm Yeri","Ödeme","Navlun","Sigorta",
-    "Teklif Liste Toplamı","Teklif Net Toplamı"];
+    "Teklif Liste Toplamı","Teklif Net Toplamı","Müşteri Şehir / Adres","Müşteri Ülkesi"];
   const rows = [head];
   const MODES = {F:"Fuar", S:"Seyahat", D:"Direkt", O:"Direkt"};
   recs.forEach(r => {
@@ -3054,7 +3101,7 @@ function buildCsv(recs){
       rows.push([r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", ...leadCols, r.company || "", r.person || "",
         r.phone || "", r.mail || "", r.cur || "", "", "", "", "", "", "", "", "", "", "", "",
         r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
-        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal)]);
+        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal), r.city || "", r.country || ""]);
       return;
     }
     let n = 0;
@@ -3065,7 +3112,7 @@ function buildCsv(recs){
         r.phone || "", r.mail || "", r.cur || "", n, tur, ...cols,
         qty, numCell(unitList), numCell(o && o.od != null ? o.od : it.d1), numCell(o && o.od != null ? 0 : it.d2), numCell(unitNet), numCell(unitNet * qty),
         r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
-        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal)
+        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal), r.city || "", r.country || ""
       ]);
       push("Makine", itemCols(it), it.qty, it.unitList, it.unitNet);
       (it.opts || []).forEach(o => { n++; push("Opsiyon", optCols(o), (o.qty != null ? o.qty : it.qty), o.unitList, o.unitNet, o); });
@@ -3198,7 +3245,7 @@ function sheetRows(r){
                 L.opp || "", L.oppDesc || "", isoToTr(L.start), isoToTr(L.end), L.note || "",
                 r.company || "", r.person || "", r.phone || "", r.mail || "", r.cur || ""];
   const tail = [r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
-                r.freight || 0, r.insurance || 0, r.listTotal || 0, r.netTotal || 0];
+                r.freight || 0, r.insurance || 0, r.listTotal || 0, r.netTotal || 0, r.city || "", r.country || ""];
   let n = 0;
   (r.items || []).forEach(it => {
     n++;
@@ -3579,6 +3626,7 @@ function applyLang(){
   [...$("leadOpp").options].forEach(o => { o.textContent = o.value ? o.value + " " + t("opp" + o.value) : t("chooseOpt"); });
   const fo = $("leadFair").options[0]; if(fo && !fo.value) fo.textContent = t("chooseOpt");
   buildCountryList(); fillCountries($("leadCountryQ").value || "");
+  fillCountryDl();
   // bayrak düğmeleri
   const lb = $("langBar");
   lb.innerHTML = LANGS.map(l => `<button type="button" class="langbtn${l === UI_LANG ? " on" : ""}" data-lang="${l}">${flagSvg(l)}<span>${LANG_NAMES[l]}</span></button>`).join("");
@@ -3604,6 +3652,7 @@ function applyDocLang(skipRender){
   db.innerHTML = `<span>${t("docLang")}</span>` + LANGS.map(l => `<button type="button" class="${l === DOC_LANG ? "on" : ""}" data-lang="${l}">${flagSvg(l)}${l.toUpperCase()}</button>`).join("");
   db.querySelectorAll("button").forEach(b => b.onclick = () => setDocLang(b.dataset.lang));
   if(!skipRender && !$("quotePage").classList.contains("hidden")) renderQuote();
+  try{ syncExwPlace(); }catch(e){}
 }
 function setUiLang(l){
   if(LANGS.indexOf(l) < 0) return;
