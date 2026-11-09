@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>DO_Offer</title>
+<script>try{ if(window.matchMedia && matchMedia("(pointer:coarse)").matches) document.documentElement.classList.add("touch"); }catch(e){}</script>
 <meta name="author" content="V.Şahin — DO_Offer © 2026 (Yılmaz Machine)">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1c455e">
@@ -140,7 +141,7 @@ main{flex:1;padding:10px 12px 16px;}
 .pf-grid>div{border-right:1px solid #000;border-bottom:1px solid #000;padding:4px 8px;font-size:12.5px;min-height:24px;}
 .pf-grid .k{font-weight:800;}
 /* öneri listesi (telefonlarda datalist çalışmadığı için kendi listemiz) */
-#sugBox{position:fixed;z-index:450;background:#fff;border:1px solid #c9d1d9;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.22);
+#sugBox{position:absolute;z-index:450;background:#fff;border:1px solid #c9d1d9;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.22);
   max-height:240px;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch;}
 #sugBox .sg{padding:9px 12px;font-size:14px;border-bottom:1px solid #eef1f4;cursor:pointer;line-height:1.25;}
 #sugBox .sg:last-child{border-bottom:none;}
@@ -342,6 +343,12 @@ svg.flag{width:22px;height:15px;border-radius:2px;flex:none;box-shadow:0 0 0 1px
 .dwrap .dhid{position:absolute;right:2px;top:0;width:32px;height:100%;opacity:0;border:0;padding:0;margin:0;z-index:2;cursor:pointer;
   -webkit-appearance:none;appearance:none;background:transparent;color:transparent;}
 .dwrap.has-up .dhid{right:33px;}
+/* dokunmatik cihazlar: telefonun kendi tarih kutusu doğrudan görünür (en güvenilir yol) */
+html.touch .dwrap .dtxt, html.touch .dwrap .dbtn{display:none !important;}
+html.touch .dwrap .dhid{position:static;opacity:1;width:auto;flex:1 1 auto;min-width:0;height:40px;box-sizing:border-box;z-index:auto;
+  -webkit-appearance:auto;appearance:auto;color:var(--text,#222);background:#fff;border:1.5px solid var(--line);border-radius:10px;
+  padding:0 8px;font-size:15px;font-family:inherit;text-align:left;}
+html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width:auto;height:auto;opacity:1;}
 .dwrap .dhid::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
 @media print{
   body{background:#fff;}
@@ -1376,7 +1383,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.09-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.09-3";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1756,16 +1763,20 @@ function syncCity(){
 const sugBox = (() => { const d = document.createElement("div"); d.id = "sugBox"; document.body.appendChild(d); return d; })();
 let sugFor = null;
 function sugHide(){ sugBox.style.display = "none"; sugFor = null; }
+// sayfa koordinatıyla (position:absolute) yerleşir: telefonda klavye açılıp sayfa kayınca da kutunun altında kalır
+function sugYerlestir(inp){
+  const r = inp.getBoundingClientRect(), sx = window.pageXOffset || 0, sy = window.pageYOffset || 0;
+  const vw = document.documentElement.clientWidth || window.innerWidth;
+  const w = Math.max(220, Math.min(r.width, vw - 12));
+  sugBox.style.left = Math.max(6, Math.min(r.left, vw - w - 6)) + sx + "px";
+  sugBox.style.width = w + "px";
+  sugBox.style.top = (r.bottom + sy + 2) + "px";
+}
 function sugShow(inp, items, pick){
   if(!items.length || document.activeElement !== inp){ sugHide(); return; }
   sugFor = inp;
   sugBox.innerHTML = items.slice(0, 12).map((x, i) => `<div class="sg" data-i="${i}">${escH(x.v)}${x.sub ? "<small>" + escH(x.sub) + "</small>" : ""}</div>`).join("");
-  const r = inp.getBoundingClientRect();
-  sugBox.style.left = Math.max(6, r.left) + "px";
-  sugBox.style.width = Math.max(220, Math.min(r.width, window.innerWidth - 12)) + "px";
-  const alt = window.innerHeight - r.bottom;
-  if(alt < 200 && r.top > alt){ sugBox.style.top = ""; sugBox.style.bottom = (window.innerHeight - r.top + 2) + "px"; }
-  else { sugBox.style.bottom = ""; sugBox.style.top = (r.bottom + 2) + "px"; }
+  sugYerlestir(inp);
   sugBox.style.display = "block";
   sugBox.querySelectorAll(".sg").forEach(el => {
     const sec = e => { e.preventDefault(); const it = items[+el.dataset.i]; sugHide(); pick(it); };
@@ -1778,7 +1789,8 @@ function attachSug(inp, source, pick){
   inp.addEventListener("focus", run);
   inp.addEventListener("blur", () => setTimeout(() => { if(sugFor === inp) sugHide(); }, 180));
 }
-window.addEventListener("scroll", () => { if(sugFor) sugHide(); }, true);
+window.addEventListener("resize", () => { if(sugFor) sugYerlestir(sugFor); });
+if(window.visualViewport) window.visualViewport.addEventListener("resize", () => { if(sugFor) sugYerlestir(sugFor); });
 const sugMatch = (txt, q) => { const a = normTxt(txt), b = normTxt(q); return !b || a.indexOf(b) >= 0; };
 setTimeout(() => {
   attachSug($("cCompany"), q => {
