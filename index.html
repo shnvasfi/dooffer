@@ -1391,7 +1391,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.10-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.10-3";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2311,7 +2311,7 @@ function paintCustInfo(){
   let n = 0; try{ n = (JSON.parse(localStorage.getItem("yq_custsrv") || "[]") || []).length; }catch(e){}
   const ts = +localStorage.getItem("yq_custsrv_ts") || 0;
   let m = {}; try{ m = JSON.parse(localStorage.getItem("yq_custsrv_meta") || "{}") || {}; }catch(e){}
-  const ek = m.surum ? " (portföy " + (m.portfoy || 0) + ", betik " + m.surum + ")" : (ts ? " (betik eski: portföy okunmuyor — Dağıt → Yeni sürüm)" : "");
+  const ek = m.surum ? " (elle eklenen " + (m.portfoy || 0) + ", betik " + m.surum + ")" : (ts ? " (betik eski — Dağıt → Yeni sürüm)" : "");
   el.textContent = ts ? n + " müşteri" + ek + " • " + new Date(ts).toLocaleString("tr-TR", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"}) : "henüz indirilmedi";
 }
 setTimeout(() => {
