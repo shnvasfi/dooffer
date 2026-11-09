@@ -641,7 +641,7 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       <span data-i18n="historyT">Geçmiş Teklifler</span>
       <span style="display:flex;gap:6px;">
         <button class="btn sec" id="btnTable" style="flex:none;padding:7px 12px;font-size:13px;display:none;" data-i18n="histTable">📊 Merkezi Tablo</button>
-        <button class="btn sec" id="btnCsv" style="flex:none;padding:7px 12px;font-size:13px;" data-i18n="histCsv">⬇︎ Bu Cihaz (CSV)</button>
+        <button class="btn sec" id="btnCsv" style="display:none;flex:none;padding:7px 12px;font-size:13px;" data-i18n="histCsv">⬇︎ Bu Cihaz (CSV)</button>
       </span>
     </h3>
     <div id="histList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
@@ -758,11 +758,12 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
 <div class="modal" id="setModal">
   <div class="mbox">
     <h3>Ayarlar</h3>
-    <div class="setrow">
+    <!-- cihaz PIN kilidi kaldırıldı (giriş artık kullanıcı kodu + kişisel PIN ile) -->
+    <div class="setrow" style="display:none;">
       <span>PIN Koruması</span>
       <label class="switch"><input type="checkbox" id="pinToggle"><span class="sl"></span></label>
     </div>
-    <div class="setrow" id="pinSetRow">
+    <div class="setrow" id="pinSetRow" style="display:none;">
       <span>PIN (4 haneli)</span>
       <input class="pininp" id="pinValue" type="tel" maxlength="4" inputmode="numeric" placeholder="••••">
     </div>
@@ -813,15 +814,24 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       <span>Paket Şifresi<br><span style="font-size:12px;color:var(--muted);">boş = uygulamanın kendi anahtarı</span></span>
       <input class="pininp" id="passInp" type="password" style="width:120px;letter-spacing:2px;" placeholder="(isteğe bağlı)">
     </div>
-    <div class="setrow">
+    <div class="setrow" style="display:block;">
+      <span>Merkezi Tablo (Google E-Tablo)<br><span style="font-size:12px;color:var(--muted);">Bu cihazın girişine göre açılan adres</span></span>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <input id="tblAddr" readonly style="flex:1;min-width:0;font-size:12px;padding:7px 8px;border:1.5px solid var(--line);border-radius:10px;background:#f6f8fa;color:#334;" onclick="this.select()">
+        <button class="btn sec" style="flex:none;padding:7px 12px;font-size:13px;" id="btnTblOpen">Aç</button>
+        <button class="btn sec" style="flex:none;padding:7px 12px;font-size:13px;" id="btnTblCopy">Kopyala</button>
+      </div>
+    </div>
+    <!-- eski ayarlar (artık giriş ve gömülü adresle çalışıyor) — gizli -->
+    <div class="setrow" style="display:none;">
       <span>Toplu Teklif Tablosu<br><span style="font-size:11.5px;color:var(--muted);">Google E-Tablo bağlantısı — sadece görüntüleme</span><br><span style="font-size:12px;color:var(--muted);" id="tableInfo"></span></span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnTableUrl">Ayarla</button>
     </div>
-    <div class="setrow">
+    <div class="setrow" style="display:none;">
       <span>Teklif Gönderim Adresi<br><span style="font-size:11.5px;color:var(--muted);">Google Form — teklifler buraya gönderilir</span><br><span style="font-size:12px;color:var(--muted);" id="sheetInfo"></span></span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnSheet">Ayarla</button>
     </div>
-    <div class="setrow">
+    <div class="setrow" style="display:none;">
       <span>Kurulum Bağlantısı<br><span style="font-size:12px;color:var(--muted);">telefonlara özel gönderilir</span></span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnSetupLink">Oluştur</button>
     </div>
@@ -1391,7 +1401,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.10-3";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.10-4";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -3869,8 +3879,7 @@ $("btnTableUrl").onclick = async () => {
 const TCFG_KEY = "yq_tablecfg";
 const normIni = v => String(v || "").toLocaleUpperCase("tr").replace(/[^A-ZÇĞİÖŞÜ]/g, "");
 function tableLink(){
-  const own = localStorage.getItem(TABLE_KEY);             // yönetici modunda bu cihaza elle girilen bağlantı
-  if(own) return own;
+  // (eski "bu cihaza elle girilen tablo bağlantısı" artık kullanılmıyor; adres girişten gelir)
   try{ const a = JSON.parse(localStorage.getItem("yq_auth") || "null"); if(a && a.table && a.tableUrl) return a.tableUrl; }catch(e){}   // girişten gelen yetki
   if(localStorage.getItem("yq_auth")) return "";          // giriş varsa yalnız giriş yetkisi geçerli
   try{
@@ -4042,8 +4051,14 @@ $("btnSettings").onclick = () => {
   $("seqInp").value = localStorage.getItem("yq_seq") || "1";
   updateImpInfo(); updatePkgInfo();
   updateSheetInfo();
+  $("tblAddr").value = tableLink() || "— (girişte tablo yetkisi gelmedi)";
   if($("admBox").style.display === "none") $("admInp").value = "";
   $("setModal").classList.add("open");
+};
+$("btnTblOpen").onclick = () => { const u = tableLink(); if(u) window.open(u, "_blank", "noopener"); };
+$("btnTblCopy").onclick = async () => {
+  const u = tableLink(); if(!u) return;
+  try{ await navigator.clipboard.writeText(u); uiAlert("Adres kopyalandı."); }catch(e){ $("tblAddr").select(); }
 };
 $("btnSeqReset").onclick = async () => {
   if(await uiConfirm("Teklif sayacı 1'e sıfırlansın mı?\n(Sıradaki teklif no: cihaz kodu-00001)")){
@@ -4055,11 +4070,7 @@ $("setClose").onclick = () => {
   // kullanıcı kodu artık giriş ile belirlenir (Ayarlar'dan değiştirilemez; "Çıkış" ile başka kodla girilir)
   const sq = parseInt($("seqInp").value);
   if(sq && sq > 0) localStorage.setItem("yq_seq", String(sq));
-  if($("pinToggle").checked){
-    const v = $("pinValue").value.trim();
-    if(!/^\d{4}$/.test(v)){ uiAlert("PIN 4 haneli rakam olmalı."); return; }
-    localStorage.setItem("yq_pin", v);
-  } else localStorage.removeItem("yq_pin");
+  localStorage.removeItem("yq_pin");                       // cihaz PIN kilidi kaldırıldı
   $("setModal").classList.remove("open");
 };
 $("setModal").onclick = e => { if(e.target === $("setModal")) $("setModal").classList.remove("open"); };
@@ -4277,7 +4288,9 @@ renderMini();
 try{ applyLang(); }catch(e){ console.error("dil", e); }
 
 (function initLock(){
-  const pin = localStorage.getItem("yq_pin");
+  // cihaz PIN kilidi kaldırıldı: eskiden açılmışsa temizlenir (giriş kullanıcı kodu + kişisel PIN ile)
+  try{ localStorage.removeItem("yq_pin"); localStorage.removeItem(TABLE_KEY); }catch(e){}
+  const pin = null;
   if(!pin) return;
   const lock = $("lock"); lock.classList.add("open");
   let entry = "";
