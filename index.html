@@ -1391,7 +1391,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.10-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.10-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2298,6 +2298,7 @@ async function loadServerCustomers(){
     const j = await r.json();
     if(j && j.ok && Array.isArray(j.list)){
       localStorage.setItem("yq_custsrv", JSON.stringify(j.list)); localStorage.setItem("yq_custsrv_ts", String(Date.now()));
+      localStorage.setItem("yq_custsrv_meta", JSON.stringify({surum: j.surum || "", portfoy: j.portfoy == null ? null : j.portfoy}));
       await loadCustomers(); paintCustInfo(); return "ok";
     }
     localStorage.setItem("yq_custsrv_err", (j && j.reason) || "yanit");
@@ -2309,7 +2310,9 @@ function paintCustInfo(){
   const el = $("custInfo"); if(!el) return;
   let n = 0; try{ n = (JSON.parse(localStorage.getItem("yq_custsrv") || "[]") || []).length; }catch(e){}
   const ts = +localStorage.getItem("yq_custsrv_ts") || 0;
-  el.textContent = ts ? n + " müşteri • " + new Date(ts).toLocaleString("tr-TR", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"}) : "henüz indirilmedi";
+  let m = {}; try{ m = JSON.parse(localStorage.getItem("yq_custsrv_meta") || "{}") || {}; }catch(e){}
+  const ek = m.surum ? " (portföy " + (m.portfoy || 0) + ", betik " + m.surum + ")" : (ts ? " (betik eski: portföy okunmuyor — Dağıt → Yeni sürüm)" : "");
+  el.textContent = ts ? n + " müşteri" + ek + " • " + new Date(ts).toLocaleString("tr-TR", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"}) : "henüz indirilmedi";
 }
 setTimeout(() => {
   paintCustInfo();
