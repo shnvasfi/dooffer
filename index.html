@@ -783,6 +783,10 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       </span>
     </div>
     <div class="setrow">
+      <span>Müşteri Listesi (merkezi tablo)<br><span style="font-size:12px;color:var(--muted);" id="custInfo"></span></span>
+      <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnCustUpd">Yenile</button>
+    </div>
+    <div class="setrow">
       <span>Programı Güncelle<br><span style="font-size:12px;color:var(--muted);" id="buildInfo"></span></span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnAppUpd">Kontrol Et</button>
     </div>
@@ -1387,7 +1391,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.09-4";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.10-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2054,6 +2058,8 @@ $("btnWipe").onclick = async () => {
 
 function showQuote(){
   loadCustomers();
+  // merkezi müşteri listesi 10 dakikadan eskiyse arka planda tazelenir
+  if(Date.now() - (+localStorage.getItem("yq_custsrv_ts") || 0) > 600000) loadServerCustomers();
   $("calcPage").classList.add("hidden");
   $("quotePage").classList.remove("hidden");
   renderQuote();
@@ -2280,16 +2286,43 @@ $("cPerson").addEventListener("change", () => {
 });
 setTimeout(loadCustomers, 1500);
 // Merkezi tablodan müşteri listesi (betik v11: ?musteriler=KOD&token=…)
+let custBusy = false;
 async function loadServerCustomers(){
+  if(custBusy) return "busy";
+  custBusy = true;
   try{
-    const a = JSON.parse(localStorage.getItem("yq_auth") || "null"); if(!a || !a.code) return;
-    const u = sheetUrl(); if(!isScriptUrl(u)) return;
+    const a = JSON.parse(localStorage.getItem("yq_auth") || "null"); if(!a || !a.code) return "giris";
+    const u = sheetUrl(); if(!isScriptUrl(u)) return "adres";
     const r = await fetch(u + (u.indexOf("?") >= 0 ? "&" : "?") + "musteriler=" + encodeURIComponent(a.code) + "&token=" + encodeURIComponent(a.token || "") + "&t=" + Date.now(), {cache: "no-store"});
-    if(!r.ok) return;
+    if(!r.ok) return "ag";
     const j = await r.json();
-    if(j && j.ok && Array.isArray(j.list)){ localStorage.setItem("yq_custsrv", JSON.stringify(j.list)); loadCustomers(); }
-  }catch(e){}
+    if(j && j.ok && Array.isArray(j.list)){
+      localStorage.setItem("yq_custsrv", JSON.stringify(j.list)); localStorage.setItem("yq_custsrv_ts", String(Date.now()));
+      await loadCustomers(); paintCustInfo(); return "ok";
+    }
+    localStorage.setItem("yq_custsrv_err", (j && j.reason) || "yanit");
+    return (j && j.reason) || "yanit";
+  }catch(e){ return "ag"; }
+  finally{ custBusy = false; }
 }
+function paintCustInfo(){
+  const el = $("custInfo"); if(!el) return;
+  let n = 0; try{ n = (JSON.parse(localStorage.getItem("yq_custsrv") || "[]") || []).length; }catch(e){}
+  const ts = +localStorage.getItem("yq_custsrv_ts") || 0;
+  el.textContent = ts ? n + " müşteri • " + new Date(ts).toLocaleString("tr-TR", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"}) : "henüz indirilmedi";
+}
+setTimeout(() => {
+  paintCustInfo();
+  $("btnCustUpd").onclick = async () => {
+    const b = $("btnCustUpd"), t0 = b.textContent; b.textContent = "…"; b.disabled = true;
+    const r = await loadServerCustomers();
+    b.textContent = t0; b.disabled = false; paintCustInfo();
+    const msg = {ok: null, ag: "İnternet bağlantısı yok ya da tabloya ulaşılamadı.", giris: "Önce kullanıcı koduyla giriş yapın.",
+      anahtar: "Bu telefonun girişi yenilenmeli: ⚙ → Çıkış, sonra kod + PIN ile tekrar girin.", yetkisiz: "Kullanıcı kodu tabloda tanımlı / aktif değil.",
+      adres: "Merkezi tablo bağlantısı tanımlı değil.", yanit: "Tablodan beklenmeyen yanıt geldi (betik güncel mi, Dağıt yapıldı mı?)."}[r];
+    if(msg !== null && msg !== undefined) uiAlert(msg); else if(r === "ok") uiAlert("Müşteri listesi güncellendi: " + (JSON.parse(localStorage.getItem("yq_custsrv") || "[]").length) + " müşteri.");
+  };
+}, 0);
 setTimeout(loadServerCustomers, 3000);
 window.addEventListener("online", loadServerCustomers);
 
