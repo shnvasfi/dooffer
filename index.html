@@ -337,7 +337,10 @@ svg.flag{width:22px;height:15px;border-radius:2px;flex:none;box-shadow:0 0 0 1px
 .dwrap .dtxt{width:100%;min-width:0;padding-left:8px;padding-right:28px;box-sizing:border-box;font-size:15px;}
 .dwrap .dstep{flex:none;width:26px;height:40px;margin:0 3px;border:1.5px solid var(--line);border-radius:10px;background:#fff;
   color:var(--blue-dark);font-size:13px;cursor:pointer;padding:0;}
-#leadEndUp{order:3;}
+.dwrap .dstep.up{order:3;}
+html.touch .dwrap .dstep{width:30px;margin:0 2px;font-size:14px;}
+html.touch .dwrap .dhid{padding:0 8px;font-size:15px;text-align:center;}
+html.touch #leadDateWrap{flex-direction:column;gap:6px !important;}
 .dwrap.has-up .dbtn{right:33px;}
 .dwrap .dbtn{position:absolute;right:2px;background:none;border:none;font-size:15px;cursor:pointer;padding:4px;}
 .dwrap .dhid{position:absolute;right:2px;top:0;width:32px;height:100%;opacity:0;border:0;padding:0;margin:0;z-index:2;cursor:pointer;
@@ -672,13 +675,13 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
 
     <div id="leadDateWrap" style="display:flex;gap:10px;">
       <div style="flex:1;min-width:0;"><div class="lbl" data-i18n="start">Başlangıç Tarihi</div>
-        <div class="dwrap"><button type="button" class="dstep" id="leadStartDown" title="1 gün geri" aria-label="1 gün geri" data-i18n-title="dayBack">▼</button><input id="leadStartTxt" class="leadsel dtxt" inputmode="numeric" placeholder="GG.AA.YYYY" data-i18n-ph="datePh" maxlength="10" autocomplete="off">
+        <div class="dwrap has-up"><button type="button" class="dstep" id="leadStartDown" title="1 gün geri" aria-label="1 gün geri" data-i18n-title="dayBack">▼</button><input id="leadStartTxt" class="leadsel dtxt" inputmode="numeric" placeholder="GG.AA.YYYY" data-i18n-ph="datePh" maxlength="10" autocomplete="off">
         <button type="button" class="dbtn" data-for="leadStart" aria-label="Takvim">📅</button>
-        <input type="date" id="leadStart" class="dhid" tabindex="-1"></div></div>
+        <input type="date" id="leadStart" class="dhid" tabindex="-1"><button type="button" class="dstep up" id="leadStartUp" title="1 gün ileri" aria-label="1 gün ileri" data-i18n-title="dayFwd">▲</button></div></div>
       <div style="flex:1;min-width:0;"><div class="lbl" data-i18n="end">Bitiş Tarihi</div>
-        <div class="dwrap has-up"><input id="leadEndTxt" class="leadsel dtxt" inputmode="numeric" placeholder="GG.AA.YYYY" data-i18n-ph="datePh" maxlength="10" autocomplete="off">
+        <div class="dwrap has-up"><button type="button" class="dstep" id="leadEndDown" title="1 gün geri" aria-label="1 gün geri" data-i18n-title="dayBack">▼</button><input id="leadEndTxt" class="leadsel dtxt" inputmode="numeric" placeholder="GG.AA.YYYY" data-i18n-ph="datePh" maxlength="10" autocomplete="off">
         <button type="button" class="dbtn" data-for="leadEnd" aria-label="Takvim">📅</button>
-        <input type="date" id="leadEnd" class="dhid" tabindex="-1"><button type="button" class="dstep" id="leadEndUp" title="1 gün ileri" aria-label="1 gün ileri" data-i18n-title="dayFwd">▲</button></div></div>
+        <input type="date" id="leadEnd" class="dhid" tabindex="-1"><button type="button" class="dstep up" id="leadEndUp" title="1 gün ileri" aria-label="1 gün ileri" data-i18n-title="dayFwd">▲</button></div></div>
     </div>
 
     <label id="leadNoteLbl" style="display:flex;align-items:center;gap:10px;margin:12px 0 6px;font-size:14.5px;font-weight:600;">
@@ -1155,6 +1158,7 @@ const I18N = {
   edList:     ["Liste", "List", "Прайс", "Lista"],
   edUnit:     ["birim ", "unit ", "за ед. ", "unidad "],
   needFirm:   ["Firma adı veya ilgili kişiden en az birini yazın.", "Enter the company name or the contact person (at least one).", "Укажите название компании или контактное лицо.", "Indique la empresa o la persona de contacto."],
+  shareFail:  ["Paylaşım tamamlanamadı. Tekrar 'Paylaş'a dokunun ya da 'PDF'i aç / indir' ile açıp oradan gönderin.", "Sharing did not complete. Tap 'Share' again or use 'Open / download PDF' and send from there.", "Не удалось поделиться. Попробуйте ещё раз или откройте PDF.", "No se pudo compartir. Vuelva a intentarlo o abra el PDF."],
   pdfReady:   ["PDF hazır", "PDF is ready", "PDF готов", "PDF listo"],
   pdfShareBtn:["Paylaş (WhatsApp, e-posta…)", "Share (WhatsApp, e-mail…)", "Поделиться", "Compartir"],
   pdfOpenBtn: ["PDF'i aç / indir", "Open / download PDF", "Открыть / скачать PDF", "Abrir / descargar PDF"],
@@ -1383,7 +1387,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.09-3";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.09-4";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1899,7 +1903,21 @@ function shiftIso(iso, days){
   d.setDate(d.getDate() + days);
   return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
 }
-$("leadStartDown").onclick = () => { $("leadStart").value = shiftIso($("leadStart").value, -1); $("leadStartTxt").blur(); leadRefresh(); };
+// başlangıç ve bitiş: ikisi de ▼ bir gün geri, ▲ bir gün ileri (bitiş başlangıçtan önceye düşmez)
+const setLeadDate = (id, iso) => { $(id).value = iso; $(id + "Txt").value = isoToTr(iso); $(id + "Txt").blur(); };
+$("leadStartDown").onclick = () => { setLeadDate("leadStart", shiftIso($("leadStart").value, -1)); leadRefresh(); };
+$("leadStartUp").onclick = () => {
+  const yeni = shiftIso($("leadStart").value, +1);
+  setLeadDate("leadStart", yeni);
+  if($("leadEnd").value && $("leadEnd").value < yeni) setLeadDate("leadEnd", yeni);
+  leadRefresh();
+};
+$("leadEndDown").onclick = () => {
+  const base = $("leadEnd").value || $("leadStart").value || todayIso();
+  let yeni = shiftIso(base, -1);
+  if($("leadStart").value && yeni < $("leadStart").value) yeni = $("leadStart").value;
+  setLeadDate("leadEnd", yeni); leadRefresh();
+};
 $("leadEndUp").onclick = () => {
   const base = $("leadEnd").value || $("leadStart").value || todayIso();
   $("leadEnd").value = shiftIso(base, +1); $("leadEndTxt").blur(); leadRefresh();
@@ -2301,11 +2319,17 @@ async function makePdf(){
     const w = document.createElement("div"); w.className = "pf-keep";
     h.parentNode.insertBefore(w, h); w.appendChild(h); w.appendChild(n); sarma.push(w);
   });
+  // dosya adı: FİRMA_TeklifNo.pdf — Türkçe harfler sadeleştirilir (bazı uygulamalar paylaşımda Türkçe/boşluklu adla takılıyor)
+  const sade = v => String(v || "").replace(/[çÇ]/g, m => m === "ç" ? "c" : "C").replace(/[ğĞ]/g, m => m === "ğ" ? "g" : "G")
+    .replace(/[ıİ]/g, m => m === "ı" ? "i" : "I").replace(/[öÖ]/g, m => m === "ö" ? "o" : "O").replace(/[şŞ]/g, m => m === "ş" ? "s" : "S")
+    .replace(/[üÜ]/g, m => m === "ü" ? "u" : "U").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9-]+/g, "_").replace(/^_+|_+$/g, "");
+  const firmaAd = sade($("cCompany").value || $("cPerson").value).slice(0, 40) || "Teklif";
+  const pdfAd = firmaAd + "_" + (sade($("pfNo").value) || "Teklif") + ".pdf";
   const opt = {
     pagebreak: {mode: ["css", "legacy"], avoid: ["tr", ".pf-keep", ".pf-totalbar", ".pf-extra", ".pf-note", ".pf-meta", ".pf-grid > div"]},
-    margin: 5, filename: "Teklif_" + ($("pfNo").value || "").replace(/[^\w-]/g,"") + "_" +
-      ($("cCompany").value || "Yilmaz").replace(/[^\wÇĞİÖŞÜçğıöşü]+/g,"_").slice(0,28) + ".pdf",
-    image: {type:"jpeg", quality:0.95},
+    margin: 5, filename: pdfAd,
+    image: {type:"jpeg", quality:0.9},
     html2canvas: {scale:2, useCORS:true},
     jsPDF: {unit:"mm", format:"a4", orientation:"portrait"}
   };
@@ -2428,13 +2452,21 @@ function offerShare(file){
     <div style="font-size:13px;color:#6b7680;margin-bottom:14px;word-break:break-all;">${escH(file.name)}</div>
     ${canShare ? `<button class="btn pri" id="ssShare" style="width:100%;margin-bottom:8px;">📤 ${escH(t("pdfShareBtn"))}</button>` : ""}
     <button class="btn sec" id="ssOpen" style="width:100%;margin-bottom:8px;">📄 ${escH(t("pdfOpenBtn"))}</button>
-    <button class="btn sec" id="ssClose" style="width:100%;">${escH(t("close"))}</button></div>`;
+    <button class="btn sec" id="ssClose" style="width:100%;">${escH(t("close"))}</button>
+    <div id="ssMsg" style="font-size:12.5px;color:#c8102e;margin-top:8px;line-height:1.35;"></div></div>`;
   document.body.appendChild(ov);
   const kapat = () => ov.remove();
   ov.addEventListener("click", e => { if(e.target === ov) kapat(); });
   ov.querySelector("#ssClose").onclick = kapat;
   if(canShare) ov.querySelector("#ssShare").onclick = () => {
-    navigator.share({files: [file], title: "Proforma Invoice"}).then(kapat).catch(() => {});   // doğrudan dokunuş içinde
+    const b = ov.querySelector("#ssShare"); if(b.disabled) return;
+    b.disabled = true; b.style.opacity = ".6";
+    // yalnız dosya gönderilir (başlık/metin eklemek bazı uygulamalarda — WhatsApp gibi — gönderimi bozuyor)
+    navigator.share({files: [file]}).then(kapat).catch(err => {
+      b.disabled = false; b.style.opacity = "";
+      if(err && err.name === "AbortError") return;                 // kullanıcı vazgeçti
+      const m = ov.querySelector("#ssMsg"); if(m) m.textContent = t("shareFail");
+    });
   };
   ov.querySelector("#ssOpen").onclick = () => {
     const u = URL.createObjectURL(file);
