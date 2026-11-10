@@ -1401,7 +1401,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.10-4";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.10-5";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2586,9 +2586,20 @@ $("btnResetDb").onclick = async () => {
 
 /* ================= CANIASTA EXCEL (Satış Fiyat Listesi - Opsiyonlu) ================= */
 // Kolonlar: MAKİNE | MAKİNE KODU | OPSİYON KODU | TÜRKÇE AÇIKLAMA | İNGİLİZCE AÇIKLAMA | TL Fiyat | EUR Fiyat
-// Makine = MAKİNE KODU "4UN" ile başlayan ve OPSİYON KODU boş satır. Opsiyon = aynı makine kodunun opsiyon satırları.
+// Makine = OPSİYON KODU boş ve MAKİNE KODU şunlardan biri:
+//   • 4UN… (ör. 4UN010030-0270)
+//   • 1TC010000-xxxx (kompresör / kurutucu) veya 1TC020000-xxxx (makine) — tam 14 karakter.
+//   Kod 14 karakterden uzunsa (ör. 1TC020000-0031-20) yedek parçadır, makine sayılmaz.
+//   1TC040000 / 1TC080000 vb. (yedek parça, kaynak kalıbı) alınmaz.
+// Opsiyon = aynı makine kodunun opsiyon satırları.
 // Diğer satırlar (yedek parça vb.) alınmaz. "Fiyat Sorunuz" veya boş → null (fiyat uydurulmaz).
 const CX_MACHINE_PREFIX = "4UN";
+const CX_MACHINE_DESC = "4UN / 1TC010000 / 1TC020000";
+function cxIsMachine(code){
+  const c = String(code || "").trim().toUpperCase();
+  if(c.length > 14) return false;                               // -01 gibi uzantılı kod = yedek parça
+  return c.startsWith(CX_MACHINE_PREFIX) || /^1TC0[12]0000-\d{4}$/.test(c);
+}
 function cxNum(v){
   if(v == null) return null;
   if(typeof v === "number") return isFinite(v) && v > 0 ? v : null;
@@ -2618,7 +2629,7 @@ function buildCaniastaDb(cx){
   let skipped = 0;
   rows.forEach(r => {
     const mc = S(r, C.mc).toUpperCase(), oc = S(r, C.oc);
-    if(!mc.startsWith(CX_MACHINE_PREFIX) || oc) return;
+    if(!cxIsMachine(mc) || oc) return;
     if(byCode[mc]) return;                                     // aynı makine iki kez gelmez
     let grp = S(r, C.grp); if(!grp || grp === "*") grp = "Diğer";
     const m = {code: mc, name: S(r, C.tr), nameEn: S(r, C.en), desc: grp, cat: grp,
@@ -2629,7 +2640,7 @@ function buildCaniastaDb(cx){
     const mc = S(r, C.mc).toUpperCase(), oc = S(r, C.oc);
     if(!oc) return;
     const m = byCode[mc];
-    if(!m){ if(mc.startsWith(CX_MACHINE_PREFIX)) skipped++; return; }
+    if(!m){ if(cxIsMachine(mc)) skipped++; return; }
     const o = {code: oc, name: S(r, C.tr), nameEn: S(r, C.en), info: "",
                eur: cxNum(C.eur < 0 ? null : r[C.eur]), tl: cxNum(C.tl < 0 ? null : r[C.tl])};
     const k = [o.code, o.name, o.nameEn, o.eur, o.tl].join("|");   // aynı opsiyon farklı makinede farklı fiyatlı olabilir
@@ -2641,7 +2652,7 @@ function buildCaniastaDb(cx){
 }
 async function applyCaniasta(cx, fname){
   const {db, skipped} = buildCaniastaDb(cx);
-  if(!db.machines.length){ uiAlert("Excel'de " + CX_MACHINE_PREFIX + " ile başlayan makine satırı bulunamadı."); return; }
+  if(!db.machines.length){ uiAlert("Excel'de makine satırı (" + CX_MACHINE_DESC + ") bulunamadı."); return; }
   const ms = db.machines, os = Object.values(db.opts);
   const grpN = new Set(ms.map(m => m.cat)).size;
   const cnt = (arr, f) => arr.filter(x => x[f] != null).length;
