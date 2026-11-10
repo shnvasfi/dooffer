@@ -226,6 +226,11 @@ table.pf .optrow .oname{padding-left:16px;}
 #splash .umenu button.out{color:#c8102e;}
 @media (max-height:720px){ #splash #doLogo{max-width:170px;} #splash .wordmark{font-size:32px;margin-top:10px;} #splash .welcome{margin-top:10px;} #splash .langbar{margin-top:8px;} }
 .odinp.odset{border-color:var(--blue) !important;color:var(--blue);font-weight:800;}
+/* açılış: Geçmiş Teklifler = yavruağzı, DO_TakeInfo = bilgi mavisi */
+#btnHistSplash{background:#f7c6b3 !important;border:1px solid #f7c6b3 !important;color:#5a2a1a !important;}
+#btnHistSplash:active{background:#f2b29b !important;}
+#splash .extlink{background:#4a90c9 !important;border-color:#4a90c9 !important;color:#fff !important;}
+#splash .extlink:active{background:#3c7bb0 !important;}
 #splash .extlink{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px;box-sizing:border-box;
   background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.35);color:#dfe5ea;border-radius:10px;padding:9px 0;
   font-size:14px;font-weight:700;text-decoration:none;}
@@ -1401,7 +1406,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.10-5";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.10-6";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
