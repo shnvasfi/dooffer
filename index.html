@@ -420,6 +420,10 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
 
 <!-- CALCULATOR PAGE -->
 <div class="app" id="calcPage">
+  <div id="editBar" class="noprint" style="display:none;background:#fff4d6;color:#6b4e00;border-bottom:1px solid #f0d58a;padding:8px 12px;font-size:13px;font-weight:600;align-items:center;gap:8px;">
+    <span id="editBarTxt" style="flex:1;min-width:0;"></span>
+    <button type="button" id="editBarX" class="btn sec" style="flex:none;padding:5px 10px;font-size:12px;"></button>
+  </div>
   <header class="top">
     <button class="home" id="btnHome" title="Ana sayfa" aria-label="Ana sayfa" data-i18n-title="home"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg></button>
     <div class="brand" id="brandBtn" style="cursor:pointer;" title="Giriş sayfası"><img src="data:image/jpeg;base64,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" style="height:26px;width:26px;background:#fff;border-radius:6px;padding:2px;"><span>DO_Offer</span></div>
@@ -534,16 +538,18 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       <button class="btn sec" id="btnSaveNew" data-i18n="saveNew">🆕 Yeni Teklif Olarak Kaydet</button>
       <button class="btn pri" id="btnPdf" data-i18n="pdf">PDF Paylaş</button>
       <button class="btn sec" id="btnHist" data-i18n="history">🕘 Geçmiş Teklifler</button>
+      <button class="btn sec" id="btnLead" data-i18n="leadBtn">📝 Teklif Bilgileri</button>
       <button class="btn sec" id="btnDisc">İskonto: Gizli</button>
       <button class="btn sec" id="btnConv">₺ TL'ye çevir</button>
       <button class="btn sec" id="btnClear" style="color:var(--red);border-color:var(--red);" data-i18n="clearQ">Teklifi Temizle</button>
     </div>
     <div class="noprint doclang" id="docLangBar"></div>
-    <div class="noprint" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+    <div class="noprint" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
       <button class="btn sec" id="btnCard" style="flex:none;padding:9px 14px;" data-i18n="card">📷 Kartvizit Tara</button>
       <input type="file" id="cardInp" accept="image/*" style="display:none;">
       <img id="cardThumb" style="display:none;height:46px;border-radius:6px;border:1px solid var(--line);cursor:pointer;" title="Büyüt">
       <button class="delx" id="cardDel" style="display:none;">✕</button>
+      <button class="btn sec" id="btnClearC" style="flex:none;margin-left:auto;padding:9px 12px;font-size:13px;" data-i18n="clearC">🧹 İletişim bilgilerini temizle</button>
     </div>
     <div class="proforma" id="proforma">
       <div class="pf-top">
@@ -759,6 +765,19 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
   </div>
 </div>
 
+<!-- EDIT STEP MODAL: geçmiş teklifi düzenlerken hangi adım? -->
+<div class="modal" id="editStepModal" style="align-items:center;z-index:260;">
+  <div class="mbox" style="border-radius:18px;max-width:420px;margin:0 14px;">
+    <div id="editStepTxt" style="font-size:15px;font-weight:700;line-height:1.45;margin-bottom:12px;"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn pri" id="edStepQ" data-i18n="edStepQ" style="text-align:left;">🧾 Müşteri, fiyat, iskonto, şartlar</button>
+      <button class="btn sec" id="edStepM" data-i18n="edStepM" style="text-align:left;">➕ Makine / opsiyon ekle</button>
+      <button class="btn sec" id="edStepL" data-i18n="edStepL" style="text-align:left;">📝 Teklif bilgileri: lead kaynağı, fuar / seyahat tarihleri, not</button>
+      <button class="btn sec" id="edStepNo" data-i18n="cancel">Vazgeç</button>
+    </div>
+  </div>
+</div>
+
 <!-- SETTINGS MODAL -->
 <div class="modal" id="setModal">
   <div class="mbox">
@@ -808,9 +827,9 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnPkgCheck">Güncelle</button>
     </div>
     <div class="setrow">
-      <span>Yönetici Modu<br><span style="font-size:12px;color:var(--muted);">ilk yazılan kod bu cihaza kaydedilir</span></span>
+      <span>Yönetici Modu<br><span style="font-size:12px;color:var(--muted);">yönetici şifresini yazıp Aç deyin</span></span>
       <span style="display:flex;gap:6px;align-items:center;">
-        <input class="pininp" id="admInp" type="password" inputmode="numeric" maxlength="12" style="width:92px;letter-spacing:3px;" placeholder="kod">
+        <input class="pininp" id="admInp" type="password" inputmode="numeric" maxlength="12" style="width:92px;letter-spacing:3px;" placeholder="şifre">
         <button class="btn sec" style="flex:none;padding:8px 12px;" id="btnAdm">Aç</button>
       </span>
     </div>
@@ -1059,48 +1078,45 @@ const D2_VALUES = [0,3,4,5];
    Kapsam: satış ekranları + PDF. Yönetici/ayar ekranları Türkçe kalır.
    Merkezi tabloya giden veriler (kaynak, ülke, fırsat açıklaması) her zaman Türkçe saklanır. */
 const LANGS_ALL = ["tr", "en", "ru", "es"];      // çevirileri hazır diller
-const LANGS = ["tr", "en"];                        // şu an seçilebilen diller (RU/ES ileride açılacak: buraya eklemek yeterli)
+const LANGS = ["tr", "en", "es"];                  // şu an seçilebilen diller (RU ileride açılacak: buraya eklemek yeterli)
 const LANG_NAMES = {tr:"TÜRKÇE", en:"ENGLISH", ru:"РУССКИЙ", es:"ESPAÑOL"};
 let UI_LANG = (function(){ try{ const v = localStorage.getItem("yq_lang"); return LANGS.indexOf(v) >= 0 ? v : "tr"; }catch(e){ return "tr"; } })();
 let DOC_LANG = (function(){ try{ const v = localStorage.getItem("yq_doclang"); return LANGS.indexOf(v) >= 0 ? v : UI_LANG; }catch(e){ return "tr"; } })();
 
 // Ekran metinleri
 const I18N = {
-  tag:        ["FİYAT & TEKLİF ASİSTANI", "PRICE & QUOTATION ASSISTANT", "ПОМОЩНИК ПО ЦЕНАМ И ПРЕДЛОЖЕНИЯМ", "ASISTENTE DE PRECIOS Y OFERTAS"],
+  tag:        ["FİYAT & TEKLİF ASİSTANI", "PRICE & QUOTATION ASSISTANT", "ПОМОЩНИК ПО ЦЕНАМ И ПРЕДЛОЖЕНИЯМ", "ASISTENTE DE PRECIOS Y COTIZACIONES"],
   welcome:    ["Hoşgeldiniz", "Welcome", "Добро пожаловать", "Bienvenido"],
   qtyS:       ["Adet", "Qty", "Кол.", "Cant."],
   discS:      ["İsk. %", "Disc. %", "Ск. %", "Desc. %"],
   optDiscLbl: ["İSKONTO %", "DISCOUNT %", "СКИДКА %", "DESCUENTO %"],
   optDiscHint:["boş = makineyle aynı (%{d})", "empty = same as machine (%{d})", "пусто = как у станка (%{d})", "vacío = igual que la máquina (%{d})"],
   optDiscRow: ["Opsiyon özel iskontosu", "Option special discount", "Особая скидка на опции", "Descuento especial de opciones"],
-  optDiscShort:["opsiyonda özel oran", "special rate on options", "особая ставка на опции", "tasa especial en opciones"],
-  welcomeN:   ["Hoşgeldiniz, {n}", "Welcome, {n}", "Добро пожаловать, {n}", "Bienvenido, {n}"],
+  optDiscShort:["opsiyonda özel oran", "special rate on options", "особая ставка на опции", "descuento especial en opciones"],
+  welcomeN:   ["Hoşgeldiniz, {n}", "Welcome, {n}", "Добро пожаловать, {n}", "Hola, {n}"],
   uSwitch:    ["Kullanıcı Değiştir", "Switch User", "Сменить пользователя", "Cambiar usuario"],
   uLogout:    ["Çıkış Yap", "Log Out", "Выйти", "Cerrar sesión"],
   uCode:      ["Kod", "Code", "Код", "Código"],
   uChecked:   ["son doğrulama {d}", "last verified {d}", "последняя проверка {d}", "última verificación {d}"],
-  uLogoutQ:   ["Bu cihazdan çıkış yapılsın mı?\nTekrar girmek için kullanıcı kodu gerekir.\n(Teklifler ve fiyatlar silinmez.)", "Log out from this device?\nA user code is needed to sign in again.\n(Quotes and prices are kept.)", "Выйти на этом устройстве?\nДля повторного входа нужен код пользователя.\n(Предложения и цены сохранятся.)", "¿Cerrar sesión en este dispositivo?\nPara volver a entrar se necesita un código de usuario.\n(Las ofertas y los precios se conservan.)"],
-  iniLbl:     ["Kullanıcı kodu: ad + soyad baş harfleri", "User code: initials of first + last name", "Код пользователя: инициалы имени и фамилии", "Código de usuario: iniciales de nombre y apellido"],
-  iniPh:      ["Örn: VS", "e.g. VS", "напр. VS", "ej. VS"],
+  uLogoutQ:   ["Bu cihazdan çıkış yapılsın mı?\nTekrar girmek için kullanıcı kodu gerekir.\n(Teklifler ve fiyatlar silinmez.)", "Log out from this device?\nA user code is needed to sign in again.\n(Quotes and prices are kept.)", "Выйти на этом устройстве?\nДля повторного входа нужен код пользователя.\n(Предложения и цены сохранятся.)", "¿Cerrar sesión en este dispositivo?\nPara volver a entrar se necesita un código de usuario.\n(Las cotizaciones y los precios se conservan.)"],
+  iniLbl:     ["Kullanıcı kodu: ad + soyad baş harfleri", "User code: initials of first + last name", "Код пользователя: инициалы имени и фамилии", "Código de usuario: iniciales del nombre y el apellido"],
+  iniPh:      ["Örn: VS", "e.g. VS", "напр. VS", "p. ej. VS"],
   choose:     ["Lütfen seçiminizi yapınız", "Please make your selection", "Пожалуйста, сделайте выбор", "Por favor, seleccione"],
   modeF:      ["Fuar", "Trade Fair", "Выставка", "Feria"],
   modeS:      ["Seyahat", "Travel", "Поездка", "Viaje"],
   modeD:      ["Direkt", "Direct", "Напрямую", "Directo"],
   ok:         ["Tamam", "OK", "ОК", "Aceptar"],
   cancel:     ["Vazgeç", "Cancel", "Отмена", "Cancelar"],
-  history:    ["🕘 Geçmiş Teklifler", "🕘 Quote History", "🕘 История предложений", "🕘 Historial de ofertas"],
-  historyT:   ["Geçmiş Teklifler", "Quote History", "История предложений", "Historial de ofertas"],
+  history:    ["🕘 Geçmiş Teklifler", "🕘 Quote History", "🕘 История предложений", "🕘 Historial de cotizaciones"],
+  historyT:   ["Geçmiş Teklifler", "Quote History", "История предложений", "Historial de cotizaciones"],
   histShort:  ["🕘 Geçmiş", "🕘 History", "🕘 История", "🕘 Historial"],
   home:       ["Ana sayfa", "Home", "Главная", "Inicio"],
-  qShort:     ["Teklif", "Quote", "Предл.", "Oferta"],
-  qLong:      ["Teklife Git", "Go to Quote", "К предложению", "Ir a la oferta"],
+  qShort:     ["Teklif", "Quote", "Предл.", "Cotización"],
+  qLong:      ["Teklife Git", "Go to Quote", "К предложению", "Ir a la cotización"],
   close:      ["Kapat", "Close", "Закрыть", "Cerrar"],
   closeX:     ["Kapat ✕", "Close ✕", "Закрыть ✕", "Cerrar ✕"],
   emptyT:     ["Fiyat listesi yüklü değil", "Price list not loaded", "Прайс-лист не загружен", "Lista de precios no cargada"],
-  emptyX:     ["Fiyatlar güvenlik nedeniyle programın içinde tutulmaz; yalnızca bu cihazda saklanır.<br>Fiyat listesi merkezden şifreli olarak gelir. Ayarlardan güncellemeyi başlatın.",
-               "For security, prices are not stored in the program; they are kept only on this device.<br>The price list comes encrypted from the head office. Start the update below or in Settings.",
-               "В целях безопасности цены не хранятся в программе, только на этом устройстве.<br>Прайс-лист приходит из центра в зашифрованном виде. Запустите обновление.",
-               "Por seguridad, los precios no se guardan en el programa; solo en este dispositivo.<br>La lista llega cifrada desde la central. Inicie la actualización."],
+  emptyX:     ["Fiyatlar güvenlik nedeniyle programın içinde tutulmaz; yalnızca bu cihazda saklanır.<br>Fiyat listesi merkezden şifreli olarak gelir. Ayarlardan güncellemeyi başlatın.", "For security, prices are not stored in the program; they are kept only on this device.<br>The price list comes encrypted from the head office. Start the update below or in Settings.", "В целях безопасности цены не хранятся в программе, только на этом устройстве.<br>Прайс-лист приходит из центра в зашифрованном виде. Запустите обновление.", "Por seguridad, los precios no se guardan en el programa; solo se conservan en este dispositivo.<br>La lista de precios llega cifrada desde la casa matriz. Inicie la actualización abajo o en Configuración."],
   emptyBtn:   ["Fiyat Listesini Getir", "Load Price List", "Загрузить прайс-лист", "Cargar lista de precios"],
   machine:    ["MAKİNE", "MACHINE", "ОБОРУДОВАНИЕ", "MÁQUINA"],
   price:      ["FİYAT", "PRICE", "ЦЕНА", "PRECIO"],
@@ -1110,28 +1126,28 @@ const I18N = {
   optSkip:    ["Opsiyon eklemeden devam ›", "Continue without options ›", "Продолжить без опций ›", "Continuar sin opciones ›"],
   sMach:      ["Makine", "Machine", "Оборудование", "Máquina"],
   sOpts:      ["Opsiyonlar", "Options", "Опции", "Opciones"],
-  listTotal:  ["Liste Toplamı", "List Total", "Итого по прайсу", "Total de lista"],
+  listTotal:  ["Liste Toplamı", "List Total", "Итого по прайсу", "Total a precio de lista"],
   disc:       ["İskonto", "Discount", "Скидка", "Descuento"],
   discP:      ["İskonto %", "Discount %", "Скидка %", "Descuento %"],
   disc2:      ["Artı İskonto", "Extra Discount", "Доп. скидка", "Descuento adicional"],
   disc2P:     ["Artı İskonto %", "Extra Discount %", "Доп. скидка %", "Descuento adicional %"],
   netPrice:   ["NET FİYAT", "NET PRICE", "ЦЕНА НЕТТО", "PRECIO NETO"],
   wipe:       ["Temizle", "Clear", "Очистить", "Borrar"],
-  add:        ["Teklife Ekle", "Add to Quote", "Добавить", "Añadir a la oferta"],
+  add:        ["Teklife Ekle", "Add to Quote", "Добавить", "Agregar a la cotización"],
   askPrice:   ["Fiyat Sorunuz", "Price on request", "Цена по запросу", "Precio a consultar"],
   pickTitle:  ["Makine Seç", "Select Machine", "Выбор оборудования", "Seleccionar máquina"],
   search:     ["Ara: kod veya isim…", "Search: code or name…", "Поиск: код или название…", "Buscar: código o nombre…"],
   back:       ["‹ Geri", "‹ Back", "‹ Назад", "‹ Atrás"],
-  save:       ["💾 Teklifi Kaydet", "💾 Save Quote", "💾 Сохранить", "💾 Guardar oferta"],
-  update:     ["💾 Teklifi Güncelle", "💾 Update Quote", "💾 Обновить", "💾 Actualizar oferta"],
-  saveNew:    ["🆕 Yeni Teklif Olarak Kaydet", "🆕 Save as New Quote", "🆕 Сохранить как новое", "🆕 Guardar como nueva"],
+  save:       ["💾 Teklifi Kaydet", "💾 Save Quote", "💾 Сохранить", "💾 Guardar cotización"],
+  update:     ["💾 Teklifi Güncelle", "💾 Update Quote", "💾 Обновить", "💾 Actualizar cotización"],
+  saveNew:    ["🆕 Yeni Teklif Olarak Kaydet", "🆕 Save as New Quote", "🆕 Сохранить как новое", "🆕 Guardar como nueva cotización"],
   pdf:        ["PDF Paylaş", "Share PDF", "Отправить PDF", "Compartir PDF"],
   discShow:   ["İskonto: Görünür", "Discount: Visible", "Скидка: видна", "Descuento: visible"],
   discHide:   ["İskonto: Gizli", "Discount: Hidden", "Скидка: скрыта", "Descuento: oculto"],
-  clearQ:     ["Teklifi Temizle", "Clear Quote", "Очистить предложение", "Borrar oferta"],
-  card:       ["📷 Kartvizit Tara", "📷 Scan Business Card", "📷 Сканировать визитку", "📷 Escanear tarjeta"],
-  docLang:    ["Teklif dili:", "Quote language:", "Язык предложения:", "Idioma de la oferta:"],
-  qEmpty:     ["Teklif listesi boş.<br>Hesaplama ekranından \"Teklife Ekle\" ile makine ekleyin.", "The quote is empty.<br>Add machines with \"Add to Quote\" on the calculation screen.", "Предложение пусто.<br>Добавьте оборудование кнопкой «Добавить» на экране расчёта.", "La oferta está vacía.<br>Añada máquinas con \"Añadir a la oferta\" en la pantalla de cálculo."],
+  clearQ:     ["Teklifi Temizle", "Clear Quote", "Очистить предложение", "Borrar cotización"],
+  card:       ["📷 Kartvizit Tara", "📷 Scan Business Card", "📷 Сканировать визитку", "📷 Escanear tarjeta de presentación"],
+  docLang:    ["Teklif dili:", "Quote language:", "Язык предложения:", "Idioma de la cotización:"],
+  qEmpty:     ["Teklif listesi boş.<br>Hesaplama ekranından \"Teklife Ekle\" ile makine ekleyin.", "The quote is empty.<br>Add machines with \"Add to Quote\" on the calculation screen.", "Предложение пусто.<br>Добавьте оборудование кнопкой «Добавить» на экране расчёта.", "La cotización está vacía.<br>Agregue máquinas con \"Agregar a la cotización\" en la pantalla de cálculo."],
   total:      ["Toplam", "Total", "Итого", "Total"],
   thMachine:  ["Makine", "Machine", "Оборудование", "Máquina"],
   thDesc:     ["Açıklama", "Description", "Описание", "Descripción"],
@@ -1142,12 +1158,12 @@ const I18N = {
   hShare:     ["Paylaş", "Share", "Отправить", "Compartir"],
   noPdf:      ["PDF yok", "No PDF", "Нет PDF", "Sin PDF"],
   loading:    ["Yükleniyor…", "Loading…", "Загрузка…", "Cargando…"],
-  histEmpty:  ["Kayıtlı teklif yok. Kaydettiğiniz teklifler burada birikir.", "No saved quotes yet. Saved quotes appear here.", "Сохранённых предложений нет. Здесь появятся сохранённые предложения.", "No hay ofertas guardadas. Las ofertas guardadas aparecerán aquí."],
+  histEmpty:  ["Kayıtlı teklif yok. Kaydettiğiniz teklifler burada birikir.", "No saved quotes yet. Saved quotes appear here.", "Сохранённых предложений нет. Здесь появятся сохранённые предложения.", "Aún no hay cotizaciones guardadas. Las cotizaciones guardadas aparecerán aquí."],
   histErr:    ["Geçmiş açılamadı: ", "History could not be opened: ", "Не удалось открыть историю: ", "No se pudo abrir el historial: "],
-  delQ:       ["{no} numaralı teklif kaydı silinsin mi?", "Delete quote {no}?", "Удалить предложение {no}?", "¿Eliminar la oferta {no}?"],
-  shareFail:  ["Paylaşılamadı: ", "Could not share: ", "Не удалось отправить: ", "No se pudo compartir: "],
-  quoteT:     ["Teklif", "Quote", "Предложение", "Oferta"],
-  leadTitle:  ["Teklif Bilgileri", "Quote Details", "Данные предложения", "Datos de la oferta"],
+  delQ:       ["{no} numaralı teklif kaydı silinsin mi?", "Delete quote {no}?", "Удалить предложение {no}?", "¿Eliminar la cotización {no}?"],
+  shareFail:  ["Paylaşılamadı: ", "Could not share: ", "Не удалось отправить: ", "No se completó el envío. Toque \"Compartir\" de nuevo o use \"Abrir / descargar PDF\" y envíelo desde allí."],
+  quoteT:     ["Teklif", "Quote", "Предложение", "Cotización"],
+  leadTitle:  ["Teklif Bilgileri", "Quote Details", "Данные предложения", "Datos de la cotización"],
   leadSrc:    ["Lead Kaynağı", "Lead Source", "Источник клиента", "Origen del contacto"],
   fair:       ["Fuar Adı", "Trade Fair", "Выставка", "Feria"],
   country:    ["Ülke", "Country", "Страна", "País"],
@@ -1165,81 +1181,77 @@ const I18N = {
   datePh:     ["GG.AA.YYYY", "DD.MM.YYYY", "ДД.ММ.ГГГГ", "DD.MM.AAAA"],
   dayBack:    ["1 gün geri", "1 day back", "на 1 день назад", "1 día atrás"],
   dayFwd:     ["1 gün ileri", "1 day forward", "на 1 день вперёд", "1 día adelante"],
-  noteOn:     ["Not eklemek istiyorum", "I want to add a note", "Добавить примечание", "Quiero añadir una nota"],
+  noteOn:     ["Not eklemek istiyorum", "I want to add a note", "Добавить примечание", "Quiero agregar una nota"],
   notePh:     ["Notunuz…", "Your note…", "Ваше примечание…", "Su nota…"],
   warnD:      ["Devam için: ülke ve fırsat tipi gerekli.", "To continue: country and opportunity type are required.", "Для продолжения укажите страну и тип возможности.", "Para continuar: indique país y tipo de oportunidad."],
   warnF:      ["Devam için: fuar, fırsat tipi ve tarihler gerekli.", "To continue: trade fair, opportunity type and dates are required.", "Для продолжения укажите выставку, тип возможности и даты.", "Para continuar: indique feria, tipo de oportunidad y fechas."],
   warnS:      ["Devam için: kaynak, ülke, fırsat tipi ve tarihler gerekli.", "To continue: source, country, opportunity type and dates are required.", "Для продолжения укажите источник, страну, тип возможности и даты.", "Para continuar: indique origen, país, tipo de oportunidad y fechas."],
   okSave:     ["Kaydet", "Save", "Сохранить", "Guardar"],
   okShare:    ["Paylaş", "Share", "Отправить", "Compartir"],
-  edTitle:    ["Kalemi Düzenle", "Edit Item", "Изменить позицию", "Editar partida"],
+  edTitle:    ["Kalemi Düzenle", "Edit Item", "Изменить позицию", "Editar artículo"],
   edQty:      ["Adet", "Quantity", "Количество", "Cantidad"],
   edList:     ["Liste", "List", "Прайс", "Lista"],
   edUnit:     ["birim ", "unit ", "за ед. ", "unidad "],
-  needFirm:   ["Firma adı veya ilgili kişiden en az birini yazın.", "Enter the company name or the contact person (at least one).", "Укажите название компании или контактное лицо.", "Indique la empresa o la persona de contacto."],
+  needFirm:   ["Firma adı veya ilgili kişiden en az birini yazın.", "Enter the company name or the contact person (at least one).", "Укажите название компании или контактное лицо.", "Ingrese la empresa o la persona de contacto (al menos uno)."],
   shareFail:  ["Paylaşım tamamlanamadı. Tekrar 'Paylaş'a dokunun ya da 'PDF'i aç / indir' ile açıp oradan gönderin.", "Sharing did not complete. Tap 'Share' again or use 'Open / download PDF' and send from there.", "Не удалось поделиться. Попробуйте ещё раз или откройте PDF.", "No se pudo compartir. Vuelva a intentarlo o abra el PDF."],
   pdfReady:   ["PDF hazır", "PDF is ready", "PDF готов", "PDF listo"],
-  pdfShareBtn:["Paylaş (WhatsApp, e-posta…)", "Share (WhatsApp, e-mail…)", "Поделиться", "Compartir"],
+  pdfShareBtn:["Paylaş (WhatsApp, e-posta…)", "Share (WhatsApp, e-mail…)", "Поделиться", "Compartir (WhatsApp, correo…)"],
   pdfOpenBtn: ["PDF'i aç / indir", "Open / download PDF", "Открыть / скачать PDF", "Abrir / descargar PDF"],
-  manPriceBtn:["Fiyat gir ✎", "Enter price ✎", "Ввести цену ✎", "Introducir precio ✎"],
-  manPriceQ:  ["{name}\nListede fiyatı yok. Liste fiyatını girin ({sym}):", "{name}\nNo list price. Enter the list price ({sym}):", "{name}\nНет цены в прайсе. Введите цену ({sym}):", "{name}\nSin precio de lista. Introduzca el precio ({sym}):"],
-  manPriceBad:["Geçerli bir tutar girin.", "Enter a valid amount.", "Введите корректную сумму.", "Introduzca un importe válido."],
+  manPriceBtn:["Fiyat gir ✎", "Enter price ✎", "Ввести цену ✎", "Ingresar precio ✎"],
+  manPriceQ:  ["{name}\nListede fiyatı yok. Liste fiyatını girin ({sym}):", "{name}\nNo list price. Enter the list price ({sym}):", "{name}\nНет цены в прайсе. Введите цену ({sym}):", "{name}\nSin precio de lista. Ingrese el precio de lista ({sym}):"],
+  manPriceBad:["Geçerli bir tutar girin.", "Enter a valid amount.", "Введите корректную сумму.", "Ingrese un monto válido."],
   convToTL:   ["₺ TL'ye çevir", "₺ Convert to TL", "₺ В TL", "₺ Convertir a TL"],
   convToEUR:  ["€ EUR'ya çevir", "€ Convert to EUR", "€ В EUR", "€ Convertir a EUR"],
-  convRate:   ["Kur girin (1 € = kaç ₺?)\nŞu kalemlerin hedef listede fiyatı yok, kurla çevrilecek: {list}\n(Navlun / sigorta da bu kurla çevrilir.)", "Enter the rate (1 € = ? ₺)\nThese items have no price in the target list and will be converted at this rate: {list}\n(Freight / insurance are converted too.)", "Введите курс (1 € = ? ₺)\nПозиции без цены в целевом прайсе: {list}", "Introduzca el tipo (1 € = ? ₺)\nArtículos sin precio en la lista destino: {list}"],
-  convQ:      ["Teklif {from} → {to} çevrilsin mi?\nFiyatlar {to} listesinden alınır, iskontolar korunur.", "Convert the quote {from} → {to}?\nPrices are taken from the {to} list; discounts are kept.", "Пересчитать {from} → {to}?", "¿Convertir {from} → {to}?"],
-  convDone:   ["Teklif {to} olarak hazır. Eskisini korumak için \"Yeni Teklif Olarak Kaydet\" ile kaydedin.", "The quote is now in {to}. To keep the old one, save with \"Save as New Quote\".", "Предложение пересчитано в {to}. Сохраните как новое.", "Oferta convertida a {to}. Guárdela como nueva."],
-  needCountryList:["Ülkeyi listeden seçin (yazarken öneriler çıkar).", "Pick the country from the list (suggestions appear as you type).", "Выберите страну из списка.", "Elija el país de la lista."],
-  needCountry:["Müşterinin ülkesini yazın (zorunlu).", "Enter the customer's country (required).", "Укажите страну клиента (обязательно).", "Indique el país del cliente (obligatorio)."],
-  emptyQuote: ["Teklif listesi boş.", "The quote is empty.", "Предложение пусто.", "La oferta está vacía."],
-  curMix:     ["Teklif listesinde {c} kalemler var. Aynı teklifte iki para birimi olamaz.\nÖnce teklifi paylaşıp temizleyin.",
-               "The quote already has {c} items. A quote cannot contain two currencies.\nShare and clear the quote first.",
-               "В предложении уже есть позиции в {c}. В одном предложении не может быть двух валют.\nСначала отправьте и очистите предложение.",
-               "La oferta ya tiene partidas en {c}. Una oferta no puede tener dos monedas.\nPrimero comparta y borre la oferta."],
+  convRate:   ["Kur girin (1 € = kaç ₺?)\nŞu kalemlerin hedef listede fiyatı yok, kurla çevrilecek: {list}\n(Navlun / sigorta da bu kurla çevrilir.)", "Enter the rate (1 € = ? ₺)\nThese items have no price in the target list and will be converted at this rate: {list}\n(Freight / insurance are converted too.)", "Введите курс (1 € = ? ₺)\nПозиции без цены в целевом прайсе: {list}", "Ingrese el tipo de cambio (1 € = ? ₺)\nEstos artículos no tienen precio en la lista de destino y se convertirán con este tipo de cambio: {list}\n(El flete y el seguro también se convierten.)"],
+  convQ:      ["Teklif {from} → {to} çevrilsin mi?\nFiyatlar {to} listesinden alınır, iskontolar korunur.", "Convert the quote {from} → {to}?\nPrices are taken from the {to} list; discounts are kept.", "Пересчитать {from} → {to}?", "¿Convertir la cotización de {from} a {to}?\nLos precios se toman de la lista en {to}; los descuentos se mantienen."],
+  convDone:   ["Teklif {to} olarak hazır. Eskisini korumak için \"Yeni Teklif Olarak Kaydet\" ile kaydedin.", "The quote is now in {to}. To keep the old one, save with \"Save as New Quote\".", "Предложение пересчитано в {to}. Сохраните как новое.", "La cotización ahora está en {to}. Para conservar la anterior, guárdela con \"Guardar como nueva cotización\"."],
+  needCountryList:["Ülkeyi listeden seçin (yazarken öneriler çıkar).", "Pick the country from the list (suggestions appear as you type).", "Выберите страну из списка.", "Elija el país de la lista (las sugerencias aparecen al escribir)."],
+  needCountry:["Müşterinin ülkesini yazın (zorunlu).", "Enter the customer's country (required).", "Укажите страну клиента (обязательно).", "Ingrese el país del cliente (obligatorio)."],
+  emptyQuote: ["Teklif listesi boş.", "The quote is empty.", "Предложение пусто.", "La cotización está vacía."],
+  curMix:     ["Teklif listesinde {c} kalemler var. Aynı teklifte iki para birimi olamaz.\nÖnce teklifi paylaşıp temizleyin.", "The quote already has {c} items. A quote cannot contain two currencies.\nShare and clear the quote first.", "В предложении уже есть позиции в {c}. В одном предложении не может быть двух валют.\nСначала отправьте и очистите предложение.", "La cotización ya tiene artículos en {c}. Una cotización no puede tener dos monedas.\nPrimero comparta y borre la cotización."],
   wipeQ:      ["Ne temizlensin?", "What should be cleared?", "Что очистить?", "¿Qué desea borrar?"],
   wipe1:      ["Sadece Bu Sayfa", "This Page Only", "Только эту страницу", "Solo esta página"],
-  wipe2:      ["Sayfa + Teklif", "Page + Quote", "Страницу и предложение", "Página y oferta"],
-  clearQConf: ["Teklif listesi silinsin mi?", "Delete the quote list?", "Удалить список предложения?", "¿Eliminar la lista de la oferta?"],
-  existQ:     ["Bu teklif zaten kayıtlı:\n{no}\n({info})\n\nAynı teklifte değişiklik mi yaptınız, yoksa bu ayrı bir teklif mi?",
-               "This quote is already saved:\n{no}\n({info})\n\nDid you change the same quote, or is this a separate quote?",
-               "Это предложение уже сохранено:\n{no}\n({info})\n\nВы изменили то же предложение или это новое?",
-               "Esta oferta ya está guardada:\n{no}\n({info})\n\n¿Modificó la misma oferta o es una oferta distinta?"],
+  wipe2:      ["Sayfa + Teklif", "Page + Quote", "Страницу и предложение", "Página y cotización"],
+  clearQConf: ["Teklif listesi silinsin mi?", "Delete the quote list?", "Удалить список предложения?", "¿Eliminar la lista de la cotización?"],
+  existQ:     ["Bu teklif zaten kayıtlı:\n{no}\n({info})\n\nAynı teklifte değişiklik mi yaptınız, yoksa bu ayrı bir teklif mi?", "This quote is already saved:\n{no}\n({info})\n\nDid you change the same quote, or is this a separate quote?", "Это предложение уже сохранено:\n{no}\n({info})\n\nВы изменили то же предложение или это новое?", "Esta cotización ya está guardada:\n{no}\n({info})\n\n¿Modificó la misma cotización o es una cotización distinta?"],
   existNew:   ["Yeni No ile Kaydet", "Save with New No.", "Сохранить с новым №", "Guardar con nuevo n.º"],
   existUpd:   ["Aynı No: Güncelle", "Same No.: Update", "Тот же №: обновить", "Mismo n.º: actualizar"],
   noCompany:  ["firma yok", "no company", "без компании", "sin empresa"],
   saving:     ["Kaydediliyor…", "Saving…", "Сохранение…", "Guardando…"],
   preparing:  ["Hazırlanıyor…", "Preparing…", "Подготовка…", "Preparando…"],
-  saved:      ["Teklif kaydedildi: ", "Quote saved: ", "Предложение сохранено: ", "Oferta guardada: "],
-  pdfSaved:   ["PDF de kaydedildi. (Geçmiş Teklifler > Aç)", "The PDF was saved too. (Quote History > Open)", "PDF также сохранён. (История предложений > Открыть)", "El PDF también se guardó. (Historial de ofertas > Abrir)"],
+  saved:      ["Teklif kaydedildi: ", "Quote saved: ", "Предложение сохранено: ", "Cotización guardada: "],
+  pdfSaved:   ["PDF de kaydedildi. (Geçmiş Teklifler > Aç)", "The PDF was saved too. (Quote History > Open)", "PDF также сохранён. (История предложений > Открыть)", "El PDF también se guardó. (Historial de cotizaciones > Abrir)"],
   pdfFail:    ["PDF oluşturulamadı; kayıt bilgileri saklandı.", "The PDF could not be created; the record was kept.", "Не удалось создать PDF; запись сохранена.", "No se pudo crear el PDF; el registro se guardó."],
-  printQ:     ["Teklif kaydedildi ({no}).\n\nPDF aracı indirilemedi (internet gerekiyor).\nYazdır ekranını açayım mı?\n(Oradan 'PDF olarak kaydet' seçebilirsiniz)",
-               "Quote saved ({no}).\n\nThe PDF tool could not be downloaded (internet required).\nOpen the print screen?\n(You can choose 'Save as PDF' there)",
-               "Предложение сохранено ({no}).\n\nНе удалось загрузить модуль PDF (нужен интернет).\nОткрыть окно печати?\n(Там можно выбрать «Сохранить как PDF»)",
-               "Oferta guardada ({no}).\n\nNo se pudo descargar la herramienta PDF (se necesita internet).\n¿Abrir la pantalla de impresión?\n(Allí puede elegir 'Guardar como PDF')"],
-  iniPrompt:  ["Kullanıcı kodunuzu girin\n(adınızın ve soyadınızın baş harfleri, örn: VS)\n\nTeklifi kimin verdiği bu kodla görünür.",
-               "Enter your user code\n(initials of your first and last name, e.g. VS)\n\nThis code shows who made the quote.",
-               "Введите код пользователя\n(инициалы имени и фамилии, напр. VS)\n\nПо этому коду видно, кто подготовил предложение.",
-               "Introduzca su código de usuario\n(iniciales de nombre y apellido, ej. VS)\n\nEste código indica quién hizo la oferta."],
+  printQ:     ["Teklif kaydedildi ({no}).\n\nPDF aracı indirilemedi (internet gerekiyor).\nYazdır ekranını açayım mı?\n(Oradan 'PDF olarak kaydet' seçebilirsiniz)", "Quote saved ({no}).\n\nThe PDF tool could not be downloaded (internet required).\nOpen the print screen?\n(You can choose 'Save as PDF' there)", "Предложение сохранено ({no}).\n\nНе удалось загрузить модуль PDF (нужен интернет).\nОткрыть окно печати?\n(Там можно выбрать «Сохранить как PDF»)", "Cotización guardada ({no}).\n\nNo se pudo descargar la herramienta de PDF (se necesita internet).\n¿Abrir la pantalla de impresión?\n(Allí puede elegir \"Guardar como PDF\")"],
+  iniPrompt:  ["Kullanıcı kodunuzu girin\n(adınızın ve soyadınızın baş harfleri, örn: VS)\n\nTeklifi kimin verdiği bu kodla görünür.", "Enter your user code\n(initials of your first and last name, e.g. VS)\n\nThis code shows who made the quote.", "Введите код пользователя\n(инициалы имени и фамилии, напр. VS)\n\nПо этому коду видно, кто подготовил предложение.", "Ingrese su código de usuario\n(iniciales de su nombre y apellido, p. ej. VS)\n\nEste código indica quién hizo la cotización."],
   exitQ:      ["DO_Offer kapatılsın mı?", "Close DO_Offer?", "Закрыть DO_Offer?", "¿Cerrar DO_Offer?"],
   byeT:       ["Görüşmek üzere", "See you soon", "До встречи", "Hasta pronto"],
   byeX:       ["DO_Offer güvenle kapatıldı.<br>Sekmeyi kapatabilir veya uygulamadan çıkabilirsiniz.", "DO_Offer was closed safely.<br>You can close the tab or leave the app.", "DO_Offer безопасно закрыт.<br>Можно закрыть вкладку или выйти из приложения.", "DO_Offer se cerró de forma segura.<br>Puede cerrar la pestaña o salir de la aplicación."],
   byeBack:    ["‹ Geri Dön", "‹ Go Back", "‹ Вернуться", "‹ Volver"],
-  editMode:   ["Düzenleme modu: {no}\n\nDeğişiklikleri yapıp \"Teklifi Kaydet\" deyin; teklif aynı numarayla güncellenir.\nAyrı bir teklif olsun isterseniz \"Yeni Teklif Olarak Kaydet\" kullanın.",
-               "Edit mode: {no}\n\nMake your changes and tap \"Save Quote\"; the quote is updated under the same number.\nTo make it a separate quote, use \"Save as New Quote\".",
-               "Режим редактирования: {no}\n\nВнесите изменения и нажмите «Сохранить»; предложение обновится под тем же номером.\nЧтобы создать отдельное предложение, нажмите «Сохранить как новое».",
-               "Modo edición: {no}\n\nHaga los cambios y pulse \"Guardar oferta\"; la oferta se actualiza con el mismo número.\nPara una oferta distinta, use \"Guardar como nueva\"."],
-  cardDel:    ["Kartvizit silinsin mi?", "Delete the business card?", "Удалить визитку?", "¿Eliminar la tarjeta?"],
+  editMode:   ["Düzenleme modu: {no}\n\nDeğişiklikleri yapıp \"Teklifi Kaydet\" deyin; teklif aynı numarayla güncellenir.\nAyrı bir teklif olsun isterseniz \"Yeni Teklif Olarak Kaydet\" kullanın.", "Edit mode: {no}\n\nMake your changes and tap \"Save Quote\"; the quote is updated under the same number.\nTo make it a separate quote, use \"Save as New Quote\".", "Режим редактирования: {no}\n\nВнесите изменения и нажмите «Сохранить»; предложение обновится под тем же номером.\nЧтобы создать отдельное предложение, нажмите «Сохранить как новое».", "Modo de edición: {no}\n\nHaga los cambios y toque \"Guardar cotización\"; la cotización se actualiza con el mismo número.\nSi debe ser una cotización distinta, use \"Guardar como nueva cotización\"."],
+  cardDel:    ["Kartvizit silinsin mi?", "Delete the business card?", "Удалить визитку?", "¿Eliminar la tarjeta de presentación?"],
   authCheck:  ["Kontrol ediliyor…", "Checking…", "Проверка…", "Comprobando…"],
-  authUnknown:["Bu kullanıcı kodu tanımlı değil. Yöneticinize başvurun.", "This user code is not registered. Please contact your administrator.", "This user code is not registered. Please contact your administrator.", "This user code is not registered. Please contact your administrator."],
-  authPassive:["Bu kullanıcı kodu pasif. Yöneticinize başvurun.", "This user code is inactive. Please contact your administrator.", "This user code is inactive. Please contact your administrator.", "This user code is inactive. Please contact your administrator."],
-  authNet:    ["Kod doğrulanamadı: internet bağlantısı gerekiyor.", "The code could not be verified: an internet connection is required.", "The code could not be verified: an internet connection is required.", "The code could not be verified: an internet connection is required."],
-  authStale:  ["Son doğrulama 7 günden eski. İnternete bağlanıp kodunuzla tekrar giriş yapın.", "Last verification is older than 7 days. Connect to the internet and sign in again.", "Last verification is older than 7 days. Connect to the internet and sign in again.", "Last verification is older than 7 days. Connect to the internet and sign in again."],
-  pinPh:      ["PIN (ilk girişte)", "PIN (first sign-in)", "PIN (first sign-in)", "PIN (first sign-in)"],
-  authPin:    ["PIN hatalı.", "Wrong PIN.", "Wrong PIN.", "Wrong PIN."],
-  authPinReq: ["Bu kullanıcı kodu için PIN gerekli.", "A PIN is required for this user code.", "A PIN is required for this user code.", "A PIN is required for this user code."],
-  authLock:   ["Çok fazla hatalı deneme. 15 dakika sonra tekrar deneyin.", "Too many wrong attempts. Try again in 15 minutes.", "Too many wrong attempts. Try again in 15 minutes.", "Too many wrong attempts. Try again in 15 minutes."],
-  authPinAgain:["Bu kod için PIN tanımlandı veya değiştirildi. Kodunuz ve PIN'inizle bir kez tekrar giriş yapın.", "A PIN was set or changed for this code. Sign in once more with your code and PIN.", "A PIN was set or changed for this code. Sign in once more with your code and PIN.", "A PIN was set or changed for this code. Sign in once more with your code and PIN."],
-  authFirst:  ["Önce kullanıcı kodunuzla giriş yapın.", "Please sign in with your user code first.", "Please sign in with your user code first.", "Please sign in with your user code first."]
+  authUnknown:["Bu kullanıcı kodu tanımlı değil. Yöneticinize başvurun.", "This user code is not registered. Please contact your administrator.", "This user code is not registered. Please contact your administrator.", "Este código de usuario no está registrado. Comuníquese con su administrador."],
+  authPassive:["Bu kullanıcı kodu pasif. Yöneticinize başvurun.", "This user code is inactive. Please contact your administrator.", "This user code is inactive. Please contact your administrator.", "Este código de usuario está inactivo. Comuníquese con su administrador."],
+  authNet:    ["Kod doğrulanamadı: internet bağlantısı gerekiyor.", "The code could not be verified: an internet connection is required.", "The code could not be verified: an internet connection is required.", "No se pudo verificar el código: se necesita conexión a internet."],
+  authStale:  ["Son doğrulama 7 günden eski. İnternete bağlanıp kodunuzla tekrar giriş yapın.", "Last verification is older than 7 days. Connect to the internet and sign in again.", "Last verification is older than 7 days. Connect to the internet and sign in again.", "La última verificación tiene más de 7 días. Conéctese a internet e inicie sesión de nuevo."],
+  pinPh:      ["PIN (ilk girişte)", "PIN (first sign-in)", "PIN (first sign-in)", "PIN (primer inicio de sesión)"],
+  authPin:    ["PIN hatalı.", "Wrong PIN.", "Wrong PIN.", "PIN incorrecto."],
+  authPinReq: ["Bu kullanıcı kodu için PIN gerekli.", "A PIN is required for this user code.", "A PIN is required for this user code.", "Este código de usuario requiere un PIN."],
+  authLock:   ["Çok fazla hatalı deneme. 15 dakika sonra tekrar deneyin.", "Too many wrong attempts. Try again in 15 minutes.", "Too many wrong attempts. Try again in 15 minutes.", "Demasiados intentos fallidos. Vuelva a intentarlo en 15 minutos."],
+  authPinAgain:["Bu kod için PIN tanımlandı veya değiştirildi. Kodunuz ve PIN'inizle bir kez tekrar giriş yapın.", "A PIN was set or changed for this code. Sign in once more with your code and PIN.", "A PIN was set or changed for this code. Sign in once more with your code and PIN.", "Se asignó o se cambió un PIN para este código. Inicie sesión de nuevo con su código y su PIN."],
+  authFirst:  ["Önce kullanıcı kodunuzla giriş yapın.", "Please sign in with your user code first.", "Please sign in with your user code first.", "Primero inicie sesión con su código de usuario."],
+  editWhat: ["{no} teklifinde neyi değiştirmek istiyorsunuz?", "What would you like to change in quote {no}?", "Что вы хотите изменить в предложении {no}?", "¿Qué desea modificar en la cotización {no}?"],
+  edStepQ: ["🧾 Müşteri, fiyat, iskonto, şartlar", "🧾 Customer, prices, discounts, terms", "🧾 Клиент, цены, скидки, условия", "🧾 Cliente, precios, descuentos, condiciones"],
+  edStepM: ["➕ Makine / opsiyon ekle", "➕ Add machine / options", "➕ Добавить станок / опции", "➕ Agregar máquina / opciones"],
+  edStepL: ["📝 Teklif bilgileri: lead kaynağı, fuar / seyahat tarihleri, not", "📝 Quote details: lead source, fair / travel dates, note", "📝 Данные предложения: источник, даты выставки / поездки, заметка", "📝 Datos de la cotización: origen, fechas de feria / viaje, nota"],
+  editMach: ["{no} düzenleniyor.\n\nMakineyi seçip \"Teklife Ekle\" deyin. Bitince \"Teklif\" düğmesiyle teklif sayfasına geçip \"Teklifi Kaydet\" deyin; numara değişmez.", "Editing {no}.\n\nSelect the machine and tap \"Add to Quote\". When done, go to the quote page with \"Quote\" and tap \"Save Quote\"; the number stays the same.", "Редактируется {no}.\n\nВыберите станок и нажмите «Добавить в предложение». Затем перейдите к предложению и нажмите «Сохранить»; номер не меняется.", "Editando {no}.\n\nSeleccione la máquina y toque \"Agregar a la cotización\". Al terminar, vaya a la cotización con \"Cotización\" y toque \"Guardar cotización\"; el número no cambia."],
+  editBar: ["✎ {no} düzenleniyor — eklediklerinizden sonra \"Teklif\" ile kaydedin", "✎ Editing {no} — after adding, open \"Quote\" and save", "✎ Редактируется {no} — после добавления откройте предложение и сохраните", "✎ Editando {no} — después de agregar, abra \"Cotización\" y guarde"],
+  editBarX: ["Düzenlemeyi bırak", "Stop editing", "Прекратить", "Dejar de editar"],
+  leadBtn: ["📝 Teklif Bilgileri", "📝 Quote Details", "📝 Данные предложения", "📝 Datos de la cotización"],
+  clearC: ["🧹 İletişim bilgilerini temizle", "🧹 Clear contact details", "🧹 Очистить контакты", "🧹 Borrar datos de contacto"],
+  clearCConf: ["Yalnız iletişim bilgileri (firma, kişi, telefon, e-posta, şehir, ülke) silinsin mi?\nMakineler, fiyatlar ve şartlar olduğu gibi kalır.", "Clear only the contact details (company, person, phone, e-mail, city, country)?\nMachines, prices and terms are kept.", "Очистить только контактные данные (компания, лицо, телефон, e-mail, город, страна)?\nСтанки, цены и условия сохраняются.", "¿Borrar solo los datos de contacto (empresa, persona, teléfono, correo, ciudad, país)?\nLas máquinas, los precios y las condiciones se mantienen."],
+  leadSaved: ["Teklif bilgileri güncellendi. Kalıcı olması için \"Teklifi Kaydet\" deyin.", "Quote details updated. Tap \"Save Quote\" to keep them.", "Данные обновлены. Нажмите «Сохранить», чтобы сохранить их.", "Datos de la cotización actualizados. Toque \"Guardar cotización\" para conservarlos."]
 };
 const LI = {tr:0, en:1, ru:2, es:3};   // sözlük sütunları (LANGS_ALL sırası)
 function t(key, vars){
@@ -1254,45 +1266,39 @@ const PF = {
   title:     ["PROFORMA FATURA", "PROFORMA INVOICE", "ПРОФОРМА-ИНВОЙС", "FACTURA PROFORMA"],
   date:      ["TARİH", "DATE", "ДАТА", "FECHA"],
   no:        ["NO", "NO", "№", "N.º"],
-  contact:   ["İLETİŞİM BİLGİLERİ", "CONTACT INFORMATION", "КОНТАКТНАЯ ИНФОРМАЦИЯ", "INFORMACIÓN DE CONTACTO"],
+  contact:   ["İLETİŞİM BİLGİLERİ", "CONTACT INFORMATION", "КОНТАКТНАЯ ИНФОРМАЦИЯ", "DATOS DE CONTACTO"],
   person:    ["İLGİLİ KİŞİ", "CONTACT PERSON", "КОНТАКТНОЕ ЛИЦО", "PERSONA DE CONTACTO"],
   company:   ["FİRMA ADI", "COMPANY NAME", "НАЗВАНИЕ КОМПАНИИ", "EMPRESA"],
   phone:     ["TELEFON", "PHONE NUMBER", "ТЕЛЕФОН", "TELÉFONO"],
-  mail:      ["E-POSTA", "E MAIL", "ЭЛ. ПОЧТА", "CORREO ELECTRÓNICO"],
+  mail:      ["E-POSTA", "E-MAIL", "ЭЛ. ПОЧТА", "CORREO ELECTRÓNICO"],
   city:      ["ŞEHİR / ADRES", "CITY / ADDRESS", "ГОРОД / АДРЕС", "CIUDAD / DIRECCIÓN"],
   ccountry:  ["ÜLKE", "COUNTRY", "СТРАНА", "PAÍS"],
   thMachine: ["MAKİNE", "MACHINE", "ОБОРУДОВАНИЕ", "MÁQUINA"],
   thDesc:    ["AÇIKLAMA", "DESCRIPTION", "ОПИСАНИЕ", "DESCRIPCIÓN"],
   thQty:     ["ADET", "QTY", "КОЛ-ВО", "CANT."],
   thList:    ["LİSTE FİYATI", "LIST PRICE", "ЦЕНА ПО ПРАЙСУ", "PRECIO DE LISTA"],
-  thDisc:    ["İSK.", "DISC.", "СКИДКА", "DTO."],
+  thDisc:    ["İSK.", "DISC.", "СКИДКА", "DESC."],
   thUnit:    ["BİRİM FİYAT", "UNIT PRICE", "ЦЕНА ЗА ЕД.", "PRECIO UNIT."],
   thAmount:  ["TUTAR", "AMOUNT", "СУММА", "IMPORTE"],
-  listTotal: ["LİSTE TOPLAMI", "LIST TOTAL", "ИТОГО ПО ПРАЙСУ", "TOTAL DE LISTA"],
+  listTotal: ["LİSTE TOPLAMI", "LIST TOTAL", "ИТОГО ПО ПРАЙСУ", "TOTAL A PRECIO DE LISTA"],
   discount:  ["İSKONTO", "DISCOUNT", "СКИДКА", "DESCUENTO"],
   freight:   ["NAVLUN", "FREIGHT", "ФРАХТ", "FLETE"],
   insurance: ["SİGORTA", "INSURANCE", "СТРАХОВКА", "SEGURO"],
-  totalAmt:  ["{T} TOPLAM TUTAR", "TOTAL {T}- AMOUNT", "ИТОГО {T}", "IMPORTE TOTAL {T}"],
-  sales:     ["SATIŞ KOŞULLARI", "SALES CONDITION", "УСЛОВИЯ ПРОДАЖИ", "CONDICIONES DE VENTA"],
+  totalAmt:  ["{T} TOPLAM TUTAR", "TOTAL AMOUNT {T}", "ИТОГО {T}", "IMPORTE TOTAL {T}"],
+  sales:     ["SATIŞ KOŞULLARI", "SALES CONDITIONS", "УСЛОВИЯ ПРОДАЖИ", "CONDICIONES DE VENTA"],
   maker:     ["ÜRETİCİ", "MANUFACTURER", "ПРОИЗВОДИТЕЛЬ", "FABRICANTE"],
   delivery:  ["TESLİM ŞEKLİ", "DELIVERY TERMS", "УСЛОВИЯ ПОСТАВКИ", "CONDICIONES DE ENTREGA"],
   install:   ["KURULUM", "INSTALLATION", "МОНТАЖ", "INSTALACIÓN"],
-  installX:  ["Kurulum Yılmaz Makine tarafından yapılırsa tüm konaklama ve seyahat giderleri müşteriye aittir.",
-              "If the installation provided by the Yılmaz Machine, the customer responsible for all accommadation and travel expences",
-              "Если монтаж выполняет Yılmaz Machine, все расходы на проживание и проезд несёт заказчик.",
-              "Si la instalación la realiza Yılmaz Machine, todos los gastos de alojamiento y viaje corren a cargo del cliente."],
-  payment:   ["ÖDEME", "PAYMENT", "ОПЛАТА", "PAGO"],
+  installX:  ["Kurulum Yılmaz Makine tarafından yapılırsa tüm konaklama ve seyahat giderleri müşteriye aittir.", "If installation is carried out by Yılmaz Machine, all accommodation and travel expenses shall be borne by the customer.", "Если монтаж выполняет Yılmaz Machine, все расходы на проживание и проезд несёт заказчик.", "Si la instalación la realiza Yılmaz Machine, todos los gastos de alojamiento y viaje corren a cargo del cliente."],
+  payment:   ["ÖDEME", "PAYMENT TERMS", "ОПЛАТА", "CONDICIONES DE PAGO"],
   bank:      ["BANKA BİLGİLERİ", "BANK INFORMATION", "БАНКОВСКИЕ РЕКВИЗИТЫ", "DATOS BANCARIOS"],
   accName:   ["HESAP ADI", "ACCOUNT NAME", "НАИМЕНОВАНИЕ СЧЁТА", "TITULAR DE LA CUENTA"],
-  ourBank:   ["BANKAMIZ", "OUR BANK", "НАШ БАНК", "NUESTRO BANCO"],
+  ourBank:   ["BANKAMIZ", "BANK", "НАШ БАНК", "BANCO"],
   branch:    ["ŞUBE", "BRANCH", "ОТДЕЛЕНИЕ", "SUCURSAL"],
   swift:     ["SWIFT KODU", "SWIFT CODE", "SWIFT-КОД", "CÓDIGO SWIFT"],
   accNo:     ["HESAP NO", "ACCOUNT NUMBER", "НОМЕР СЧЁТА", "NÚMERO DE CUENTA"],
-  iban:      ["IBAN", "IBAN CODES", "IBAN", "IBAN"],
-  note:      ["Makinelerimiz için ortam sıcaklığı en fazla 40 °C olmalıdır. Ortam sıcaklığı 40 °C'nin üzerindeyse lütfen teknik ekibimizle iletişime geçin.",
-              "For our machines, the ambient temperature must be maximum of 40 degrees Celsius. If the ambient temperature is higher than 40 degrees Celsius, please contact our technical team",
-              "Температура окружающей среды для наших станков не должна превышать 40 °C. Если температура выше 40 °C, свяжитесь с нашей технической службой.",
-              "La temperatura ambiente para nuestras máquinas debe ser como máximo de 40 °C. Si es superior a 40 °C, póngase en contacto con nuestro equipo técnico."]
+  iban:      ["IBAN", "IBAN", "IBAN", "IBAN"],
+  note:      ["Makinelerimiz için ortam sıcaklığı en fazla 40 °C olmalıdır. Ortam sıcaklığı 40 °C'nin üzerindeyse lütfen teknik ekibimizle iletişime geçin.", "The ambient temperature for our machines must not exceed 40 °C. If the ambient temperature is above 40 °C, please contact our technical team.", "Температура окружающей среды для наших станков не должна превышать 40 °C. Если температура выше 40 °C, свяжитесь с нашей технической службой.", "La temperatura ambiente de funcionamiento de nuestras máquinas no debe superar los 40 °C. Si la temperatura ambiente supera los 40 °C, póngase en contacto con nuestro equipo técnico."]
 };
 const escH = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 // Teklif etiketi: ana dil + (Türkçe değilse) altında küçük Türkçe
@@ -1406,7 +1412,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.10-6";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.11-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1994,6 +2000,7 @@ function devPrefix(){
 // Teklif numarasının ön ekini güncel kaynağa göre düzeltir (sıra numarası korunur)
 function syncQuoteNo(){
   const cur0 = ($("pfNo").value || "").trim();
+  if(editingNo && editingNo === cur0) return;     // kayıtlı teklif düzenleniyor: numara değişmez (tabloda aynı satırlar güncellenir)
   const m = cur0.match(/(\d+)\s*$/);
   if(!m || !quote.length) return;
   const yeni = devPrefix() + "-" + m[1];
@@ -2011,9 +2018,10 @@ function nextQuoteNo(){
   localStorage.setItem("yq_seq", String(seq + 1));
   $("pfNo").value = no;
   localStorage.setItem("yq_pfNo", no);
+  try{ paintEditBar(); }catch(e){}
   return no;
 }
-function saveQuote(){ localStorage.setItem("yq_quote", JSON.stringify(quote)); $("qBadge").textContent = quote.length; renderMini(); }
+function saveQuote(){ localStorage.setItem("yq_quote", JSON.stringify(quote)); $("qBadge").textContent = quote.length; renderMini(); try{ paintEditBar(); }catch(e){} }
 function renderMini(){
   const box = $("quoteMini");
   if(!quote.length){ box.style.display = "none"; box.innerHTML = ""; return; }
@@ -2145,8 +2153,10 @@ function listOf(x, it){ if(x.unitList != null) return x.unitList; const k = x ==
 function quoteListTotal(){
   return quote.reduce((s,it) => s + listOf(it,it) * it.qty + it.opts.reduce((a,o) => a + listOf(o,it) * oQty(o,it), 0), 0);
 }
-function discLabel(it){ return it.d1 || it.d2 ? "%" + it.d1 + (it.d2 ? " +%" + it.d2 : "") : "—"; }
-function discLabelO(o, it){ return o.od != null ? (o.od ? "%" + o.od : "—") : discLabel(it); }
+// Yüzde yazımı teklif diline göre: TR %10 • EN 10% • ES 10 % (RAE: rakamla boşluk)
+const pctD = v => DOC_LANG === "tr" ? "%" + v : DOC_LANG === "es" ? v + "\u00a0%" : v + "%";
+function discLabel(it){ return it.d1 || it.d2 ? pctD(it.d1) + (it.d2 ? " +" + pctD(it.d2) : "") : "—"; }
+function discLabelO(o, it){ return o.od != null ? (o.od ? pctD(o.od) : "—") : discLabel(it); }
 const fmtQ = n => fmtC(n, quote.length ? (quote[0].cur || "EUR") : cur);
 function renderQuote(){
   const showD = localStorage.getItem("yq_showdisc") === "1";
@@ -2221,7 +2231,7 @@ function renderQuote(){
 });
 
 /* INCOTERMS: EXW seçilince yer, teklif diline göre fabrika adresiyle dolar ve teslim şekli EXW olur; başka terimde yer boşalır */
-const EXW_PLACE = {tr: "YILMAZ MAKİNE DİLOVASI / KOCAELİ", en: "YILMAZ FACTORY DILOVASI / KOCAELI"};
+const EXW_PLACE = {tr: "YILMAZ MAKİNE DİLOVASI / KOCAELİ", en: "YILMAZ FACTORY DILOVASI / KOCAELI", es: "FÁBRICA YILMAZ DILOVASI / KOCAELI"};
 const exwPlace = () => EXW_PLACE[DOC_LANG] || EXW_PLACE.en;
 const isExwDefault = v => Object.values(EXW_PLACE).indexOf(String(v || "").trim()) >= 0;
 function setSaved(id, v){ $(id).value = v; localStorage.setItem("yq_" + id, v); }
@@ -3447,12 +3457,46 @@ function loadQuoteForEdit(r){
   cardData = r.card || null; renderCard();
   editingNo = r.no;
   $("histModal").classList.remove("open");
-  renderQuote(); renderExtra();
+  renderQuote(); renderExtra(); paintEditBar();
+  $("editStepTxt").textContent = t("editWhat", {no: r.no});
+  $("editStepModal").classList.add("open");
+}
+/* Düzenle → hangi adım: teklif sayfası / makine ekle / teklif bilgileri (lead) */
+function editGoQuote(){
   $("calcPage").classList.add("hidden");
   $("quotePage").classList.remove("hidden");
-  window.scrollTo(0, 0);
-  uiAlert(t("editMode", {no: r.no}));
+  renderQuote(); window.scrollTo(0, 0);
 }
+function openLeadEdit(){
+  editGoQuote();
+  askLead(() => { showQuote(); uiAlert(t("leadSaved")); }, t("ok"));
+}
+$("edStepQ").onclick = () => { $("editStepModal").classList.remove("open"); editGoQuote(); uiAlert(t("editMode", {no: editingNo || ""})); };
+$("edStepM").onclick = () => {
+  $("editStepModal").classList.remove("open");
+  $("quotePage").classList.add("hidden"); $("calcPage").classList.remove("hidden");
+  window.scrollTo(0, 0); paintEditBar();
+  uiAlert(t("editMach", {no: editingNo || ""}));
+};
+$("edStepL").onclick = () => { $("editStepModal").classList.remove("open"); openLeadEdit(); };
+$("edStepNo").onclick = () => { $("editStepModal").classList.remove("open"); editGoQuote(); };
+$("btnLead").onclick = () => openLeadEdit();
+// Düzenleme şeridi (hesap ekranında): hangi teklifin düzenlendiğini gösterir
+function paintEditBar(){
+  const b = $("editBar"); if(!b) return;
+  const on = !!(editingNo && quote.length && ($("pfNo").value || "").trim() === editingNo);
+  b.style.display = on ? "flex" : "none";
+  if(on){ $("editBarTxt").textContent = t("editBar", {no: editingNo}); $("editBarX").textContent = t("editBarX"); }
+}
+$("editBarX").onclick = () => { editingNo = null; paintEditBar(); };
+// Yalnız iletişim bilgilerini temizle (makine, fiyat ve şartlar kalır)
+$("btnClearC").onclick = async () => {
+  if(!await uiConfirm(t("clearCConf"))) return;
+  ["cCompany","cPerson","cPhone","cMail","cCity","cCountry"].forEach(id => { $(id).value = ""; localStorage.removeItem("yq_" + id); });
+  localStorage.removeItem("yq_cCountryCode");
+  try{ fillCityDl(); }catch(e){}
+  try{ $("cCompany").focus(); }catch(e){}
+};
 
 /* ---- tabloya / CSV'ye giden ürün kolonları: Makine Adı | Stok Kodu | Stok Adı ----
    Excel listesi: makine adı = grup (kartta en altta), stok kodu = 4UN… kodu, stok adı = ürün adı
@@ -3965,25 +4009,13 @@ function admOpen(v){
   $("admInp").style.display = v ? "none" : "";
   if(v) $("passInp").value = "";   // boş bırakılırsa uygulamanın kendi anahtarı kullanılır
 }
-const MASTER_ADM = "DO-RESET-2026";   // kurtarma kodu: kayıtlı yönetici kodunu sıfırlar
+const ADM_PASS = "2026";              // yönetici şifresi (tüm cihazlarda aynı)
 $("btnAdm").onclick = async () => {
   if($("admBox").style.display !== "none"){ admOpen(false); return; }
   const code = ($("admInp").value || "").trim();
-  const saved = localStorage.getItem(ADM_KEY);
-  if(code === MASTER_ADM){
-    localStorage.removeItem(ADM_KEY);
-    $("admInp").value = ""; admOpen(true);
-    uiAlert("Yönetici kodu sıfırlandı.\nBu cihazda yeni kod belirlemek için kutuya yeni kodu yazıp Aç deyin.");
-    return;
-  }
-  if(!saved){
-    if(code.length < 4){ uiAlert("Yönetici kodu belirlemek için en az 4 karakter girin.\nBu kod bu cihazda saklanır."); return; }
-    localStorage.setItem(ADM_KEY, code); admOpen(true);
-    uiAlert("Yönetici kodu belirlendi.");
-    return;
-  }
-  if(code === saved){ admOpen(true); $("admInp").value = ""; }
-  else uiAlert("Yönetici kodu hatalı.");
+  try{ localStorage.removeItem(ADM_KEY); }catch(e){}   // eski cihaza özel kod artık kullanılmıyor
+  if(code === ADM_PASS){ admOpen(true); $("admInp").value = ""; }
+  else uiAlert("Yönetici şifresi hatalı.");
 };
 $("passInp").onchange = () => {
   const v = ($("passInp").value || "").trim();
@@ -4041,6 +4073,7 @@ function applyDocLang(skipRender){
   db.querySelectorAll("button").forEach(b => b.onclick = () => setDocLang(b.dataset.lang));
   if(!skipRender && !$("quotePage").classList.contains("hidden")) renderQuote();
   try{ syncExwPlace(); }catch(e){}
+  try{ paintEditBar(); }catch(e){}
   try{ fillCountryDl(); syncCountry(); }catch(e){}
 }
 function setUiLang(l){
