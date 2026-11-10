@@ -1252,22 +1252,7 @@ const I18N = {
   clearC: ["🧹 İletişim bilgilerini temizle", "🧹 Clear contact details", "🧹 Очистить контакты", "🧹 Borrar datos de contacto"],
   clearCConf: ["Yalnız iletişim bilgileri (firma, kişi, telefon, e-posta, şehir, ülke) silinsin mi?\nMakineler, fiyatlar ve şartlar olduğu gibi kalır.", "Clear only the contact details (company, person, phone, e-mail, city, country)?\nMachines, prices and terms are kept.", "Очистить только контактные данные (компания, лицо, телефон, e-mail, город, страна)?\nСтанки, цены и условия сохраняются.", "¿Borrar solo los datos de contacto (empresa, persona, teléfono, correo, ciudad, país)?\nLas máquinas, los precios y las condiciones se mantienen."],
   leadSaved: ["Teklif bilgileri güncellendi. Kalıcı olması için \"Teklifi Kaydet\" deyin.", "Quote details updated. Tap \"Save Quote\" to keep them.", "Данные обновлены. Нажмите «Сохранить», чтобы сохранить их.", "Datos de la cotización actualizados. Toque \"Guardar cotización\" para conservarlos."],
-  waPrep: ["WhatsApp hazırlanıyor…", "Preparing WhatsApp…", "Подготовка WhatsApp…", "Preparando WhatsApp…"],
-  waBtn: ["WhatsApp'tan gönder", "Send via WhatsApp", "Отправить в WhatsApp", "Enviar por WhatsApp"],
-  waFail: ["WhatsApp bağlantısı hazırlanamadı: ", "WhatsApp link could not be prepared: ", "Не удалось подготовить ссылку WhatsApp: ", "No se pudo preparar el enlace de WhatsApp: "],
-  mailBtn: ["E-postayla gönder:", "Send by e-mail:", "Отправить по e-mail:", "Enviar por correo:"],
-  mailTitle: ["E-posta gönder", "Send e-mail", "Отправить e-mail", "Enviar correo electrónico"],
-  mailTo: ["Alıcı", "To", "Кому", "Para"],
-  mailSubj: ["Konu", "Subject", "Тема", "Asunto"],
-  mailBody: ["Mesaj", "Message", "Сообщение", "Mensaje"],
-  mailSend: ["Gönder", "Send", "Отправить", "Enviar"],
-  mailSending: ["Gönderiliyor…", "Sending…", "Отправка…", "Enviando…"],
-  mailOk: ["E-posta gönderildi: {to}", "E-mail sent: {to}", "E-mail отправлен: {to}", "Correo enviado: {to}"],
-  mailFail: ["E-posta gönderilemedi: ", "E-mail could not be sent: ", "Не удалось отправить e-mail: ", "No se pudo enviar el correo: "],
-  sendOld: ["Tablo betiği bu özelliği henüz desteklemiyor (yöneticinin betiği sürüm 15'e güncellemesi gerekiyor).", "The table script does not support this yet (the administrator must update it to version 15).", "Скрипт таблицы пока не поддерживает это (нужна версия 15).", "El script de la tabla aún no admite esta función (el administrador debe actualizarlo a la versión 15)."],
-  sendShare: ["Drive dosyası herkese açık bağlantıyla paylaşılamadı (hesabın paylaşım ayarı).", "The Drive file could not be shared by link (account sharing settings).", "Не удалось открыть доступ к файлу по ссылке.", "No se pudo compartir el archivo de Drive mediante enlace (configuración de la cuenta)."],
-  sendQuota: ["Günlük e-posta gönderim sınırı doldu; yarın tekrar deneyin.", "The daily e-mail limit has been reached; try again tomorrow.", "Дневной лимит e-mail исчерпан.", "Se alcanzó el límite diario de correos; inténtelo mañana."],
-  sendAddr: ["E-posta adresi geçersiz.", "Invalid e-mail address.", "Неверный адрес e-mail.", "La dirección de correo no es válida."]
+  vcfQ: ["Müşterinin iletişim bilgilerini telefonunuzun rehberine kaydetmek ister misiniz?\n\n{info}\n\n(Telefonun \"Kişi oluştur\" ekranı açılır; Kaydet demeniz yeterli.)", "Would you like to save the customer's contact details to your phone's contacts?\n\n{info}\n\n(Your phone's \"New contact\" screen opens; just tap Save.)", "Сохранить контакт клиента в телефонную книгу?\n\n{info}", "¿Desea guardar los datos de contacto del cliente en los contactos de su teléfono?\n\n{info}\n\n(Se abre la pantalla \"Nuevo contacto\" del teléfono; solo toque Guardar.)"]
 };
 const LI = {tr:0, en:1, ru:2, es:3};   // sözlük sütunları (LANGS_ALL sırası)
 function t(key, vars){
@@ -1428,7 +1413,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.11-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.11-3";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2472,7 +2457,54 @@ async function runSave(btn, forceNew){
   const t0 = btn.textContent; btn.textContent = t("saving"); btn.disabled = true;
   const {rec, file} = await persistQuote();
   btn.textContent = t0; btn.disabled = false;
-  uiAlert(t("saved") + rec.no + "\n" + (file ? t("pdfSaved") : t("pdfFail")));
+  await uiAlert(t("saved") + rec.no + "\n" + (file ? t("pdfSaved") : t("pdfFail")));
+  await askVcard(rec);
+}
+/* ---- Müşteriyi telefon rehberine kaydet (vCard) ----
+   Web uygulaması rehbere doğrudan yazamaz: .vcf dosyası açılır, telefonun kendi "Kişi oluştur" ekranı dolu gelir, kullanıcı Kaydet der.
+   Aynı kişi için bir kez sorulur (cevap Hayır olsa da). */
+const CALL_CODES = Object.fromEntries("AC247,AD376,AE971,AF93,AG1,AI1,AL355,AM374,AO244,AR54,AS1,AT43,AU61,AW297,AX358,AZ994,BA387,BB1,BD880,BE32,BF226,BG359,BH973,BI257,BJ229,BL590,BM1,BN673,BO591,BQ599,BR55,BS1,BT975,BW267,BY375,BZ501,CA1,CC61,CD243,CF236,CG242,CH41,CI225,CK682,CL56,CM237,CN86,CO57,CR506,CU53,CV238,CW599,CX61,CY357,CZ420,DE49,DJ253,DK45,DM1,DO1,DZ213,EC593,EE372,EG20,EH212,ER291,ES34,ET251,FI358,FJ679,FK500,FM691,FO298,FR33,GA241,GB44,GD1,GE995,GF594,GG44,GH233,GI350,GL299,GM220,GN224,GP590,GQ240,GR30,GT502,GU1,GW245,GY592,HK852,HN504,HR385,HT509,HU36,ID62,IE353,IL972,IM44,IN91,IO246,IQ964,IR98,IS354,IT39,JE44,JM1,JO962,JP81,KE254,KG996,KH855,KI686,KM269,KN1,KP850,KR82,KW965,KY1,KZ7,LA856,LB961,LC1,LI423,LK94,LR231,LS266,LT370,LU352,LV371,LY218,MA212,MC377,MD373,ME382,MF590,MG261,MH692,MK389,ML223,MM95,MN976,MO853,MP1,MQ596,MR222,MS1,MT356,MU230,MV960,MW265,MX52,MY60,MZ258,NA264,NC687,NE227,NF672,NG234,NI505,NL31,NO47,NP977,NR674,NU683,NZ64,OM968,PA507,PE51,PF689,PG675,PH63,PK92,PL48,PM508,PR1,PS970,PT351,PW680,PY595,QA974,RE262,RO40,RS381,RU7,RW250,SA966,SB677,SC248,SD249,SE46,SG65,SH290,SI386,SJ47,SK421,SL232,SM378,SN221,SO252,SR597,SS211,ST239,SV503,SX1,SY963,SZ268,TA290,TC1,TD235,TG228,TH66,TJ992,TK690,TL670,TM993,TN216,TO676,TR90,TT1,TV688,TW886,TZ255,UA380,UG256,US1,UY598,UZ998,VA39,VC1,VE58,VG1,VI1,VN84,VU678,WF681,WS685,XK383,YE967,YT262,ZA27,ZM260,ZW263".split(",").map(x => [x.slice(0, 2), x.slice(2)]));
+function intlPhone(phone, cc){
+  const s = String(phone || "").trim(); if(!s) return "";
+  let d = s.replace(/\D/g, "");
+  if(s[0] === "+") return "+" + d;
+  if(d.startsWith("00")) return "+" + d.slice(2);
+  const k = CALL_CODES[(cc || "").toUpperCase()] || "";
+  if(!k) return s;
+  if(d.startsWith("0")) d = d.replace(/^0+/, "");
+  else if(d.startsWith(k) && d.length > 10) return "+" + d;
+  return "+" + k + d;
+}
+function vcardOf(r){
+  const e = v => String(v == null ? "" : v).replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
+  const kisi = String(r.person || "").trim(), firma = String(r.company || "").trim();
+  const parca = kisi.split(/\s+/).filter(Boolean), soyad = parca.length > 1 ? parca.pop() : "", ad = parca.join(" ");
+  const sehirAdr = String(r.city || "").split(","), sehir = sehirAdr[0].trim(), adres = sehirAdr.slice(1).join(",").trim();
+  const L = ["BEGIN:VCARD", "VERSION:3.0", "N:" + e(soyad) + ";" + e(ad || (kisi ? "" : firma)) + ";;;", "FN:" + e(kisi || firma)];
+  if(firma) L.push("ORG:" + e(firma));
+  const tel = intlPhone(r.phone, r.countryCode); if(tel) L.push("TEL;TYPE=CELL:" + tel);
+  if(String(r.mail || "").trim()) L.push("EMAIL;TYPE=WORK:" + String(r.mail).trim());
+  if(sehir || r.country) L.push("ADR;TYPE=WORK:;;" + e(adres) + ";" + e(sehir) + ";;;" + e(r.country || ""));
+  L.push("NOTE:" + e("DO_Offer • " + (r.no || "")));
+  L.push("END:VCARD");
+  return L.join("\r\n") + "\r\n";
+}
+async function askVcard(r){
+  if(!r || !(String(r.phone || "").trim() || String(r.mail || "").trim())) return;
+  const key = [r.company, r.person, String(r.phone || "").replace(/\D/g, ""), r.mail].map(x => String(x || "").trim().toLocaleLowerCase("tr")).join("|");
+  let sorulan = []; try{ sorulan = JSON.parse(localStorage.getItem("yq_vcf") || "[]"); }catch(e){}
+  if(sorulan.indexOf(key) >= 0) return;
+  sorulan.push(key); try{ localStorage.setItem("yq_vcf", JSON.stringify(sorulan.slice(-300))); }catch(e){}
+  const info = [r.person, r.company, r.phone, r.mail].filter(x => String(x || "").trim()).join("\n");
+  if(!await uiConfirm(t("vcfQ", {info}))) return;
+  const ad = (String(r.person || r.company || "kisi").trim().replace(/[^\wÇĞİÖŞÜçğıöşü .-]+/g, "_") || "kisi") + ".vcf";
+  const file = new File([vcardOf(r)], ad, {type: "text/vcard"});
+  const u = URL.createObjectURL(file);
+  const a = document.createElement("a"); a.href = u; a.rel = "noopener";
+  if(!/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) || !("ontouchend" in document)) a.download = ad;   // Android: indirilir, dokununca Kişiler açılır
+  else a.target = "_blank";                                                                                       // iPhone: kişi kartı doğrudan açılır
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 60000);
 }
 // Zorunlu müşteri bilgileri: firma adı VEYA ilgili kişi + ülke
 async function checkContact(){
@@ -2516,111 +2548,19 @@ async function sharePdf(){
     if(await uiConfirm(t("printQ", {no: rec.no}))) window.print();
     return;
   }
-  offerShare(file, rec);
+  offerShare(file);
 }
 // PDF hazır olunca paylaşım ayrı bir dokunuşla yapılır (telefonlar paylaşımı yalnız doğrudan dokunuşla açar;
 // uzun süren PDF hazırlığından sonra doğrudan açmaya çalışınca ya engelleniyor ya da sayfa yenileniyor gibi oluyordu)
-/* ---- Programdan gönderim (betik 15): WhatsApp = Drive bağlantısı, e-posta = betik PDF ekli gönderir ---- */
-const CALL_CODES = Object.fromEntries("AC247,AD376,AE971,AF93,AG1,AI1,AL355,AM374,AO244,AR54,AS1,AT43,AU61,AW297,AX358,AZ994,BA387,BB1,BD880,BE32,BF226,BG359,BH973,BI257,BJ229,BL590,BM1,BN673,BO591,BQ599,BR55,BS1,BT975,BW267,BY375,BZ501,CA1,CC61,CD243,CF236,CG242,CH41,CI225,CK682,CL56,CM237,CN86,CO57,CR506,CU53,CV238,CW599,CX61,CY357,CZ420,DE49,DJ253,DK45,DM1,DO1,DZ213,EC593,EE372,EG20,EH212,ER291,ES34,ET251,FI358,FJ679,FK500,FM691,FO298,FR33,GA241,GB44,GD1,GE995,GF594,GG44,GH233,GI350,GL299,GM220,GN224,GP590,GQ240,GR30,GT502,GU1,GW245,GY592,HK852,HN504,HR385,HT509,HU36,ID62,IE353,IL972,IM44,IN91,IO246,IQ964,IR98,IS354,IT39,JE44,JM1,JO962,JP81,KE254,KG996,KH855,KI686,KM269,KN1,KP850,KR82,KW965,KY1,KZ7,LA856,LB961,LC1,LI423,LK94,LR231,LS266,LT370,LU352,LV371,LY218,MA212,MC377,MD373,ME382,MF590,MG261,MH692,MK389,ML223,MM95,MN976,MO853,MP1,MQ596,MR222,MS1,MT356,MU230,MV960,MW265,MX52,MY60,MZ258,NA264,NC687,NE227,NF672,NG234,NI505,NL31,NO47,NP977,NR674,NU683,NZ64,OM968,PA507,PE51,PF689,PG675,PH63,PK92,PL48,PM508,PR1,PS970,PT351,PW680,PY595,QA974,RE262,RO40,RS381,RU7,RW250,SA966,SB677,SC248,SD249,SE46,SG65,SH290,SI386,SJ47,SK421,SL232,SM378,SN221,SO252,SR597,SS211,ST239,SV503,SX1,SY963,SZ268,TA290,TC1,TD235,TG228,TH66,TJ992,TK690,TL670,TM993,TN216,TO676,TR90,TT1,TV688,TW886,TZ255,UA380,UG256,US1,UY598,UZ998,VA39,VC1,VE58,VG1,VI1,VN84,VU678,WF681,WS685,XK383,YE967,YT262,ZA27,ZM260,ZW263".split(",").map(x => [x.slice(0, 2), x.slice(2)]));
-function waNumber(phone, cc){
-  const s = String(phone || "").trim(); if(!s) return "";
-  let d = s.replace(/\D/g, "");
-  if(s[0] === "+") {}
-  else if(d.startsWith("00")) d = d.slice(2);
-  else {
-    const k = CALL_CODES[(cc || "").toUpperCase()] || "";
-    if(d.startsWith("0")) d = k + d.replace(/^0+/, "");
-    else if(k && !d.startsWith(k)) d = k + d;
-  }
-  return d.length >= 8 && d.length <= 15 ? d : "";
-}
-function authInfo(){ try{ return JSON.parse(localStorage.getItem("yq_auth") || "null") || {}; }catch(e){ return {}; } }
-const canSend = () => isScriptUrl(sheetUrl()) && !!authInfo().code;
-function fileB64(file){
-  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = () => rej(r.error); r.readAsDataURL(file); });
-}
-async function pdfSend(islem, file, ctx, extra){
-  const a = authInfo();
-  const body = Object.assign({islem, kod: a.code, token: a.token || "", no: ctx.no || "", ad: file.name, b64: await fileB64(file)}, extra || {});
-  const r = await fetch(sheetUrl(), {method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify(body)});
-  let j = null; try{ j = await r.json(); }catch(e){ throw new Error("yanit"); }
-  if(!j || !j.ok) throw new Error((j && j.reason) || "yanit");
-  if(islem === "pdf" && !j.url) throw new Error("surum");
-  return j;
-}
-function sendErr(err){
-  const k = String(err && err.message || err);
-  const M = {surum: t("sendOld"), yanit: t("sendOld"), anahtar: t("authPinAgain"), yetkisiz: t("authPassive"), paylasim: t("sendShare"),
-             kota: t("sendQuota"), adres: t("sendAddr")};
-  return M[k] || (/fetch|network|Load failed/i.test(k) ? t("authNet") : k);
-}
-// Mesaj metinleri teklif dilinde
-function sendText(kind, ctx, url){
-  const L = DOC_LANG, kisi = String(ctx.person || "").trim(), no = ctx.no || "", ad = authInfo().name || "";
-  const firma = L === "tr" ? "Yılmaz Makine" : "Yılmaz Machine";
-  const hi = L === "tr" ? (kisi ? "Sayın " + kisi + "," : "Merhaba,") : L === "es" ? (kisi ? "Estimado/a " + kisi + ":" : "Buen día:") : (kisi ? "Dear " + kisi + "," : "Hello,");
-  if(kind === "wa"){
-    if(L === "tr") return hi + "\n" + no + " numaralı proforma teklifimizi bilgilerinize sunarız:\n" + url + "\n\nSaygılarımızla,\n" + ad + " – " + firma;
-    if(L === "es") return hi + "\nLe compartimos nuestra cotización proforma " + no + " en el siguiente enlace:\n" + url + "\n\nSaludos cordiales,\n" + ad + " – " + firma;
-    return hi + "\nPlease find our proforma quotation " + no + " at the link below:\n" + url + "\n\nBest regards,\n" + ad + " – " + firma;
-  }
-  if(kind === "subj") return (L === "tr" ? "Proforma Teklif " : L === "es" ? "Cotización proforma " : "Proforma Quotation ") + no + " – " + firma;
-  if(L === "tr") return hi + "\n\n" + no + " numaralı proforma teklifimiz ektedir.\nSorularınız için bize her zaman ulaşabilirsiniz.\n\nSaygılarımızla,\n" + ad + "\n" + firma;
-  if(L === "es") return hi + "\n\nAdjuntamos nuestra cotización proforma " + no + ".\nQuedamos a su disposición para cualquier consulta.\n\nSaludos cordiales,\n" + ad + "\n" + firma;
-  return hi + "\n\nPlease find attached our proforma quotation " + no + ".\nPlease do not hesitate to contact us if you have any questions.\n\nBest regards,\n" + ad + "\n" + firma;
-}
-// E-posta penceresi: alıcı / konu / metin hazır gelir, yalnız Gönder'e basılır
-function mailForm(file, ctx, to){
-  const old = document.getElementById("mailSheet"); if(old) old.remove();
-  const ov = document.createElement("div"); ov.id = "mailSheet";
-  ov.style.cssText = "position:fixed;inset:0;z-index:530;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;";
-  const fs = "width:100%;box-sizing:border-box;padding:9px 10px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;margin:3px 0 10px;font-family:inherit;";
-  ov.innerHTML = `<div style="background:#fff;width:min(100%,520px);max-height:92vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.25);">
-    <div style="font-weight:800;font-size:16px;margin-bottom:10px;">✉️ ${escH(t("mailTitle"))}</div>
-    <div class="lbl">${escH(t("mailTo"))}</div><input id="mfTo" type="email" style="${fs}" autocapitalize="off" autocorrect="off" spellcheck="false">
-    <div class="lbl">${escH(t("mailSubj"))}</div><input id="mfSubj" style="${fs}">
-    <div class="lbl">${escH(t("mailBody"))}</div><textarea id="mfBody" rows="8" style="${fs}resize:vertical;"></textarea>
-    <div style="font-size:12.5px;color:#6b7680;margin:-4px 0 12px;">📎 ${escH(file.name)}</div>
-    <div style="display:flex;gap:10px;">
-      <button class="btn sec" id="mfNo" style="flex:1;">${escH(t("cancel"))}</button>
-      <button class="btn pri" id="mfGo" style="flex:2;">📤 ${escH(t("mailSend"))}</button>
-    </div>
-    <div id="mfMsg" style="font-size:12.5px;color:#c8102e;margin-top:8px;line-height:1.35;"></div></div>`;
-  document.body.appendChild(ov);
-  ov.querySelector("#mfTo").value = to;
-  ov.querySelector("#mfSubj").value = sendText("subj", ctx);
-  ov.querySelector("#mfBody").value = sendText("mail", ctx);
-  const kapat = () => ov.remove();
-  ov.querySelector("#mfNo").onclick = kapat;
-  ov.querySelector("#mfGo").onclick = async () => {
-    const b = ov.querySelector("#mfGo"); if(b.disabled) return;
-    const alici = ov.querySelector("#mfTo").value.trim();
-    b.disabled = true; const t0 = b.textContent; b.textContent = t("mailSending");
-    ov.querySelector("#mfMsg").textContent = "";
-    try{
-      await pdfSend("mail", file, ctx, {to: alici, konu: ov.querySelector("#mfSubj").value, metin: ov.querySelector("#mfBody").value});
-      kapat(); uiAlert(t("mailOk", {to: alici}));
-    }catch(err){
-      b.disabled = false; b.textContent = t0;
-      ov.querySelector("#mfMsg").textContent = t("mailFail") + sendErr(err);
-    }
-  };
-}
-function offerShare(file, ctx){
-  ctx = ctx || {};
+function offerShare(file){
   const old = document.getElementById("shareSheet"); if(old) old.remove();
   const ov = document.createElement("div"); ov.id = "shareSheet";
   ov.style.cssText = "position:fixed;inset:0;z-index:520;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;";
   const canShare = !!(navigator.canShare && navigator.canShare({files: [file]}));
-  const sendOk = canSend();
-  const waNo = sendOk ? waNumber(ctx.phone, ctx.countryCode || countryCodeOf(ctx.country || "")) : "";
-  const mailTo = sendOk && /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(String(ctx.mail || "").trim()) ? String(ctx.mail).trim() : "";
   ov.innerHTML = `<div style="background:#fff;width:min(100%,460px);border-radius:18px 18px 0 0;padding:18px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.25);">
     <div style="font-weight:800;font-size:16px;margin-bottom:4px;">${escH(t("pdfReady"))}</div>
     <div style="font-size:13px;color:#6b7680;margin-bottom:14px;word-break:break-all;">${escH(file.name)}</div>
     ${canShare ? `<button class="btn pri" id="ssShare" style="width:100%;margin-bottom:8px;">📤 ${escH(t("pdfShareBtn"))}</button>` : ""}
-    ${waNo ? `<a class="btn" id="ssWa" style="display:block;box-sizing:border-box;width:100%;margin-bottom:8px;background:#1fa855;color:#fff;border-color:#1fa855;text-align:center;text-decoration:none;opacity:.6;pointer-events:none;" target="_blank" rel="noopener">💬 ${escH(t("waPrep"))}</a>` : ""}
-    ${mailTo ? `<button class="btn sec" id="ssMail" style="width:100%;margin-bottom:8px;">✉️ ${escH(t("mailBtn"))} <span style="font-weight:600;font-size:12.5px;">${escH(mailTo)}</span></button>` : ""}
     <button class="btn sec" id="ssOpen" style="width:100%;margin-bottom:8px;">📄 ${escH(t("pdfOpenBtn"))}</button>
     <button class="btn sec" id="ssClose" style="width:100%;">${escH(t("close"))}</button>
     <div id="ssMsg" style="font-size:12.5px;color:#c8102e;margin-top:8px;line-height:1.35;"></div></div>`;
@@ -2638,20 +2578,6 @@ function offerShare(file, ctx){
       const m = ov.querySelector("#ssMsg"); if(m) m.textContent = t("shareFail");
     });
   };
-  // WhatsApp: PDF tabloya (Drive) yüklenir, bağlantı hazır olunca düğme müşterinin sohbetini açar (dokunuş anında, engellenmez)
-  if(waNo){
-    const a = ov.querySelector("#ssWa");
-    pdfSend("pdf", file, ctx).then(j => {
-      a.href = "https://wa.me/" + waNo + "?text=" + encodeURIComponent(sendText("wa", ctx, j.url));
-      a.innerHTML = "💬 " + escH(t("waBtn")) + ' <span style="font-weight:600;font-size:12.5px;">+' + escH(waNo) + "</span>";
-      a.style.opacity = ""; a.style.pointerEvents = "";
-      a.onclick = () => setTimeout(kapat, 400);
-    }).catch(err => {
-      a.style.display = "none";
-      const m = ov.querySelector("#ssMsg"); if(m) m.textContent = t("waFail") + sendErr(err);
-    });
-  }
-  if(mailTo) ov.querySelector("#ssMail").onclick = () => { kapat(); mailForm(file, ctx, mailTo); };
   ov.querySelector("#ssOpen").onclick = () => {
     const u = URL.createObjectURL(file);
     const a = document.createElement("a"); a.href = u; a.target = "_blank"; a.rel = "noopener"; a.download = file.name;
@@ -3524,8 +3450,7 @@ async function renderHist(){
       if(hshareBtn) hshareBtn.onclick = async () => {
         try{
           const f = r.blob instanceof File ? r.blob : new File([r.blob], "Teklif_" + r.no + ".pdf", {type:"application/pdf"});
-          $("histModal").classList.remove("open");
-          offerShare(f, r);
+          await deliverFile(f);
         }catch(e){ if(e.name !== "AbortError") uiAlert(t("shareFail") + e.message); }
       };
       row.querySelector(".hdel").onclick = async () => {
