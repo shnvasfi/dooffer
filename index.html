@@ -538,18 +538,18 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       <button class="btn sec" id="btnSaveNew" data-i18n="saveNew">🆕 Farklı Kaydet</button>
       <button class="btn pri" id="btnPdf" data-i18n="pdf">PDF Paylaş</button>
       <button class="btn sec" id="btnHist" data-i18n="history">🕘 Geçmiş Teklifler</button>
-      <button class="btn sec" id="btnLead" data-i18n="leadBtn">📝 Teklif Bilgileri</button>
       <button class="btn sec" id="btnDisc">İskonto: Gizli</button>
       <button class="btn sec" id="btnConv">₺ TL'ye çevir</button>
       <button class="btn sec" id="btnClear" style="color:var(--red);border-color:var(--red);" data-i18n="clearQ">Teklifi Temizle</button>
     </div>
     <div class="noprint doclang" id="docLangBar"></div>
     <div class="noprint" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-      <button class="btn sec" id="btnCard" style="flex:none;padding:9px 14px;" data-i18n="card">📷 Kartvizit Tara</button>
+      <button class="btn sec" id="btnCard" style="flex:1 1 40%;padding:9px 10px;font-size:14px;" data-i18n="card">📷 Kartvizit Tara</button>
       <input type="file" id="cardInp" accept="image/*" style="display:none;">
       <img id="cardThumb" style="display:none;height:46px;border-radius:6px;border:1px solid var(--line);cursor:pointer;" title="Büyüt">
       <button class="delx" id="cardDel" style="display:none;">✕</button>
-      <button class="btn sec" id="btnClearC" style="flex:none;margin-left:auto;padding:9px 12px;font-size:13px;" data-i18n="clearC">🧹 İletişim bilgilerini temizle</button>
+      <button class="btn sec" id="btnVcf" style="flex:1 1 40%;padding:9px 10px;font-size:14px;" data-i18n="vcfBtn">📇 Rehbere kaydet</button>
+      <button class="btn sec" id="btnClearC" style="flex:1 1 100%;padding:9px 10px;font-size:14px;" data-i18n="clearC">🧹 İletişim bilgilerini temizle</button>
     </div>
     <div class="proforma" id="proforma">
       <div class="pf-top">
@@ -761,19 +761,6 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       <button class="btn sec" id="msgNo" data-i18n="cancel">Vazgeç</button>
       <button class="btn sec" id="msgAlt" style="display:none;">Seçenek</button>
       <button class="btn pri" id="msgOk">Tamam</button>
-    </div>
-  </div>
-</div>
-
-<!-- EDIT STEP MODAL: geçmiş teklifi düzenlerken hangi adım? -->
-<div class="modal" id="editStepModal" style="align-items:center;z-index:260;">
-  <div class="mbox" style="border-radius:18px;max-width:420px;margin:0 14px;">
-    <div id="editStepTxt" style="font-size:15px;font-weight:700;line-height:1.45;margin-bottom:12px;"></div>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <button class="btn pri" id="edStepQ" data-i18n="edStepQ" style="text-align:left;">🧾 Müşteri, fiyat, iskonto, şartlar</button>
-      <button class="btn sec" id="edStepM" data-i18n="edStepM" style="text-align:left;">➕ Makine / opsiyon ekle</button>
-      <button class="btn sec" id="edStepL" data-i18n="edStepL" style="text-align:left;">📝 Teklif bilgileri: lead kaynağı, fuar / seyahat tarihleri, not</button>
-      <button class="btn sec" id="edStepNo" data-i18n="cancel">Vazgeç</button>
     </div>
   </div>
 </div>
@@ -1241,18 +1228,12 @@ const I18N = {
   authLock:   ["Çok fazla hatalı deneme. 15 dakika sonra tekrar deneyin.", "Too many wrong attempts. Try again in 15 minutes.", "Too many wrong attempts. Try again in 15 minutes.", "Demasiados intentos fallidos. Vuelva a intentarlo en 15 minutos."],
   authPinAgain:["Bu kod için PIN tanımlandı veya değiştirildi. Kodunuz ve PIN'inizle bir kez tekrar giriş yapın.", "A PIN was set or changed for this code. Sign in once more with your code and PIN.", "A PIN was set or changed for this code. Sign in once more with your code and PIN.", "Se asignó o se cambió un PIN para este código. Inicie sesión de nuevo con su código y su PIN."],
   authFirst:  ["Önce kullanıcı kodunuzla giriş yapın.", "Please sign in with your user code first.", "Please sign in with your user code first.", "Primero inicie sesión con su código de usuario."],
-  editWhat: ["{no} teklifinde neyi değiştirmek istiyorsunuz?", "What would you like to change in quote {no}?", "Что вы хотите изменить в предложении {no}?", "¿Qué desea modificar en la cotización {no}?"],
-  edStepQ: ["🧾 Müşteri, fiyat, iskonto, şartlar", "🧾 Customer, prices, discounts, terms", "🧾 Клиент, цены, скидки, условия", "🧾 Cliente, precios, descuentos, condiciones"],
-  edStepM: ["➕ Makine / opsiyon ekle", "➕ Add machine / options", "➕ Добавить станок / опции", "➕ Agregar máquina / opciones"],
-  edStepL: ["📝 Teklif bilgileri: lead kaynağı, fuar / seyahat tarihleri, not", "📝 Quote details: lead source, fair / travel dates, note", "📝 Данные предложения: источник, даты выставки / поездки, заметка", "📝 Datos de la cotización: origen, fechas de feria / viaje, nota"],
-  editMach: ["{no} düzenleniyor.\n\nMakineyi seçip \"Teklife Ekle\" deyin. Bitince \"Teklif\" düğmesiyle teklif sayfasına geçip \"Teklifi Kaydet\" deyin; numara değişmez.", "Editing {no}.\n\nSelect the machine and tap \"Add to Quote\". When done, go to the quote page with \"Quote\" and tap \"Save Quote\"; the number stays the same.", "Редактируется {no}.\n\nВыберите станок и нажмите «Добавить в предложение». Затем перейдите к предложению и нажмите «Сохранить»; номер не меняется.", "Editando {no}.\n\nSeleccione la máquina y toque \"Agregar a la cotización\". Al terminar, vaya a la cotización con \"Cotización\" y toque \"Guardar cotización\"; el número no cambia."],
-  editBar: ["✎ {no} düzenleniyor — eklediklerinizden sonra \"Teklif\" ile kaydedin", "✎ Editing {no} — after adding, open \"Quote\" and save", "✎ Редактируется {no} — после добавления откройте предложение и сохраните", "✎ Editando {no} — después de agregar, abra \"Cotización\" y guarde"],
+  editBar: ["✎ {no} düzenleniyor — makine ekleyin ya da \"Teklif\" ile devam edin", "✎ Editing {no} — add machines or continue with \"Quote\"", "✎ Редактируется {no}", "✎ Editando {no} — agregue máquinas o continúe con \"Cotización\""],
   editBarX: ["Düzenlemeyi bırak", "Stop editing", "Прекратить", "Dejar de editar"],
-  leadBtn: ["📝 Teklif Bilgileri", "📝 Quote Details", "📝 Данные предложения", "📝 Datos de la cotización"],
   clearC: ["🧹 İletişim bilgilerini temizle", "🧹 Clear contact details", "🧹 Очистить контакты", "🧹 Borrar datos de contacto"],
   clearCConf: ["Yalnız iletişim bilgileri (firma, kişi, telefon, e-posta, şehir, ülke) silinsin mi?\nMakineler, fiyatlar ve şartlar olduğu gibi kalır.", "Clear only the contact details (company, person, phone, e-mail, city, country)?\nMachines, prices and terms are kept.", "Очистить только контактные данные (компания, лицо, телефон, e-mail, город, страна)?\nСтанки, цены и условия сохраняются.", "¿Borrar solo los datos de contacto (empresa, persona, teléfono, correo, ciudad, país)?\nLas máquinas, los precios y las condiciones se mantienen."],
-  leadSaved: ["Teklif bilgileri güncellendi. Kalıcı olması için \"Teklifi Kaydet\" deyin.", "Quote details updated. Tap \"Save Quote\" to keep them.", "Данные обновлены. Нажмите «Сохранить», чтобы сохранить их.", "Datos de la cotización actualizados. Toque \"Guardar cotización\" para conservarlos."],
-  vcfQ: ["Müşterinin iletişim bilgilerini telefonunuzun rehberine kaydetmek ister misiniz?\n\n{info}\n\n(Telefonun \"Kişi oluştur\" ekranı açılır; Kaydet demeniz yeterli.)", "Would you like to save the customer's contact details to your phone's contacts?\n\n{info}\n\n(Your phone's \"New contact\" screen opens; just tap Save.)", "Сохранить контакт клиента в телефонную книгу?\n\n{info}", "¿Desea guardar los datos de contacto del cliente en los contactos de su teléfono?\n\n{info}\n\n(Se abre la pantalla \"Nuevo contacto\" del teléfono; solo toque Guardar.)"]
+  vcfBtn: ["📇 Rehbere kaydet", "📇 Save to contacts", "📇 В контакты", "📇 Guardar en contactos"],
+  vcfNeed: ["Rehbere kaydetmek için kişi veya firma adı ile telefon ya da e-posta girin.", "To save to contacts, enter a name or company and a phone number or e-mail.", "Введите имя или компанию и телефон или e-mail.", "Para guardar en contactos, ingrese un nombre o empresa y un teléfono o correo."]
 };
 const LI = {tr:0, en:1, ru:2, es:3};   // sözlük sütunları (LANGS_ALL sırası)
 function t(key, vars){
@@ -1413,7 +1394,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.11-3";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.11-4";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2458,7 +2439,6 @@ async function runSave(btn, forceNew){
   const {rec, file} = await persistQuote();
   btn.textContent = t0; btn.disabled = false;
   await uiAlert(t("saved") + rec.no + "\n" + (file ? t("pdfSaved") : t("pdfFail")));
-  await askVcard(rec);
 }
 /* ---- Müşteriyi telefon rehberine kaydet (vCard) ----
    Web uygulaması rehbere doğrudan yazamaz: .vcf dosyası açılır, telefonun kendi "Kişi oluştur" ekranı dolu gelir, kullanıcı Kaydet der.
@@ -2489,15 +2469,13 @@ function vcardOf(r){
   L.push("END:VCARD");
   return L.join("\r\n") + "\r\n";
 }
-async function askVcard(r){
-  if(!r || !(String(r.phone || "").trim() || String(r.mail || "").trim())) return;
-  const key = [r.company, r.person, String(r.phone || "").replace(/\D/g, ""), r.mail].map(x => String(x || "").trim().toLocaleLowerCase("tr")).join("|");
-  let sorulan = []; try{ sorulan = JSON.parse(localStorage.getItem("yq_vcf") || "[]"); }catch(e){}
-  if(sorulan.indexOf(key) >= 0) return;
-  sorulan.push(key); try{ localStorage.setItem("yq_vcf", JSON.stringify(sorulan.slice(-300))); }catch(e){}
-  const info = [r.person, r.company, r.phone, r.mail].filter(x => String(x || "").trim()).join("\n");
-  if(!await uiConfirm(t("vcfQ", {info}))) return;
-  const ad = (String(r.person || r.company || "kisi").trim().replace(/[^\wÇĞİÖŞÜçğıöşü .-]+/g, "_") || "kisi") + ".vcf";
+// "Rehbere kaydet" düğmesi: iletişim bilgilerinden kişi kartı (vCard) açılır
+function saveToContacts(){
+  const cc = countryCodeOf($("cCountry").value);
+  const r = {person: $("cPerson").value.trim(), company: $("cCompany").value.trim(), phone: $("cPhone").value.trim(), mail: $("cMail").value.trim(),
+             city: $("cCity").value.trim(), countryCode: cc, country: cc ? countryName(cc) : $("cCountry").value.trim(), no: ($("pfNo").value || "").trim()};
+  if(!(r.person || r.company) || !(r.phone || r.mail)){ uiAlert(t("vcfNeed")); return; }
+  const ad = (String(r.person || r.company).trim().replace(/[^\wÇĞİÖŞÜçğıöşü .-]+/g, "_") || "kisi") + ".vcf";
   const file = new File([vcardOf(r)], ad, {type: "text/vcard"});
   const u = URL.createObjectURL(file);
   const a = document.createElement("a"); a.href = u; a.rel = "noopener";
@@ -2537,7 +2515,8 @@ $("btnPdf").onclick = async () => {
   // teklif bu numarayla zaten kayıtlıysa teklif bilgileri (lead) tekrar sorulmaz
   let kayitli = null;
   try{ kayitli = await pdfArchiveGet(($("pfNo").value || "").trim()); }catch(e){}
-  if(kayitli && kayitli.lead && kayitli.lead.src){ sharePdf(); return; }
+  const duzenleme = editingNo && editingNo === ($("pfNo").value || "").trim();   // düzenlenen teklifte teklif bilgileri yine gösterilir
+  if(!duzenleme && kayitli && kayitli.lead && kayitli.lead.src){ sharePdf(); return; }
   askLead(sharePdf, t("okShare"));
 };
 async function sharePdf(){
@@ -3507,29 +3486,11 @@ function loadQuoteForEdit(r){
   editingNo = r.no;
   $("histModal").classList.remove("open");
   renderQuote(); renderExtra(); paintEditBar();
-  $("editStepTxt").textContent = t("editWhat", {no: r.no});
-  $("editStepModal").classList.add("open");
-}
-/* Düzenle → hangi adım: teklif sayfası / makine ekle / teklif bilgileri (lead) */
-function editGoQuote(){
-  $("calcPage").classList.add("hidden");
-  $("quotePage").classList.remove("hidden");
-  renderQuote(); window.scrollTo(0, 0);
-}
-function openLeadEdit(){
-  editGoQuote();
-  askLead(() => { showQuote(); uiAlert(t("leadSaved")); }, t("ok"));
-}
-$("edStepQ").onclick = () => { $("editStepModal").classList.remove("open"); editGoQuote(); uiAlert(t("editMode", {no: editingNo || ""})); };
-$("edStepM").onclick = () => {
-  $("editStepModal").classList.remove("open");
+  // Düzenle → önce makine ekleme ekranı; sonra "Teklif" → teklif sayfası; Kaydet / PDF Paylaş → teklif bilgileri (lead) penceresi
   $("quotePage").classList.add("hidden"); $("calcPage").classList.remove("hidden");
+  try{ resetSel(); }catch(e){}
   window.scrollTo(0, 0); paintEditBar();
-  uiAlert(t("editMach", {no: editingNo || ""}));
-};
-$("edStepL").onclick = () => { $("editStepModal").classList.remove("open"); openLeadEdit(); };
-$("edStepNo").onclick = () => { $("editStepModal").classList.remove("open"); editGoQuote(); };
-$("btnLead").onclick = () => openLeadEdit();
+}
 // Düzenleme şeridi (hesap ekranında): hangi teklifin düzenlendiğini gösterir
 function paintEditBar(){
   const b = $("editBar"); if(!b) return;
@@ -3539,6 +3500,7 @@ function paintEditBar(){
 }
 $("editBarX").onclick = () => { editingNo = null; paintEditBar(); };
 // Yalnız iletişim bilgilerini temizle (makine, fiyat ve şartlar kalır)
+$("btnVcf").onclick = () => saveToContacts();
 $("btnClearC").onclick = async () => {
   if(!await uiConfirm(t("clearCConf"))) return;
   ["cCompany","cPerson","cPhone","cMail","cCity","cCountry"].forEach(id => { $(id).value = ""; localStorage.removeItem("yq_" + id); });
