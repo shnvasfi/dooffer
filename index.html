@@ -1394,7 +1394,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.11-4";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.12-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2478,11 +2478,11 @@ function saveToContacts(){
   const ad = (String(r.person || r.company).trim().replace(/[^\wÇĞİÖŞÜçğıöşü .-]+/g, "_") || "kisi") + ".vcf";
   const file = new File([vcardOf(r)], ad, {type: "text/vcard"});
   const u = URL.createObjectURL(file);
-  const a = document.createElement("a"); a.href = u; a.rel = "noopener";
-  if(!/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) || !("ontouchend" in document)) a.download = ad;   // Android: indirilir, dokununca Kişiler açılır
-  else a.target = "_blank";                                                                                       // iPhone: kişi kartı doğrudan açılır
+  // "PDF'i aç / indir" ile aynı yol: indirme bağlantısı. iPhone'da Safari kişi kartını gösterir (Yeni Kişi Oluştur),
+  // Android'de dosya iner, dokununca Kişiler açılır. (Yeni sekmede blob açmak iPhone ana ekran uygulamasında boş sayfada kalıyordu.)
+  const a = document.createElement("a"); a.href = u; a.rel = "noopener"; a.download = ad;
   document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(u), 60000);
+  setTimeout(() => URL.revokeObjectURL(u), 120000);
 }
 // Zorunlu müşteri bilgileri: firma adı VEYA ilgili kişi + ülke
 async function checkContact(){
