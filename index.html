@@ -1400,7 +1400,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.14-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.14-3";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2473,10 +2473,19 @@ async function makePdf(){
   }
   return new File([blob], opt.filename, {type:"application/pdf"});
 }
+// Kaydın yapıldığı yerin saati: "14.11.2026 09:32:05 (UTC-3 America/Argentina/Buenos_Aires)" — tabloda yerel kayıt saati olarak görünür
+function yerelSaat(d){
+  d = d || new Date();
+  const p = n => String(n).padStart(2, "0");
+  const off = -d.getTimezoneOffset(), oh = Math.trunc(Math.abs(off) / 60), om = Math.abs(off) % 60;
+  let tz = ""; try{ tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; }catch(e){}
+  return p(d.getDate()) + "." + p(d.getMonth() + 1) + "." + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) +
+    " (UTC" + (off < 0 ? "-" : "+") + oh + (om ? ":" + p(om) : "") + (tz ? " " + tz : "") + ")";
+}
 function currentQuoteRecord(){
   const qcur2 = quote.length ? (quote[0].cur || "EUR") : cur;
   return {
-    no: $("pfNo").value, ts: Date.now(),
+    no: $("pfNo").value, ts: Date.now(), savedAt: yerelSaat(),
     date: new Date().toLocaleDateString("tr-TR"),
     company: $("cCompany").value, person: $("cPerson").value,
     phone: $("cPhone").value, mail: $("cMail").value, city: $("cCity").value.trim(),
@@ -3637,7 +3646,7 @@ function buildCsv(recs){
     "Firma","İlgili Kişi","Telefon","E-posta","Para Birimi",
     "Sıra","Tür","Makine Adı","Stok Kodu","Stok Adı","Adet","Liste Fiyat","İskonto %","Artı İskonto %","Birim Net","Tutar",
     "Teslim Şekli","Teslim Yeri","Incoterm","Incoterm Yeri","Ödeme","Navlun","Sigorta",
-    "Teklif Liste Toplamı","Teklif Net Toplamı","Müşteri Şehir / Adres","Müşteri Ülkesi"];
+    "Teklif Liste Toplamı","Teklif Net Toplamı","Müşteri Şehir / Adres","Müşteri Ülkesi","Yerel Kayıt Saati"];
   const rows = [head];
   const MODES = {F:"Fuar", S:"Seyahat", D:"Direkt", O:"Direkt"};
   recs.forEach(r => {
@@ -3649,7 +3658,7 @@ function buildCsv(recs){
       rows.push([r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", ...leadCols, r.company || "", r.person || "",
         r.phone || "", r.mail || "", r.cur || "", "", "", "", "", "", "", "", "", "", "", "",
         r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
-        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal), r.city || "", r.country || ""]);
+        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal), r.city || "", r.country || "", r.savedAt || ""]);
       return;
     }
     let n = 0;
@@ -3660,7 +3669,7 @@ function buildCsv(recs){
         r.phone || "", r.mail || "", r.cur || "", n, tur, ...cols,
         qty, numCell(unitList), numCell(o && o.od != null ? o.od : it.d1), numCell(o && o.od != null ? 0 : it.d2), numCell(unitNet), numCell(unitNet * qty),
         r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
-        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal), r.city || "", r.country || ""
+        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal), r.city || "", r.country || "", r.savedAt || ""
       ]);
       push("Makine", itemCols(it), it.qty, it.unitList, it.unitNet);
       (it.opts || []).forEach(o => { n++; push("Opsiyon", optCols(o), (o.qty != null ? o.qty : it.qty), o.unitList, o.unitNet, o); });
@@ -3793,7 +3802,7 @@ function sheetRows(r){
                 L.opp || "", L.oppDesc || "", isoToTr(L.start), isoToTr(L.end), L.note || "",
                 r.company || "", r.person || "", r.phone || "", r.mail || "", r.cur || ""];
   const tail = [r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
-                r.freight || 0, r.insurance || 0, r.listTotal || 0, r.netTotal || 0, r.city || "", r.country || ""];
+                r.freight || 0, r.insurance || 0, r.listTotal || 0, r.netTotal || 0, r.city || "", r.country || "", r.savedAt || ""];
   let n = 0;
   (r.items || []).forEach(it => {
     n++;
