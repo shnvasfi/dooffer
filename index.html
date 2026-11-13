@@ -144,7 +144,7 @@ main{flex:1;padding:10px 12px 16px;}
 .pf-grid .k{font-weight:800;}
 /* öneri listesi (telefonlarda datalist çalışmadığı için kendi listemiz) */
 #sugBox{position:absolute;z-index:450;background:#fff;border:1px solid #c9d1d9;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.22);
-  max-height:210px;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch;}
+  max-height:210px;overflow-y:auto;display:none;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
 #sugBox .sg{padding:9px 12px;font-size:14px;border-bottom:1px solid #eef1f4;cursor:pointer;line-height:1.25;}
 #sugBox .sg:last-child{border-bottom:none;}
 #sugBox .sg small{display:block;color:#6b7680;font-size:12px;}
@@ -1400,7 +1400,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.14-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.14-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1831,7 +1831,33 @@ function syncCity(){
 /* ---- Öneri listesi: input altında açılır, dokununca seçer (iOS/Android'de datalist güvenilir değil) ---- */
 const sugBox = (() => { const d = document.createElement("div"); d.id = "sugBox"; document.body.appendChild(d); return d; })();
 let sugFor = null;
-function sugHide(){ sugBox.style.display = "none"; sugFor = null; }
+function sugHide(){ sugBox.style.display = "none"; sugFor = null; sugPick = null; }
+/* Öneri listesinde seçim: parmak kaldırıldığında ve kaydırma yapılmadıysa seçilir (listeyi kaydırmak mümkün).
+   Bilgisayarda mousedown engellenir: kutu odağı kaybetmez. Dokunma sürerken kutu kapanmaz. */
+let sugPick = null, sugDown = null, sugTouching = false;
+sugBox.addEventListener("mousedown", e => e.preventDefault());
+sugBox.addEventListener("pointerdown", e => {
+  sugTouching = true;
+  sugDown = {x: e.clientX, y: e.clientY, st: sugBox.scrollTop, el: e.target.closest(".sg"), moved: false};
+});
+sugBox.addEventListener("pointermove", e => {
+  if(sugDown && (Math.abs(e.clientY - sugDown.y) > 8 || Math.abs(e.clientX - sugDown.x) > 8)) sugDown.moved = true;
+});
+sugBox.addEventListener("scroll", () => { if(sugDown && Math.abs(sugBox.scrollTop - sugDown.st) > 4) sugDown.moved = true; });
+const sugBitir = e => {
+  const d = sugDown; sugDown = null;
+  setTimeout(() => { sugTouching = false; }, 400);
+  if(!d || d.moved || e.type === "pointercancel") return;
+  const el = e.target.closest ? e.target.closest(".sg") : null;
+  if(!el || el !== d.el || !sugPick) return;
+  e.preventDefault();
+  const pick = sugPick; sugHide(); pick(+el.dataset.i);
+};
+sugBox.addEventListener("pointerup", sugBitir);
+document.addEventListener("pointerdown", e => {           // listenin ve kutunun dışına dokununca kapanır
+  if(sugFor && !sugBox.contains(e.target) && e.target !== sugFor) sugHide();
+}, true);
+sugBox.addEventListener("pointercancel", sugBitir);
 // sayfa koordinatıyla (position:absolute) yerleşir: telefonda klavye açılıp sayfa kayınca da kutunun altında kalır
 function sugYerlestir(inp){
   const r = inp.getBoundingClientRect(), sx = window.pageXOffset || 0, sy = window.pageYOffset || 0;
@@ -1844,13 +1870,11 @@ function sugYerlestir(inp){
 function sugShow(inp, items, pick){
   if(!items.length || document.activeElement !== inp){ sugHide(); return; }
   sugFor = inp;
-  sugBox.innerHTML = items.slice(0, 8).map((x, i) => `<div class="sg" data-i="${i}">${escH(x.v)}${x.sub ? "<small>" + escH(x.sub) + "</small>" : ""}</div>`).join("");
+  sugBox.innerHTML = items.slice(0, 30).map((x, i) => `<div class="sg" data-i="${i}">${escH(x.v)}${x.sub ? "<small>" + escH(x.sub) + "</small>" : ""}</div>`).join("");
   sugYerlestir(inp);
   sugBox.style.display = "block";
-  sugBox.querySelectorAll(".sg").forEach(el => {
-    const sec = e => { e.preventDefault(); const it = items[+el.dataset.i]; sugHide(); pick(it); };
-    el.addEventListener("pointerdown", sec);
-  });
+  sugBox.scrollTop = 0;
+  sugPick = i => pick(items[i]);
 }
 function attachSug(inp, source, pick){
   const run = () => sugShow(inp, source(inp.value), it => { inp.value = it.v; localStorage.setItem("yq_" + inp.id, it.v); if(pick) pick(it); });
@@ -1861,7 +1885,7 @@ function attachSug(inp, source, pick){
   inp.addEventListener("pointerdown", () => { odakta = document.activeElement === inp; });
   inp.addEventListener("click", () => { if(odakta && sugFor !== inp) run(); });
   inp.addEventListener("keydown", e => { if(e.key === "Escape") sugHide(); if(e.key === "ArrowDown" && sugFor !== inp) run(); });
-  inp.addEventListener("blur", () => setTimeout(() => { if(sugFor === inp) sugHide(); }, 180));
+  inp.addEventListener("blur", () => setTimeout(() => { if(sugFor === inp && !sugTouching) sugHide(); }, 220));
 }
 window.addEventListener("resize", () => { if(sugFor) sugYerlestir(sugFor); });
 if(window.visualViewport) window.visualViewport.addEventListener("resize", () => { if(sugFor) sugYerlestir(sugFor); });
