@@ -49,6 +49,8 @@ main{flex:1;padding:10px 12px 16px;}
 .curbar{display:flex;gap:6px;margin-bottom:6px;justify-content:flex-end;align-items:center;}
 .curbar button{flex:none;width:40px;height:32px;padding:0;border-radius:8px;border:1.5px solid var(--line);
   background:#fff;font-size:16px;font-weight:800;color:var(--muted);cursor:pointer;line-height:1;}
+.kurbox{flex:none;display:flex;align-items:center;gap:4px;height:32px;padding:0 8px;border:1.5px solid var(--line);border-radius:8px;background:#fff;font-size:13px;font-weight:700;color:var(--blue-dark);margin-right:4px;}
+.kurbox input{width:58px;border:none;outline:none;font-size:14px;font-weight:800;text-align:right;color:var(--blue-dark);background:transparent;padding:0;}
 .curbar button.on{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff;}
 .mhead{display:flex;gap:12px;align-items:flex-start;}
 .mcol{flex:1.35;min-width:0;}
@@ -436,6 +438,7 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
     <div class="curbar">
       <button id="btnHistMain" title="Geçmiş teklifler"
         style="flex:none;width:auto;padding:0 12px;height:32px;margin-right:auto;font-size:13px;font-weight:700;color:var(--blue-dark);" data-i18n="histShort">🕘 Geçmiş</button>
+      <label class="kurbox" title="Euro kuru: TL fiyatı olmayan ürünlerde kullanılır" data-i18n-title="kurTitle">1 € =<input id="kurInp" type="text" inputmode="decimal" autocomplete="off" placeholder="—">₺</label>
       <button id="curE" class="on" title="EURO listesi">€</button>
       <button id="curT" title="TL listesi">₺</button>
     </div>
@@ -1233,7 +1236,10 @@ const I18N = {
   clearC: ["🧹 İletişim bilgilerini temizle", "🧹 Clear contact details", "🧹 Очистить контакты", "🧹 Borrar datos de contacto"],
   clearCConf: ["Yalnız iletişim bilgileri (firma, kişi, telefon, e-posta, şehir, ülke) silinsin mi?\nMakineler, fiyatlar ve şartlar olduğu gibi kalır.", "Clear only the contact details (company, person, phone, e-mail, city, country)?\nMachines, prices and terms are kept.", "Очистить только контактные данные (компания, лицо, телефон, e-mail, город, страна)?\nСтанки, цены и условия сохраняются.", "¿Borrar solo los datos de contacto (empresa, persona, teléfono, correo, ciudad, país)?\nLas máquinas, los precios y las condiciones se mantienen."],
   vcfBtn: ["📇 Rehbere kaydet", "📇 Save to contacts", "📇 В контакты", "📇 Guardar en contactos"],
-  vcfNeed: ["Rehbere kaydetmek için kişi veya firma adı ile telefon ya da e-posta girin.", "To save to contacts, enter a name or company and a phone number or e-mail.", "Введите имя или компанию и телефон или e-mail.", "Para guardar en contactos, ingrese un nombre o empresa y un teléfono o correo."]
+  vcfNeed: ["Rehbere kaydetmek için kişi veya firma adı ile telefon ya da e-posta girin.", "To save to contacts, enter a name or company and a phone number or e-mail.", "Введите имя или компанию и телефон или e-mail.", "Para guardar en contactos, ingrese un nombre o empresa y un teléfono o correo."],
+  kurQ: ["Bu makinede TL fiyatı olmayan {n} kalem var (Fiyat Sorunuz).\nEUR fiyatından kurla hesaplansın mı?\n\n1 € = {r} ₺", "This machine has {n} item(s) without a TL price (Price on request).\nCalculate from the EUR price at the exchange rate?\n\n1 € = {r} ₺", "У {n} позиций нет цены в TL. Рассчитать по курсу EUR?\n\n1 € = {r} ₺", "Esta máquina tiene {n} artículo(s) sin precio en TL (Precio a consultar).\n¿Calcular desde el precio en EUR con el tipo de cambio?\n\n1 € = {r} ₺"],
+  kurAsk: ["Euro kurunu girin: 1 € kaç ₺?", "Enter the euro rate: 1 € = ? ₺", "Введите курс: 1 € = ? ₺", "Ingrese el tipo de cambio: 1 € = ? ₺"],
+  kurTitle: ["Euro kuru: TL fiyatı olmayan ürünlerde kullanılır", "Euro rate: used for items without a TL price", "Курс евро для позиций без цены в TL", "Tipo de cambio del euro: para artículos sin precio en TL"]
 };
 const LI = {tr:0, en:1, ru:2, es:3};   // sözlük sütunları (LANGS_ALL sırası)
 function t(key, vars){
@@ -1394,7 +1400,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.12-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.13-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1424,13 +1430,18 @@ const fmtC = (n,c) => (c === "TL")
 const fmtNum = n => n.toLocaleString("tr-TR", NF);
 const fmt = n => fmtC(n, cur);
 const $ = id => document.getElementById(id);
-const mPrice = m => cur === "EUR" ? m.eur : m.tl;
+// Euro kuru (1 € = ? ₺): TL fiyatı olmayan ("Fiyat Sorunuz") ürünler için, kullanıcı onaylarsa EUR fiyatından hesaplanır
+const KUR_KEY = "yq_eurtl";
+const eurTl = () => { try{ const v = parseAmt(localStorage.getItem(KUR_KEY) || ""); return v > 0 ? v : 0; }catch(e){ return 0; } };
+let kurOk = false;                         // seçili makine için kurla hesaplama onaylandı mı
+const kurTl = x => (kurOk && x && x.eur != null && eurTl() > 0) ? Math.round(x.eur * eurTl() * 100) / 100 : null;
+const mPrice = m => cur === "EUR" ? m.eur : (m.tl != null ? m.tl : kurTl(m));
 // Excel listesinden gelen kalemler iki dillidir: EUR → İngilizce, TL → Türkçe; İngilizce boşsa Türkçe
 // Ekran dili Türkçe ise Türkçe ad; diğer dillerde İngilizce ad (yoksa Türkçe). PDF listesindeki kalemler yalnız İngilizcedir.
 const nameOf = x => (UI_LANG !== "tr" && x.nameEn) ? x.nameEn : x.name;
 // Teklif kalemi için ekran dilinde ad (eski kayıtlarda yalnız name vardır)
 const itemNameUi = x => UI_LANG === "tr" ? (x.nameTr || x.name) : (x.nameEn || x.name);
-const oPrice = o => cur === "EUR" ? o.eur : o.tl;
+const oPrice = o => cur === "EUR" ? o.eur : (o.tl != null ? o.tl : kurTl(o));
 const selPrice = () => { if(!sel) return null; const p = mPrice(sel); return p != null ? p : manMach; };
 const optP = id => { const p = DB.opts[id] ? oPrice(DB.opts[id]) : null; return p != null ? p : (optManual[id] != null ? optManual[id] : null); };
 
@@ -1576,11 +1587,57 @@ function renderPicker(filter){
     });
   });
 }
+// Fiyat kutusuna sığmayan büyük tutarlarda (ör. 3.292.500,00 ₺) yazı küçültülür
+function fitPrice(){
+  const el = $("mPrice"), box = el && el.parentNode; if(!box) return;
+  el.style.fontSize = ""; $("curSym").style.fontSize = "";
+  let fs = parseFloat(getComputedStyle(el).fontSize) || 21;
+  const sym = $("curSym");
+  const room = () => box.clientWidth - 20 - (sym.style.display === "none" ? 0 : sym.offsetWidth + 4);
+  while(el.scrollWidth > room() && fs > 11){ fs -= 1; el.style.fontSize = fs + "px"; sym.style.fontSize = Math.min(19, fs) + "px"; }
+}
+window.addEventListener("resize", () => { try{ fitPrice(); }catch(e){} });
+/* TL listesinde fiyatı olmayan (EUR fiyatı olan) kalem varsa: kurla hesaplansın mı diye sorulur */
+const kurEksik = m => m ? ((m.tl == null && m.eur != null ? 1 : 0) +
+  m.opts.filter(id => DB.opts[id] && DB.opts[id].tl == null && DB.opts[id].eur != null).length) : 0;
+let kurSoruluyor = false;
+async function kurSor(m){
+  if(cur !== "TL" || kurOk || kurSoruluyor || !m || sel !== m) return;
+  const n = kurEksik(m); if(!n) return;
+  kurSoruluyor = true;
+  try{
+    let r = eurTl();
+    if(!await uiConfirm(t("kurQ", {n, r: r ? fmtNum(r) : "—"}))) return;
+    if(!r){
+      const v = await uiPrompt(t("kurAsk"), "", "1 € = ? ₺");
+      if(v == null) return;
+      r = parseAmt(v);
+      if(!(r > 0)){ uiAlert(t("manPriceBad")); return; }
+      try{ localStorage.setItem(KUR_KEY, String(r)); }catch(e){}
+      $("kurInp").value = fmtNum(r);
+    }
+    if(sel !== m) return;
+    kurOk = true;
+    selectMachine(m, true);
+  } finally { kurSoruluyor = false; }
+}
+(function(){
+  const k = $("kurInp"); const r = eurTl(); if(r) k.value = fmtNum(r);
+  k.onchange = () => {
+    const v = parseAmt(k.value);
+    try{ if(v > 0) localStorage.setItem(KUR_KEY, String(v)); else localStorage.removeItem(KUR_KEY); }catch(e){}
+    k.value = v > 0 ? fmtNum(v) : "";
+    if(!(v > 0)) kurOk = false;
+    if(sel && cur === "TL" && kurEksik(sel)){ if(kurOk) selectMachine(sel, true); else kurSor(sel); }
+  };
+})();
 $("btnPickMachine").onclick = () => { renderPicker(""); $("searchBox").value = ""; $("picker").classList.add("open"); };
 $("pickClose").onclick = () => $("picker").classList.remove("open");
 $("searchBox").oninput = e => renderPicker(e.target.value);
 
-function selectMachine(m){
+function selectMachine(m, kurKeep){
+  if(!kurKeep || sel !== m) kurOk = false;
+  if(!kurKeep) setTimeout(() => kurSor(m), 80);   // TL'de fiyatı olmayan kalem varsa kur sorusu
   sel = m; selOpts = new Set(); d1 = 0; d2 = 0; optDisc = {}; manMach = null; optManual = {};
   mQty = 1; optQtys = {}; qtySet = false; $("mQtyInp").value = "";
   $("mQtyRow").style.display = "flex";
@@ -1600,6 +1657,7 @@ function selectMachine(m){
   $("curSym").style.display = mp==null ? "none" : "";
   $("mPrice").textContent = mp==null ? (manualAllowed() ? t("manPriceBtn") : t("askPrice")) : fmtNum(mp);
   $("mPrice").classList.toggle("req", mp==null);
+  fitPrice();
   $("mPrice").parentNode.style.cursor = mp==null && manualAllowed() ? "pointer" : "";
   $("mDesc").textContent = m.desc;
   const oc = $("optCard"), ol = $("optList");
@@ -2097,7 +2155,7 @@ $("btnConv").onclick = async () => {
   const fr = parseAmt($("exFreightAmt").value), ins = parseAmt($("exInsAmt").value);
   let rate = null;
   if(eksik.length || fr || ins){
-    const v = await uiPrompt(t("convRate", {list: eksik.length ? eksik.join(", ") : "—"}), "", "1 € = ? ₺");
+    const v = await uiPrompt(t("convRate", {list: eksik.length ? eksik.join(", ") : "—"}), eurTl() ? fmtNum(eurTl()) : "", "1 € = ? ₺");
     if(v == null) return;
     rate = parseAmt(v);
     if(!(rate > 0)){ uiAlert(t("manPriceBad")); return; }
@@ -2633,15 +2691,32 @@ $("btnResetDb").onclick = async () => {
 //   • 4UN… (ör. 4UN010030-0270)
 //   • 1TC010000-xxxx (kompresör / kurutucu) veya 1TC020000-xxxx (makine) — tam 14 karakter.
 //   Kod 14 karakterden uzunsa (ör. 1TC020000-0031-20) yedek parçadır, makine sayılmaz.
-//   1TC040000 / 1TC080000 vb. (yedek parça, kaynak kalıbı) alınmaz.
+//   1TC040000 / 1TC080000 vb. (yedek parça, kaynak kalıbı) alınmaz — taşıma arabası (PC 4000) hariç. 5UN… set makineler de alınır.
 // Opsiyon = aynı makine kodunun opsiyon satırları.
 // Diğer satırlar (yedek parça vb.) alınmaz. "Fiyat Sorunuz" veya boş → null (fiyat uydurulmaz).
 const CX_MACHINE_PREFIX = "4UN";
-const CX_MACHINE_DESC = "4UN / 1TC010000 / 1TC020000";
-function cxIsMachine(code){
+const CX_MACHINE_DESC = "4UN / 5UN / 1TC010000 / 1TC020000 / taşıma arabaları";
+/* Makine kuralı (Excel'de "makine" işareti yok; PDF fiyat listesiyle karşılaştırılarak belirlendi):
+   • 4UN…            ana makineler, konveyörler, taşıma arabaları, montaj masaları
+   • 5UN…            konveyörlü set makineler (SCM 420 L4/L7, CK 412 + SKN 301, CCL 1661 / 1670 hatları)
+   • 1TC010000-xxxx  kompresör / kurutucu   • 1TC020000-xxxx  makine (NSM 352 / 353 vb.)
+   • adında "TAŞIMA ARABASI" geçen ürün (ör. PC 4000 — kodu 1TC040000-0430)
+   • CX_EXTRA: tek tek eklenen ürünler (RS 1000 profil destek ayağı)
+   14 karakterden uzun kodlar (1TC020000-0031-20 gibi) yedek parçadır, alınmaz. Testereler (1SK010000) makine değildir. */
+const CX_EXTRA = ["3UA900030-0056"];
+function cxIsMachine(code, name){
   const c = String(code || "").trim().toUpperCase();
   if(c.length > 14) return false;                               // -01 gibi uzantılı kod = yedek parça
-  return c.startsWith(CX_MACHINE_PREFIX) || /^1TC0[12]0000-\d{4}$/.test(c);
+  if(CX_EXTRA.indexOf(c) >= 0) return true;
+  if(c.startsWith(CX_MACHINE_PREFIX) || c.startsWith("5UN") || /^1TC0[12]0000-\d{4}$/.test(c)) return true;
+  return /TA[SŞ]IMA ARABASI/i.test(String(name || ""));
+}
+// Grup boş / genel ("*", YEDEK PARCA …) ise makine adını ürün adından çıkar: "SCM 420-L4 KONVEYÖRLÜ…" → "SCM 420 L4"
+function cxGroupOf(grp, name){
+  const g = String(grp || "").trim();
+  if(g && !/^(\*|YEDEK PAR[CÇ]A|TC|TU|OPS[İI]YONLAR)$/i.test(g)) return g;
+  const m = String(name || "").toUpperCase().match(/^([A-ZÇĞİÖŞÜ]{2,4})[ -]?(\d{3,4})(?:[ -]?(L\d|[A-Z]{1,2}\d?)\b)?/);
+  return m ? [m[1], m[2], m[3]].filter(Boolean).join(" ") : "Diğer";
 }
 function cxNum(v){
   if(v == null) return null;
@@ -2672,9 +2747,9 @@ function buildCaniastaDb(cx){
   let skipped = 0;
   rows.forEach(r => {
     const mc = S(r, C.mc).toUpperCase(), oc = S(r, C.oc);
-    if(!cxIsMachine(mc) || oc) return;
+    if(!cxIsMachine(mc, S(r, C.tr)) || oc) return;
     if(byCode[mc]) return;                                     // aynı makine iki kez gelmez
-    let grp = S(r, C.grp); if(!grp || grp === "*") grp = "Diğer";
+    const grp = cxGroupOf(S(r, C.grp), S(r, C.tr));
     const m = {code: mc, name: S(r, C.tr), nameEn: S(r, C.en), desc: grp, cat: grp,
                eur: cxNum(C.eur < 0 ? null : r[C.eur]), tl: cxNum(C.tl < 0 ? null : r[C.tl]), opts: []};
     byCode[mc] = m; machines.push(m);
@@ -2683,7 +2758,7 @@ function buildCaniastaDb(cx){
     const mc = S(r, C.mc).toUpperCase(), oc = S(r, C.oc);
     if(!oc) return;
     const m = byCode[mc];
-    if(!m){ if(cxIsMachine(mc)) skipped++; return; }
+    if(!m){ if(cxIsMachine(mc, "")) skipped++; return; }
     const o = {code: oc, name: S(r, C.tr), nameEn: S(r, C.en), info: "",
                eur: cxNum(C.eur < 0 ? null : r[C.eur]), tl: cxNum(C.tl < 0 ? null : r[C.tl])};
     const k = [o.code, o.name, o.nameEn, o.eur, o.tl].join("|");   // aynı opsiyon farklı makinede farklı fiyatlı olabilir
@@ -4064,7 +4139,7 @@ function applyLang(){
   lb.querySelectorAll(".langbtn").forEach(b => b.onclick = () => setUiLang(b.dataset.lang));
   // açık ekranları tazele
   try{
-    if(sel) selectMachine(sel); else { $("pickLabel").textContent = pickPlaceholder(); $("pickLabel").classList.add("ph"); }
+    if(sel) selectMachine(sel, true); else { $("pickLabel").textContent = pickPlaceholder(); $("pickLabel").classList.add("ph"); }
     if($("picker").classList.contains("open")) renderPicker($("searchBox").value);
     renderMini();
     if($("leadModal").classList.contains("open")) leadRefresh();
