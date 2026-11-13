@@ -144,7 +144,7 @@ main{flex:1;padding:10px 12px 16px;}
 .pf-grid .k{font-weight:800;}
 /* öneri listesi (telefonlarda datalist çalışmadığı için kendi listemiz) */
 #sugBox{position:absolute;z-index:450;background:#fff;border:1px solid #c9d1d9;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.22);
-  max-height:240px;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch;}
+  max-height:210px;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch;}
 #sugBox .sg{padding:9px 12px;font-size:14px;border-bottom:1px solid #eef1f4;cursor:pointer;line-height:1.25;}
 #sugBox .sg:last-child{border-bottom:none;}
 #sugBox .sg small{display:block;color:#6b7680;font-size:12px;}
@@ -1400,7 +1400,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.13-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.14-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1836,15 +1836,15 @@ function sugHide(){ sugBox.style.display = "none"; sugFor = null; }
 function sugYerlestir(inp){
   const r = inp.getBoundingClientRect(), sx = window.pageXOffset || 0, sy = window.pageYOffset || 0;
   const vw = document.documentElement.clientWidth || window.innerWidth;
-  const w = Math.max(220, Math.min(r.width, vw - 12));
-  sugBox.style.left = Math.max(6, Math.min(r.left, vw - w - 6)) + sx + "px";
+  const w = Math.max(220, Math.min(r.width, 340, vw - 12));
+  sugBox.style.left = Math.max(6, Math.min(r.right - w, vw - w - 6)) + sx + "px";     // kutunun sağına hizalı, dar: alttaki satırlar görünür
   sugBox.style.width = w + "px";
   sugBox.style.top = (r.bottom + sy + 2) + "px";
 }
 function sugShow(inp, items, pick){
   if(!items.length || document.activeElement !== inp){ sugHide(); return; }
   sugFor = inp;
-  sugBox.innerHTML = items.slice(0, 12).map((x, i) => `<div class="sg" data-i="${i}">${escH(x.v)}${x.sub ? "<small>" + escH(x.sub) + "</small>" : ""}</div>`).join("");
+  sugBox.innerHTML = items.slice(0, 8).map((x, i) => `<div class="sg" data-i="${i}">${escH(x.v)}${x.sub ? "<small>" + escH(x.sub) + "</small>" : ""}</div>`).join("");
   sugYerlestir(inp);
   sugBox.style.display = "block";
   sugBox.querySelectorAll(".sg").forEach(el => {
@@ -1854,8 +1854,13 @@ function sugShow(inp, items, pick){
 }
 function attachSug(inp, source, pick){
   const run = () => sugShow(inp, source(inp.value), it => { inp.value = it.v; localStorage.setItem("yq_" + inp.id, it.v); if(pick) pick(it); });
-  inp.addEventListener("input", run);
-  inp.addEventListener("focus", run);
+  // Öneriler kendiliğinden açılmaz: yazmaya başlayınca, çift tıklayınca ya da (telefonda) kutuya ikinci kez dokununca açılır
+  inp.addEventListener("input", () => { if(inp.value.trim()) run(); else sugHide(); });
+  inp.addEventListener("dblclick", run);
+  let odakta = false;
+  inp.addEventListener("pointerdown", () => { odakta = document.activeElement === inp; });
+  inp.addEventListener("click", () => { if(odakta && sugFor !== inp) run(); });
+  inp.addEventListener("keydown", e => { if(e.key === "Escape") sugHide(); if(e.key === "ArrowDown" && sugFor !== inp) run(); });
   inp.addEventListener("blur", () => setTimeout(() => { if(sugFor === inp) sugHide(); }, 180));
 }
 window.addEventListener("resize", () => { if(sugFor) sugYerlestir(sugFor); });
