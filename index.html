@@ -181,6 +181,14 @@ table.pf .optrow .oname{padding-left:16px;}
   font-family:inherit;font-size:13px;font-weight:800;padding:0;}
 .pf-extra .exr.tot{border-top:1px solid #000;background:#f4f6f8;}
 .pf-totalbar .in{box-sizing:border-box;}
+/* Toplam: tek para biriminde "€ | 12.000,00"; iki para biriminde her biri ayrı satır: "EUR | 12.000,00 €" / "TL | 500.000,00 ₺" */
+.totbox{padding:2px 10px;white-space:nowrap;display:grid;grid-template-columns:16px 1fr;align-items:baseline;gap:0 4px;}
+.totbox .tc{text-align:left;}
+.totbox .tv{text-align:right;}
+.totbox.multi{grid-template-columns:auto 1fr;padding:3px 8px;gap:1px 6px;}
+.totbox.multi .tc{font-size:9.5px;font-weight:800;letter-spacing:.4px;color:#fff;background:#4a6273;border-radius:3px;padding:0 4px;align-self:center;line-height:15px;}
+.totbox.multi .tv + .tc, .totbox.multi .tv + .tc + .tv{border-top:1px dashed #9aa6b1;padding-top:1px;}
+.excur2{display:block;font-size:11px;font-weight:700;color:#4a6273;text-align:right;}
 /* Bölüm vurguları: her alanın sol kenarında renkli şerit (ekranda ve PDF'te) */
 :root{--acc-c:#1c455e;--acc-i:#2f5d75;--acc-d:#8a96a3;--acc-t:#4a6273;--acc-s:#3d5566;--acc-b:#5f7384;}   /* koyu lacivert–arduvaz tonları (resmi, sade) */
 .proforma .acc-c{border-left:8px solid var(--acc-c) !important;}
@@ -438,7 +446,6 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
     <div class="curbar">
       <button id="btnHistMain" title="Geçmiş teklifler"
         style="flex:none;width:auto;padding:0 12px;height:32px;margin-right:auto;font-size:13px;font-weight:700;color:var(--blue-dark);" data-i18n="histShort">🕘 Geçmiş</button>
-      <label class="kurbox" title="Euro kuru: TL fiyatı olmayan ürünlerde kullanılır" data-i18n-title="kurTitle">1 € =<input id="kurInp" type="text" inputmode="decimal" autocomplete="off" placeholder="—">₺</label>
       <button id="curE" class="on" title="EURO listesi">€</button>
       <button id="curT" title="TL listesi">₺</button>
     </div>
@@ -587,7 +594,7 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
         </div>
       </div>
       <div class="pf-totalbar" id="pfTotalBar">
-        <div class="in" style="width:100%;max-width:560px;display:grid;grid-template-columns:1fr 16px 132px;align-items:center;gap:0;padding:0;min-height:30px;">
+        <div class="in" style="width:100%;max-width:560px;display:grid;grid-template-columns:1fr 16px minmax(132px,auto);align-items:center;gap:0;padding:0;min-height:30px;">
           <span style="padding:2px 10px;display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0;">INCOTERMS 2020
           <select id="incoTerm" style="font-family:inherit;font-size:12.5px;font-weight:900;border:1px solid #bbb;padding:0 1px;background:#fffbe8;flex:none;">
             <option value=""></option><option value="EXW">EXW</option><option value="FCA">FCA</option><option value="CPT">CPT</option><option value="CIP">CIP</option><option value="DAP">DAP</option><option value="DPU">DPU</option><option value="DDP">DDP</option><option value="FAS">FAS</option><option value="FOB">FOB</option><option value="CFR">CFR</option><option value="CIF">CIF</option>
@@ -595,9 +602,7 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
           <input id="incoPlace" placeholder="" style="border:none;border-bottom:1px solid #ccc;font-family:inherit;font-size:12.5px;font-weight:900;background:#fffbe8;flex:1 1 auto;min-width:60px;">
           </span>
           <span class="c" style="text-align:center;padding:2px 0;">:</span>
-          <span style="padding:2px 10px;white-space:nowrap;display:grid;grid-template-columns:16px 1fr;align-items:baseline;gap:4px;">
-            <span id="pfTotalCur" style="text-align:left;">€</span><span id="pfTotal" style="text-align:right;">0,00</span>
-          </span>
+          <span id="pfTotBox" class="totbox"><span class="tc">€</span><span class="tv">0,00</span></span>
         </div>
       </div>
       <div class="pf-extra" id="pfExtra" style="display:none;">
@@ -805,8 +810,8 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       <span>Programı Güncelle<br><span style="font-size:12px;color:var(--muted);" id="buildInfo"></span></span>
       <button class="btn sec" style="flex:none;padding:8px 14px;" id="btnAppUpd">Kontrol Et</button>
     </div>
-    <div class="setrow" style="display:block;">
-      <span>Fiyat Kaynağı<br><span style="font-size:12px;color:var(--muted);">PDF listesi veya Caniasta Excel listesi — ikisi ayrı saklanır</span></span>
+    <div class="setrow" id="srcRow" style="display:none;">
+      <span>Fiyat Kaynağı (yönetici)<br><span style="font-size:12px;color:var(--muted);">PDF listesi veya Caniasta Excel listesi — ikisi ayrı saklanır</span></span>
       <div class="seg" id="srcSeg" style="margin-top:8px;">
         <button data-src="pdf">📄 PDF Listesi</button>
         <button data-src="excel">📊 Excel Listesi</button>
@@ -1199,6 +1204,10 @@ const I18N = {
   needCountry:["Müşterinin ülkesini yazın (zorunlu).", "Enter the customer's country (required).", "Укажите страну клиента (обязательно).", "Ingrese el país del cliente (obligatorio)."],
   emptyQuote: ["Teklif listesi boş.", "The quote is empty.", "Предложение пусто.", "La cotización está vacía."],
   curMix:     ["Teklif listesinde {c} kalemler var. Aynı teklifte iki para birimi olamaz.\nÖnce teklifi paylaşıp temizleyin.", "The quote already has {c} items. A quote cannot contain two currencies.\nShare and clear the quote first.", "В предложении уже есть позиции в {c}. В одном предложении не может быть двух валют.\nСначала отправьте и очистите предложение.", "La cotización ya tiene artículos en {c}. Una cotización no puede tener dos monedas.\nPrimero comparta y borre la cotización."],
+  curMixQ:    ["Teklifte {a} fiyatlı kalemler var.\n{b} fiyatlı kalem de eklensin mi?\n\nTeklifte her satır kendi para birimiyle görünür, toplamlar {a} ve {b} olarak ayrı yazılır.", "The quote has items priced in {a}.\nAdd items priced in {b} too?\n\nEach line keeps its own currency; totals are shown separately for {a} and {b}.", "В предложении есть позиции в {a}.\nДобавить позиции в {b}?", "La cotización tiene artículos en {a}.\n¿Agregar también artículos en {b}?\n\nCada línea conserva su moneda; los totales se muestran por separado en {a} y {b}."],
+  curMixQ1:   ["Bu makinenin bazı kalemlerinin TL fiyatı yok; onlar EUR fiyatıyla eklenecek.\nTeklifte TL ve EUR fiyatlar birlikte olacak. Eklensin mi?", "Some items of this machine have no TL price and will be added in EUR.\nThe quote will contain TL and EUR prices. Add?", "Некоторые позиции без цены в TL будут добавлены в EUR. Добавить?", "Algunos artículos de esta máquina no tienen precio en TL y se agregarán en EUR.\nLa cotización tendrá precios en TL y EUR. ¿Agregar?"],
+  convKeep:   ["Hedef listede fiyatı olmayan kalemler eski para biriminde kaldı: {list}", "Items without a price in the target list kept their currency: {list}", "Позиции без цены остались в прежней валюте: {list}", "Los artículos sin precio en la lista destino conservan su moneda: {list}"],
+  convFr:     ["Navlun / sigorta tutarlarını yeni para birimine göre kontrol edin.", "Check the freight / insurance amounts for the new currency.", "Проверьте суммы фрахта / страховки.", "Revise los importes de flete / seguro para la nueva moneda."],
   wipeQ:      ["Ne temizlensin?", "What should be cleared?", "Что очистить?", "¿Qué desea borrar?"],
   wipe1:      ["Sadece Bu Sayfa", "This Page Only", "Только эту страницу", "Solo esta página"],
   wipe2:      ["Sayfa + Teklif", "Page + Quote", "Страницу и предложение", "Página y cotización"],
@@ -1373,7 +1382,10 @@ function normalizeEmbedded(){
 }
 /* Fiyat kaynağı: "pdf" (varsayılan, eski akış) veya "excel" (Caniasta). Her kaynağın verisi, paketi ve damgası ayrı. */
 const SRC_KEY = "yq_src";
-function curSrc(){ return localStorage.getItem(SRC_KEY) === "excel" ? "excel" : "pdf"; }
+// sürüm 2026.11.18-2: varsayılan Excel listesi; PDF listesini yalnız yönetici (Ayarlar → Yönetici Modu) seçer
+const SRC_PDF_OK = "yq_src_pdf";
+function curSrc(){ return localStorage.getItem(SRC_KEY) === "pdf" && localStorage.getItem(SRC_PDF_OK) === "1" ? "pdf" : "excel"; }
+function setPdfSrc(){ localStorage.setItem(SRC_KEY, "pdf"); localStorage.setItem(SRC_PDF_OK, "1"); }
 const SKEY = (base, src) => (src || curSrc()) === "excel" ? base + "_excel" : base;   // pdf eski anahtarları kullanır
 const dbKey    = src => SKEY("yq_db", src);
 const infoKey  = src => SKEY("yq_dbinfo", src);
@@ -1400,7 +1412,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.18-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.18-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1430,18 +1442,24 @@ const fmtC = (n,c) => (c === "TL")
 const fmtNum = n => n.toLocaleString("tr-TR", NF);
 const fmt = n => fmtC(n, cur);
 const $ = id => document.getElementById(id);
-// Euro kuru (1 € = ? ₺): TL fiyatı olmayan ("Fiyat Sorunuz") ürünler için, kullanıcı onaylarsa EUR fiyatından hesaplanır
-const KUR_KEY = "yq_eurtl";
-const eurTl = () => { try{ const v = parseAmt(localStorage.getItem(KUR_KEY) || ""); return v > 0 ? v : 0; }catch(e){ return 0; } };
-let kurOk = false;                         // seçili makine için kurla hesaplama onaylandı mı
-const kurTl = x => (kurOk && x && x.eur != null && eurTl() > 0) ? Math.round(x.eur * eurTl() * 100) / 100 : null;
-const mPrice = m => cur === "EUR" ? m.eur : (m.tl != null ? m.tl : kurTl(m));
+// Fiyat ve para birimi: EUR listesinde EUR. TL listesinde TL fiyatı varsa TL; yoksa ("Fiyat Sorunuz") EUR fiyatı (EUR olarak).
+// Böylece bir teklifte hem TL hem EUR kalem olabilir; her satır kendi para birimiyle, toplamlar ayrı ayrı gösterilir.
+const priceOf = x => !x ? {p: null, c: cur} : cur === "EUR" ? {p: x.eur, c: "EUR"}
+  : x.tl != null ? {p: x.tl, c: "TL"} : x.eur != null ? {p: x.eur, c: "EUR"} : {p: null, c: "TL"};
+const mPrice = m => priceOf(m).p;
 // Excel listesinden gelen kalemler iki dillidir: EUR → İngilizce, TL → Türkçe; İngilizce boşsa Türkçe
 // Ekran dili Türkçe ise Türkçe ad; diğer dillerde İngilizce ad (yoksa Türkçe). PDF listesindeki kalemler yalnız İngilizcedir.
 const nameOf = x => (UI_LANG !== "tr" && x.nameEn) ? x.nameEn : x.name;
 // Teklif kalemi için ekran dilinde ad (eski kayıtlarda yalnız name vardır)
 const itemNameUi = x => UI_LANG === "tr" ? (x.nameTr || x.name) : (x.nameEn || x.name);
-const oPrice = o => cur === "EUR" ? o.eur : (o.tl != null ? o.tl : kurTl(o));
+const oPrice = o => priceOf(o).p;
+const pCur = x => priceOf(x).p != null ? priceOf(x).c : cur;              // elle girilen fiyat seçili listenin para biriminde
+const selCur = () => sel ? pCur(sel) : cur;
+const optCur = id => DB.opts[id] ? pCur(DB.opts[id]) : cur;
+// Para birimine göre toplam ("çanta"): {EUR: x, TL: y}
+const bagAdd = (b, c, v) => { b[c] = (b[c] || 0) + v; return b; };
+const bagCurs = b => ["EUR", "TL"].filter(c => b[c] != null).sort((a, z) => (z === cur) - (a === cur));
+const fmtBag = (b, pre) => { const k = bagCurs(b); return k.length ? k.map(c => (pre || "") + fmtC(b[c], c)).join("  +  ") : (pre || "") + fmtC(0, cur); };
 const selPrice = () => { if(!sel) return null; const p = mPrice(sel); return p != null ? p : manMach; };
 const optP = id => { const p = DB.opts[id] ? oPrice(DB.opts[id]) : null; return p != null ? p : (optManual[id] != null ? optManual[id] : null); };
 
@@ -1460,17 +1478,20 @@ let quote = JSON.parse(localStorage.getItem("yq_quote") || "[]");
 function calcNet(listTotal, dd1, dd2){ return listTotal * (1 - dd1/100) * (1 - dd2/100); }
 function currentTotals(){
   if(!sel) return null;
-  const mp = (selPrice() || 0) * mQty;
-  let op = 0, cl = mp, ol = 0, on = 0;              // cl: makine iskontosu uygulanan liste • ol/on: özel iskontolu opsiyonlar
+  const mc = selCur(), mp = (selPrice() || 0) * mQty;
+  const op = {}, cl = {}, ol = {}, on = {}, mpB = {};
+  bagAdd(mpB, mc, mp); bagAdd(cl, mc, mp);          // cl: makine iskontosu uygulanan liste • ol/on: özel iskontolu opsiyonlar
   selOpts.forEach(id => {
     const p = optP(id); if(!p) return;
-    const v = p * (optQtys[id] || 1); op += v;
-    if(optDisc[id] != null){ ol += v; on += v * (1 - optDisc[id]/100); } else cl += v;
+    const c = optCur(id), v = p * (optQtys[id] || 1); bagAdd(op, c, v);
+    if(optDisc[id] != null){ bagAdd(ol, c, v); bagAdd(on, c, v * (1 - optDisc[id]/100)); } else bagAdd(cl, c, v);
   });
-  const list = mp + op;
-  const afterD1 = cl * (1 - d1/100);
-  const cnet = afterD1 * (1 - d2/100);
-  return {mp, op, list, d1Amt: cl - afterD1, d2Amt: afterD1 - cnet, oAmt: ol - on, net: cnet + on};
+  const list = {}, d1Amt = {}, d2Amt = {}, oAmt = {}, net = {};
+  [mpB, op].forEach(b => Object.keys(b).forEach(c => bagAdd(list, c, b[c])));
+  Object.keys(cl).forEach(c => { const a = cl[c] * (1 - d1/100), n = a * (1 - d2/100); bagAdd(d1Amt, c, cl[c] - a); bagAdd(d2Amt, c, a - n); bagAdd(net, c, n); });
+  Object.keys(ol).forEach(c => { bagAdd(oAmt, c, ol[c] - on[c]); bagAdd(net, c, on[c]); });
+  const sum = b => Object.values(b).reduce((a, v) => a + v, 0);
+  return {mp: mpB, op, list, d1Amt, d2Amt, oAmt, net, oAmtSum: sum(oAmt), opSum: sum(op)};
 }
 // Kalem iskontosu: opsiyonda özel oran (od) varsa o, yoksa makinenin d1/d2 zinciri
 function optK(o, it){ return o.od != null ? 1 - o.od/100 : (1 - (it.d1||0)/100) * (1 - (it.d2||0)/100); }
@@ -1503,6 +1524,7 @@ function setCur(c){
   $("curE").classList.toggle("on", c === "EUR");
   $("curT").classList.toggle("on", c === "TL");
   $("curSym").textContent = c === "TL" ? "₺" : "€";
+  buildDiscSegs();                      // TL'de iskonto seçenekleri farklı
   if(sel) selectMachine(sel);           // fiyatları yeni listeden tazele
   else { $("pickLabel").textContent = pickPlaceholder(); $("pickLabel").classList.add("ph"); }
   if($("picker").classList.contains("open")) renderPicker($("searchBox").value);
@@ -1557,8 +1579,14 @@ function buildSeg(el, values, prefix, cb){
   el.appendChild(inp);
   el.querySelector("button").classList.add("on");
 }
-buildSeg($("segD1"), D1_VALUES, "%", v => d1 = v);
-buildSeg($("segD2"), D2_VALUES, "+%", v => d2 = v);
+// TL tekliflerde iskonto yalnız %5, %10 veya elle; ekstra iskonto yalnız elle
+const D1_TL = [0, 5, 10], D2_TL = [0];
+const discVals = (n, c) => (c || cur) === "TL" ? (n === 1 ? D1_TL : D2_TL) : (n === 1 ? D1_VALUES : D2_VALUES);
+function buildDiscSegs(){
+  buildSeg($("segD1"), discVals(1), "%", v => d1 = v);
+  buildSeg($("segD2"), discVals(2), "+%", v => d2 = v);
+}
+buildDiscSegs();
 
 /* ================= UI: PICKER ================= */
 function catList(){
@@ -1581,7 +1609,7 @@ function renderPicker(filter){
       const p = mPrice(m);
       const r = document.createElement("div"); r.className = "mrow";
       r.innerHTML = `<div style="flex:1;min-width:0;">${DB.src === "excel" ? `<div class="c">${nameOf(m)}</div><div class="n">${m.code}</div>` : `<div class="c">${m.code}</div><div class="n">${nameOf(m)}</div>`}</div>
-        <div class="p ${p==null?'req':''}">${p==null ? t("askPrice") : fmt(p)}</div>`;
+        <div class="p ${p==null?'req':''}">${p==null ? t("askPrice") : fmtC(p, pCur(m))}</div>`;
       r.onclick = () => selectMachine(m);
       list.appendChild(r);
     });
@@ -1597,48 +1625,11 @@ function fitPrice(){
   while(el.scrollWidth > room() && fs > 11){ fs -= 1; el.style.fontSize = fs + "px"; sym.style.fontSize = Math.min(19, fs) + "px"; }
 }
 window.addEventListener("resize", () => { try{ fitPrice(); }catch(e){} });
-/* TL listesinde fiyatı olmayan (EUR fiyatı olan) kalem varsa: kurla hesaplansın mı diye sorulur */
-const kurEksik = m => m ? ((m.tl == null && m.eur != null ? 1 : 0) +
-  m.opts.filter(id => DB.opts[id] && DB.opts[id].tl == null && DB.opts[id].eur != null).length) : 0;
-let kurSoruluyor = false;
-async function kurSor(m){
-  if(cur !== "TL" || kurOk || kurSoruluyor || !m || sel !== m) return;
-  const n = kurEksik(m); if(!n) return;
-  kurSoruluyor = true;
-  try{
-    let r = eurTl();
-    if(!await uiConfirm(t("kurQ", {n, r: r ? fmtNum(r) : "—"}))) return;
-    if(!r){
-      const v = await uiPrompt(t("kurAsk"), "", "1 € = ? ₺");
-      if(v == null) return;
-      r = parseAmt(v);
-      if(!(r > 0)){ uiAlert(t("manPriceBad")); return; }
-      try{ localStorage.setItem(KUR_KEY, String(r)); }catch(e){}
-      $("kurInp").value = fmtNum(r);
-    }
-    if(sel !== m) return;
-    kurOk = true;
-    selectMachine(m, true);
-  } finally { kurSoruluyor = false; }
-}
-(function(){
-  const k = $("kurInp"); const r = eurTl(); if(r) k.value = fmtNum(r);
-  k.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); k.blur(); } });   // Enter → kutudan çık (değer onchange ile kaydedilir)
-  k.onchange = () => {
-    const v = parseAmt(k.value);
-    try{ if(v > 0) localStorage.setItem(KUR_KEY, String(v)); else localStorage.removeItem(KUR_KEY); }catch(e){}
-    k.value = v > 0 ? fmtNum(v) : "";
-    if(!(v > 0)) kurOk = false;
-    if(sel && cur === "TL" && kurEksik(sel)){ if(kurOk) selectMachine(sel, true); else kurSor(sel); }
-  };
-})();
 $("btnPickMachine").onclick = () => { renderPicker(""); $("searchBox").value = ""; $("picker").classList.add("open"); };
 $("pickClose").onclick = () => $("picker").classList.remove("open");
 $("searchBox").oninput = e => renderPicker(e.target.value);
 
-function selectMachine(m, kurKeep){
-  if(!kurKeep || sel !== m) kurOk = false;
-  if(!kurKeep) setTimeout(() => kurSor(m), 80);   // TL'de fiyatı olmayan kalem varsa kur sorusu
+function selectMachine(m){
   sel = m; selOpts = new Set(); d1 = 0; d2 = 0; optDisc = {}; manMach = null; optManual = {};
   mQty = 1; optQtys = {}; qtySet = false; $("mQtyInp").value = "";
   $("mQtyRow").style.display = "flex";
@@ -1654,7 +1645,7 @@ function selectMachine(m, kurKeep){
   $("pickLabel").classList.remove("ph");
   $("mName").textContent = xl ? m.code : nameOf(m);
   syncBoxH();
-  $("curSym").textContent = cur === "TL" ? "₺" : "€";
+  $("curSym").textContent = pCur(m) === "TL" ? "₺" : "€";       // TL listesinde TL fiyatı yoksa EUR fiyatı (€) görünür
   $("curSym").style.display = mp==null ? "none" : "";
   $("mPrice").textContent = mp==null ? (manualAllowed() ? t("manPriceBtn") : t("askPrice")) : fmtNum(mp);
   $("mPrice").classList.toggle("req", mp==null);
@@ -1673,7 +1664,7 @@ function selectMachine(m, kurKeep){
     const manOk = op == null && manualAllowed();
     row.innerHTML = `<input type="checkbox" data-oid="${id}" ${op==null && !manOk ? "disabled" : ""}>
       <div class="oi"><div class="on">${nameOf(o)}</div><div class="od">${o.code}${o.info ? " • " + o.info : ""}</div></div>
-      <div class="op ${op==null?'req':''}">${op==null ? (manOk ? t("manPriceBtn") : t("askPrice")) : fmt(op)}</div>`;
+      <div class="op ${op==null?'req':''}">${op==null ? (manOk ? t("manPriceBtn") : t("askPrice")) : fmtC(op, pCur(o))}</div>`;
     if(manOk){
       const opEl = row.querySelector(".op");
       const askOpt = async () => {
@@ -1733,22 +1724,23 @@ function selectMachine(m, kurKeep){
 function refresh(){
   const tt = currentTotals();
   if(!tt) return;
-  $("sMach").textContent = selPrice()==null ? t("askPrice") : (mQty > 1 ? mQty + " × " + fmt(selPrice()) + " = " + fmt(tt.mp) : fmt(tt.mp));
-  $("netBarVal").textContent = fmt(tt.net);
+  const mc = selCur();
+  $("sMach").textContent = selPrice()==null ? t("askPrice") : (mQty > 1 ? mQty + " × " + fmtC(selPrice(), mc) + " = " + fmtC(selPrice() * mQty, mc) : fmtC(selPrice() * mQty, mc));
+  $("netBarVal").textContent = fmtBag(tt.net);
   $("sOptCnt").textContent = selOpts.size;
-  $("sOpts").textContent = fmt(tt.op);
-  $("sList").textContent = fmt(tt.list);
-  $("fList").textContent = fmt(tt.list);
+  $("sOpts").textContent = tt.opSum ? fmtBag(tt.op) : fmtC(0, mc);
+  $("sList").textContent = fmtBag(tt.list);
+  $("fList").textContent = fmtBag(tt.list);
   $("fD1p").textContent = "%" + numL(Math.round(d1*100)/100, UI_LANG);
-  $("fD1a").textContent = "− " + fmt(tt.d1Amt);
+  $("fD1a").textContent = fmtBag(tt.d1Amt, "− ");
   $("fD2p").textContent = "%" + numL(Math.round(d2*100)/100, UI_LANG);
-  $("fD2a").textContent = "− " + fmt(tt.d2Amt);
-  $("fORow").style.display = tt.oAmt > 0.004 ? "" : "none";
-  $("fOa").textContent = "− " + fmt(tt.oAmt);
+  $("fD2a").textContent = fmtBag(tt.d2Amt, "− ");
+  $("fORow").style.display = tt.oAmtSum > 0.004 ? "" : "none";
+  $("fOa").textContent = fmtBag(tt.oAmt, "− ");
   const md = machDiscTxt(d1, d2);
   document.querySelectorAll("#optList .odinp").forEach(i => { i.placeholder = "%" + md; });
   document.querySelectorAll("#optList .odhint").forEach(h => { h.textContent = t("optDiscHint", {d: md}); });
-  $("fNet").textContent = fmt(tt.net);
+  $("fNet").textContent = fmtBag(tt.net);
   $("btnAdd").disabled = selPrice()==null;
 }
 
@@ -2106,34 +2098,40 @@ function renderMini(){
   quote.forEach(it => {
     n++;
     h += `<tr><td ${tdc}>${n}</td><td ${td}><b>${it.code}</b></td><td ${td}>${escH(itemNameUi(it))}</td>
-      <td ${tdc}>${it.qty}</td><td ${tdn}>${fmtQ(it.unitNet)}</td><td ${tdn}><b>${fmtQ(it.unitNet * it.qty)}</b></td></tr>`;
+      <td ${tdc}>${it.qty}</td><td ${tdn}>${fmtC(it.unitNet, lc(it))}</td><td ${tdn}><b>${fmtC(it.unitNet * it.qty, lc(it))}</b></td></tr>`;
     it.opts.forEach(o => {
       n++;
       h += `<tr><td ${tdc}>${n}</td><td ${td}>${o.code}</td><td ${td} style="border:1px solid #dfe4e9;padding:3px 5px 3px 14px;">+ ${escH(itemNameUi(o))}</td>
-        <td ${tdc}>${oQty(o,it)}</td><td ${tdn}>${fmtQ(o.unitNet)}</td><td ${tdn}>${fmtQ(o.unitNet * oQty(o,it))}</td></tr>`;
+        <td ${tdc}>${oQty(o,it)}</td><td ${tdn}>${fmtC(o.unitNet, ocur(o,it))}</td><td ${tdn}>${fmtC(o.unitNet * oQty(o,it), ocur(o,it))}</td></tr>`;
     });
   });
-  h += `<tr><td colspan="5" ${tdn}><b>${t("total")}</b></td><td ${tdn}><b>${fmtQ(quoteTotal())}</b></td></tr>`;
+  const qt = quoteTotals();
+  bagCurs(qt).forEach(c => { h += `<tr><td colspan="5" ${tdn}><b>${t("total")}${bagCurs(qt).length > 1 ? " (" + c + ")" : ""}</b></td><td ${tdn}><b>${fmtC(qt[c], c)}</b></td></tr>`; });
   h += `</tbody></table>`;
   box.innerHTML = h;
 }
 $("qBadge").textContent = quote.length;
 
-$("btnAdd").onclick = () => {
+$("btnAdd").onclick = async () => {
   const tt = currentTotals(); if(!tt) return;
-  if(quote.length && (quote[0].cur || "EUR") !== cur){
-    uiAlert(t("curMix", {c: quote[0].cur || "EUR"}));
-    return;
+  // iki para birimi: teklifte TL varken EUR (ya da tersi) eklenecekse onay istenir
+  const yeni = new Set([selCur(), ...[...selOpts].filter(id => optP(id) != null).map(optCur)]);
+  const eski = new Set(bagCurs(quoteTotals()));
+  const ek = [...yeni].filter(c => !eski.has(c));
+  if(eski.size && ek.length){
+    if(!await uiConfirm(t("curMixQ", {a: [...eski].join(" / "), b: ek.join(" / ")}))) return;
+  } else if(!eski.size && yeni.size > 1){
+    if(!await uiConfirm(t("curMixQ1"))) return;
   }
   const k1 = 1 - d1/100, k2 = 1 - d2/100;
   if(quote.length === 0) nextQuoteNo();
   quote.push({
-    code: sel.code, name: nameOf(sel), desc: sel.desc, qty: mQty, cur, src: DB.src,
+    code: sel.code, name: nameOf(sel), desc: sel.desc, qty: mQty, cur: selCur(), src: DB.src,
     nameTr: DB.src === "excel" ? sel.name : "", nameEn: DB.src === "excel" ? (sel.nameEn || sel.name) : sel.name,
     unitList: selPrice(), unitNet: selPrice() * k1 * k2, ...(mPrice(sel) == null ? {manual: true} : {}),
     opts: [...selOpts].filter(id => optP(id) != null)
       .map(id => ({code: DB.opts[id].code, name: nameOf(DB.opts[id]),
-        nameTr: DB.src === "excel" ? DB.opts[id].name : "", nameEn: DB.src === "excel" ? (DB.opts[id].nameEn || DB.opts[id].name) : DB.opts[id].name, qty: optQtys[id] || 1, unitList: optP(id),
+        nameTr: DB.src === "excel" ? DB.opts[id].name : "", nameEn: DB.src === "excel" ? (DB.opts[id].nameEn || DB.opts[id].name) : DB.opts[id].name, qty: optQtys[id] || 1, unitList: optP(id), cur: optCur(id),
         unitNet: optP(id) * (optDisc[id] != null ? 1 - optDisc[id]/100 : k1 * k2), ...(optDisc[id] != null ? {od: optDisc[id]} : {}),
         ...(oPrice(DB.opts[id]) == null ? {manual: true} : {})})),
     d1, d2
@@ -2166,48 +2164,38 @@ $("btnClear").onclick = async () => { if(await uiConfirm(t("clearQConf"))){ quot
    Listede karşılığı olmayan kalemler (ve navlun/sigorta) için kur sorulur. Farklı kaydetmek için "Yeni Teklif Olarak Kaydet". */
 function paintConvBtn(){
   const b = $("btnConv"); if(!b) return;
-  const from = quote.length ? (quote[0].cur || "EUR") : cur;
+  const from = qMain();
   b.textContent = from === "EUR" ? t("convToTL") : t("convToEUR");
   b.style.display = quote.length ? "" : "none";
 }
 $("btnConv").onclick = async () => {
   if(!quote.length) return;
-  const from = quote[0].cur || "EUR", to = from === "EUR" ? "TL" : "EUR", key = to === "TL" ? "tl" : "eur";
+  // sürüm 2026.11.18-2: kur kullanılmaz. Hedef listede fiyatı olan kalem çevrilir, olmayan eski para biriminde kalır.
+  const from = qMain(), to = from === "EUR" ? "TL" : "EUR", key = to === "TL" ? "tl" : "eur";
   const findM = code => DB.machines.find(m => m.code === code);
   const optList = Object.values(DB.opts || {});
   const findO = code => optList.find(o => o.code === code);
-  const eksik = [];
-  const plan = quote.map(it => {
-    const m = findM(it.code), p = m && m[key] != null ? m[key] : null;
-    if(p == null) eksik.push(it.code);
-    return {p, ops: (it.opts || []).map(o => { const x = findO(o.code), q = x && x[key] != null ? x[key] : null; if(q == null) eksik.push(o.code); return q; })};
-  });
-  const fr = parseAmt($("exFreightAmt").value), ins = parseAmt($("exInsAmt").value);
-  let rate = null;
-  if(eksik.length || fr || ins){
-    const v = await uiPrompt(t("convRate", {list: eksik.length ? eksik.join(", ") : "—"}), eurTl() ? fmtNum(eurTl()) : "", "1 € = ? ₺");
-    if(v == null) return;
-    rate = parseAmt(v);
-    if(!(rate > 0)){ uiAlert(t("manPriceBad")); return; }
-  }
   if(!await uiConfirm(t("convQ", {from, to}))) return;
-  const conv = x => to === "TL" ? x * rate : x / rate;
-  quote.forEach((it, i) => {
-    const pl = plan[i], k = (1 - (it.d1 || 0)/100) * (1 - (it.d2 || 0)/100);
-    const ul = pl.p != null ? pl.p : Math.round(conv(listOf(it, it)) * 100) / 100;
-    it.unitList = ul; it.unitNet = ul * k; it.cur = to;
-    (it.opts || []).forEach((o, j) => {
-      const q = pl.ops[j], ol = q != null ? q : Math.round(conv(listOf(o, it)) * 100) / 100;
-      o.unitList = ol; o.unitNet = ol * optK(o, it);
+  const kalan = [];
+  quote.forEach(it => {
+    const k = (1 - (it.d1 || 0)/100) * (1 - (it.d2 || 0)/100);
+    if(lc(it) !== to){
+      const m = findM(it.code), p = m && m[key] != null ? m[key] : null;
+      if(p != null){ it.unitList = p; it.unitNet = p * k; } else kalan.push(it.code);
+    }
+    const mc = lc(it);
+    (it.opts || []).forEach(o => {
+      if(!o.cur) o.cur = mc;
+      if(o.cur === to) return;
+      const x = findO(o.code), q = x && x[key] != null ? x[key] : null;
+      if(q != null){ o.unitList = q; o.unitNet = q * optK(o, it); o.cur = to; } else kalan.push(o.code);
     });
+    if(!kalan.includes(it.code)) it.cur = to;
   });
-  if(rate){
-    const fx = (id, v) => { if(v){ const n = Math.round(conv(v) * 100) / 100; $(id).value = String(n).replace(".", ","); localStorage.setItem("yq_" + id, $(id).value); } };
-    fx("exFreightAmt", fr); fx("exInsAmt", ins);
-  }
   setCur(to);
   saveQuote(); renderQuote();
-  uiAlert(t("convDone", {to}));
+  const fr = parseAmt($("exFreightAmt").value), ins = parseAmt($("exInsAmt").value);
+  uiAlert(t("convDone", {to}) + (kalan.length ? "\n\n" + t("convKeep", {list: kalan.join(", ")}) : "") + (fr || ins ? "\n\n" + t("convFr") : ""));
 };
 $("btnDisc").onclick = () => {
   const cur = localStorage.getItem("yq_showdisc") === "1";
@@ -2216,19 +2204,36 @@ $("btnDisc").onclick = () => {
 };
 
 function oQty(o, it){ return o.qty != null ? o.qty : it.qty; }
-function quoteTotal(){
-  return quote.reduce((s,it) => s + it.unitNet * it.qty + it.opts.reduce((a,o) => a + o.unitNet * oQty(o,it), 0), 0);
+// Satırın para birimi: makine it.cur; opsiyon kendi cur'u (eski kayıtlarda makineninki)
+const lc = it => it.cur || "EUR";
+const ocur = (o, it) => o.cur || lc(it);
+function quoteTotals(){
+  const b = {};
+  quote.forEach(it => { bagAdd(b, lc(it), it.unitNet * it.qty); it.opts.forEach(o => bagAdd(b, ocur(o, it), o.unitNet * oQty(o, it))); });
+  return b;
 }
+function quoteListTotals(){
+  const b = {};
+  quote.forEach(it => { bagAdd(b, lc(it), listOf(it, it) * it.qty); it.opts.forEach(o => bagAdd(b, ocur(o, it), listOf(o, it) * oQty(o, it))); });
+  return b;
+}
+// Teklifin ana para birimi: TL kalem varsa TL (navlun / sigorta bu para biriminde), yoksa EUR
+const qMain = () => quote.length ? (quote.some(it => lc(it) === "TL" || it.opts.some(o => ocur(o, it) === "TL")) ? "TL" : "EUR") : cur;
+function quoteTotal(){ return quoteTotals()[qMain()] || 0; }
 function listOf(x, it){ if(x.unitList != null) return x.unitList; const k = x === it ? (1 - it.d1/100) * (1 - it.d2/100) : optK(x, it); return k ? x.unitNet / k : x.unitNet; }
-function quoteListTotal(){
-  return quote.reduce((s,it) => s + listOf(it,it) * it.qty + it.opts.reduce((a,o) => a + listOf(o,it) * oQty(o,it), 0), 0);
-}
+function quoteListTotal(){ return quoteListTotals()[qMain()] || 0; }
 // Yüzde yazımı teklif diline göre: TR %10 • EN 10% • ES 10 % (RAE: rakamla boşluk)
 const numL = (v, L) => L === "en" ? String(v) : String(v).replace(".", ",");   // 28.75 → 28,75 (TR / ES)
 const pctD = v => DOC_LANG === "tr" ? "%" + numL(v, "tr") : DOC_LANG === "es" ? numL(v, "es") + "\u00a0%" : v + "%";
 function discLabel(it){ return it.d1 || it.d2 ? pctD(it.d1) + (it.d2 ? " +" + pctD(it.d2) : "") : "—"; }
 function discLabelO(o, it){ return o.od != null ? (o.od ? pctD(o.od) : "—") : discLabel(it); }
-const fmtQ = n => fmtC(n, quote.length ? (quote[0].cur || "EUR") : cur);
+const fmtQ = n => fmtC(n, qMain());
+// Toplam kutusu: her para birimi ayrı satır (€ üstte / ₺ altta ya da seçili liste önce); tek para biriminde eskisi gibi tek satır
+function paintTotal(box, b){
+  const k = bagCurs(b), cok = k.length > 1;
+  box.innerHTML = k.map(c => `<span class="tc">${cok ? c : (c === "TL" ? "₺" : "€")}</span><span class="tv">${b[c].toLocaleString("tr-TR", NF)}${cok ? (c === "TL" ? " ₺" : " €") : ""}</span>`).join("");
+  box.classList.toggle("multi", cok);
+}
 function renderQuote(){
   const showD = localStorage.getItem("yq_showdisc") === "1";
   $("btnDisc").textContent = showD ? t("discShow") : t("discHide");
@@ -2245,21 +2250,21 @@ function renderQuote(){
   let n = 0;
   quote.forEach((it, idx) => {
     n++;
-    const dcols = showD ? `<td class="num">${fmtQ(listOf(it,it))}</td><td class="ctr">${discLabel(it)}</td>` : "";
+    const dcols = showD ? `<td class="num">${fmtC(listOf(it,it), lc(it))}</td><td class="ctr">${discLabel(it)}</td>` : "";
     const tr = document.createElement("tr");
     tr.innerHTML = `<td class="ctr">${n}</td><td><b>${it.code}</b></td><td>${pfName(it)}</td>
       <td class="ctr"><input class="qty-in" type="tel" value="${it.qty}" data-i="${idx}"></td>
-      ${dcols}<td class="num">${fmtQ(it.unitNet)}</td><td class="num"><b>${fmtQ(it.unitNet * it.qty)}</b></td>
+      ${dcols}<td class="num">${fmtC(it.unitNet, lc(it))}</td><td class="num"><b>${fmtC(it.unitNet * it.qty, lc(it))}</b></td>
       <td class="ctr noprint" style="white-space:nowrap;"><button class="delx" data-edit="${idx}" style="background:var(--blue);margin-right:3px;">✎</button><button class="delx" data-del="${idx}">✕</button></td>`;
     tb.appendChild(tr);
     it.opts.forEach((o, oi) => {
       n++;
-      const docols = showD ? `<td class="num">${fmtQ(listOf(o,it))}</td><td class="ctr">${discLabelO(o,it)}</td>` : "";
+      const docols = showD ? `<td class="num">${fmtC(listOf(o,it), ocur(o,it))}</td><td class="ctr">${discLabelO(o,it)}</td>` : "";
       const tro = document.createElement("tr"); tro.className = "optrow";
       const oq = oQty(o, it);
       tro.innerHTML = `<td class="ctr">${n}</td><td>${o.code}</td><td class="oname">+ ${pfName(o)}</td>
         <td class="ctr"><input class="qty-in" type="tel" value="${oq}" data-i="${idx}" data-oi="${oi}"></td>
-        ${docols}<td class="num">${fmtQ(o.unitNet)}</td><td class="num">${fmtQ(o.unitNet * oq)}</td>
+        ${docols}<td class="num">${fmtC(o.unitNet, ocur(o,it))}</td><td class="num">${fmtC(o.unitNet * oq, ocur(o,it))}</td>
         <td class="ctr noprint"><button class="delx" data-delopt="${idx}:${oi}">✕</button></td>`;
       tb.appendChild(tro);
     });
@@ -2267,14 +2272,13 @@ function renderQuote(){
   paintConvBtn();
   const st = $("btnSaveQ");
   if(st) st.textContent = (editingNo && editingNo === ($("pfNo").value || "").trim()) ? t("update") : t("save");
-  const tot = quoteTotal(), listT = quoteListTotal();
-  const qcur = quote.length ? (quote[0].cur || "EUR") : cur;
-  $("pfTotalCur").textContent = qcur === "TL" ? "₺" : "€";
-  $("pfTotal").textContent = tot.toLocaleString("tr-TR", NF);
+  const totB = quoteTotals(), listB = quoteListTotals();
+  paintTotal($("pfTotBox"), bagCurs(totB).length ? totB : {[qMain()]: 0});
   $("pfDiscBar").style.display = showD && quote.length ? "flex" : "none";
   if(typeof renderExtra === "function") renderExtra();
-  $("pfListT").textContent = fmtQ(listT);
-  $("pfDiscT").textContent = "− " + fmtQ(listT - tot);
+  $("pfListT").textContent = fmtBag(listB);
+  const discB = {}; bagCurs(listB).forEach(c => discB[c] = listB[c] - (totB[c] || 0));
+  $("pfDiscT").textContent = fmtBag(discB, "− ");
   tb.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openEdit(+b.dataset.edit));
   tb.querySelectorAll(".delx:not([data-edit])").forEach(b => b.onclick = () => {
     if(b.dataset.delopt){
@@ -2484,7 +2488,7 @@ function yerelSaat(d){
     " (UTC" + (off < 0 ? "-" : "+") + oh + (om ? ":" + p(om) : "") + (tz ? " " + tz : "") + ")";
 }
 function currentQuoteRecord(){
-  const qcur2 = quote.length ? (quote[0].cur || "EUR") : cur;
+  const qcur2 = qMain();
   return {
     no: $("pfNo").value, ts: Date.now(), savedAt: yerelSaat(), docLang: DOC_LANG,
     date: new Date().toLocaleDateString("tr-TR"),
@@ -2496,9 +2500,10 @@ function currentQuoteRecord(){
     delTerm: $("delTerm").value, delPlace: $("delPlace").value, payment: $("cPayment").value,
     freight: parseAmt($("exFreightAmt").value), insurance: parseAmt($("exInsAmt").value),
     listTotal: quoteListTotal(), netTotal: quoteTotal(),
+    listTotals: quoteListTotals(), netTotals: quoteTotals(),      // iki para birimli teklif: para birimine göre
     items: JSON.parse(JSON.stringify(quote)),
     lead: JSON.parse(JSON.stringify(leadData || {})),
-    total: fmtQ(quoteTotal()), card: cardData
+    total: fmtBag(quoteTotals()), card: cardData
   };
 }
 // Teklifi arşive + merkezi kayda yazar, mümkünse PDF'ini de üretip saklar
@@ -2719,7 +2724,7 @@ $("fileInp").onchange = async e => {
     }));
     if(!machines.length) throw new Error("'Makineler' sayfasında satır bulunamadı");
     DB = {machines, opts};
-    localStorage.setItem(SRC_KEY, "pdf"); paintSrcSeg();   // eski biçim Excel PDF yapısındadır
+    setPdfSrc(); paintSrcSeg();   // eski biçim Excel PDF yapısındadır
     saveDb();
     localStorage.setItem("yq_dbver", String(DB_VERSION));
     localStorage.setItem(infoKey("pdf"), f.name + " (" + new Date().toLocaleDateString("tr-TR") + ")");
@@ -3111,7 +3116,7 @@ $("pdfInp").onchange = async e => {
     const wasSrc = curSrc();
     if(wasSrc !== "pdf") DB = loadDb("pdf");             // PDF her zaman PDF listesine uygulanır (Excel listesi korunur)
     const backup = JSON.stringify(DB);
-    const toPdf = () => { localStorage.setItem(SRC_KEY, "pdf"); paintSrcSeg(); updateImpInfo(); updatePkgInfo(); resetSel(); renderEmptyState(); };
+    const toPdf = () => { setPdfSrc(); paintSrcSeg(); updateImpInfo(); updatePkgInfo(); resetSel(); renderEmptyState(); };
     const askSet = parseAskCodes(lines);
     const {changes, misses, asked} = applyPdfPrices(parsePdfPrices(lines), pdfTarget, askSet);
     const added = addNewFromPdf(rows, pdfTarget);
@@ -3189,13 +3194,15 @@ function edPaintSeg(el, key){
 function edRefresh(){
   const cur = edState.cur;
   const k = (1 - edState.d1/100) * (1 - edState.d2/100);
-  let list = edState.unitList * edState.qty, net = list * k;
-  edState.opts.forEach(o => { list += o.unitList * o.qty; net += o.unitList * o.qty * (o.od != null ? 1 - o.od/100 : k); });
+  const list = {}, net = {}, disc = {};
+  bagAdd(list, cur, edState.unitList * edState.qty); bagAdd(net, cur, edState.unitList * edState.qty * k);
+  edState.opts.forEach(o => { const c = o.cur || cur; bagAdd(list, c, o.unitList * o.qty); bagAdd(net, c, o.unitList * o.qty * (o.od != null ? 1 - o.od/100 : k)); });
+  bagCurs(list).forEach(c => disc[c] = list[c] - (net[c] || 0));
   const md = machDiscTxt(edState.d1, edState.d2);
   document.querySelectorAll("#edOpts .odinp").forEach(i => { i.placeholder = "%" + md; });
-  $("edList").textContent = fmtC(list, cur);
-  $("edDisc").textContent = "− " + fmtC(list - net, cur) + "  (%" + (Math.round(edState.d1*100)/100) + (edState.d2 ? " +%" + (Math.round(edState.d2*100)/100) : "") + (edState.opts.some(o => o.od != null) ? " • " + t("optDiscShort") : "") + ")";
-  $("edNet").textContent = fmtC(net, cur);
+  $("edList").textContent = fmtBag(list);
+  $("edDisc").textContent = fmtBag(disc, "− ") + "  (%" + (Math.round(edState.d1*100)/100) + (edState.d2 ? " +%" + (Math.round(edState.d2*100)/100) : "") + (edState.opts.some(o => o.od != null) ? " • " + t("optDiscShort") : "") + ")";
+  $("edNet").textContent = fmtBag(net);
   $("edUnitInfo").textContent = t("edUnit") + fmtC(edState.unitList, cur);
   $("edQty").value = edState.qty;
 }
@@ -3209,7 +3216,7 @@ function edRenderOpts(){
     row.style.cssText = "display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);";
     row.innerHTML = `<div style="flex:1;min-width:0;">
         <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escH(itemNameUi(o))}</div>
-        <div style="font-size:11.5px;color:var(--muted);">${o.code} • ${fmtC(o.unitList, edState.cur)}</div>
+        <div style="font-size:11.5px;color:var(--muted);">${o.code} • ${fmtC(o.unitList, o.cur || edState.cur)}</div>
       </div>
       <input class="oqty" type="tel" inputmode="numeric" value="${o.qty}" style="width:44px;" title="${t("qty")}">
       <input class="oqty odinp${o.od != null ? " odset" : ""}" type="text" inputmode="decimal" value="${o.od != null ? o.od : ""}" style="width:58px;" title="${t("optDiscLbl")}">
@@ -3231,12 +3238,12 @@ function openEdit(idx){
   edState = {
     qty: it.qty || 1, d1: it.d1 || 0, d2: it.d2 || 0,
     cur: it.cur || "EUR", unitList: unitListOf(it, it),
-    opts: (it.opts || []).map(o => ({code:o.code, name:o.name, nameTr:o.nameTr || "", nameEn:o.nameEn || "", qty:(o.qty != null ? o.qty : it.qty) || 1, unitList: unitListOf(o, it), ...(o.od != null ? {od: o.od} : {})}))
+    opts: (it.opts || []).map(o => ({code:o.code, name:o.name, nameTr:o.nameTr || "", nameEn:o.nameEn || "", qty:(o.qty != null ? o.qty : it.qty) || 1, unitList: unitListOf(o, it), cur: o.cur || it.cur || "EUR", ...(o.od != null ? {od: o.od} : {})}))
   };
   $("edTitle").textContent = it.code;
   $("edSub").textContent = it.name || "";
-  edBuildSeg($("edSegD1"), D1_VALUES, "%", "d1");
-  edBuildSeg($("edSegD2"), D2_VALUES, "+%", "d2");
+  edBuildSeg($("edSegD1"), discVals(1, qMain()), "%", "d1");     // TL teklifte %5 / %10 / elle
+  edBuildSeg($("edSegD2"), discVals(2, qMain()), "+%", "d2");
   edPaintSeg($("edSegD1"), "d1");
   edPaintSeg($("edSegD2"), "d2");
   edRenderOpts(); edRefresh();
@@ -3251,7 +3258,7 @@ $("edSave").onclick = () => {
   const k = (1 - edState.d1/100) * (1 - edState.d2/100);
   it.qty = edState.qty; it.d1 = edState.d1; it.d2 = edState.d2;
   it.unitList = edState.unitList; it.unitNet = edState.unitList * k;
-  it.opts = edState.opts.map(o => ({code:o.code, name:o.name, nameTr:o.nameTr || "", nameEn:o.nameEn || "", qty:o.qty, unitList:o.unitList,
+  it.opts = edState.opts.map(o => ({code:o.code, name:o.name, nameTr:o.nameTr || "", nameEn:o.nameEn || "", qty:o.qty, unitList:o.unitList, cur: o.cur,
     unitNet: o.unitList * (o.od != null ? 1 - o.od/100 : k), ...(o.od != null ? {od: o.od} : {})}));
   saveQuote(); renderQuote();
   $("editModal").classList.remove("open"); edIdx = -1;
@@ -3280,16 +3287,16 @@ function renderExtra(){
   if(!rule.length || !quote.length){ box.style.display = "none"; $("pfTotalBar").style.marginBottom = ""; return; }
   box.style.display = "flex";
   $("pfTotalBar").style.marginBottom = "0";
-  const cur = quote.length ? (quote[0].cur || "EUR") : "EUR";
-  const curLbl = cur === "TL" ? "TL" : "EUR";
+  const cur = qMain();                                         // navlun / sigorta teklifin ana para biriminde (TL kalem varsa TL)
   box.querySelectorAll(".excur").forEach(e => e.textContent = (cur === "TL" ? "₺" : "€"));
   $("exFreight").style.display = rule.includes("F") ? "" : "none";
   $("exIns").style.display = rule.includes("I") ? "" : "none";
   const fr = rule.includes("F") ? parseAmt($("exFreightAmt").value) : 0;
   const ins = rule.includes("I") ? parseAmt($("exInsAmt").value) : 0;
-  const tot = quoteTotal() + fr + ins;
+  const tb = quoteTotals(), tot = (tb[cur] || 0) + fr + ins;
   $("exTotLbl").innerHTML = pfL("totalAmt", {T: term});
-  $("exTotVal").textContent = (cur === "TL" ? tot.toLocaleString("tr-TR", NF) : tot.toLocaleString("tr-TR", NF));
+  const diger = bagCurs(tb).filter(c => c !== cur);              // iki para birimli teklifte diğer para biriminin toplamı altına
+  $("exTotVal").innerHTML = tot.toLocaleString("tr-TR", NF) + diger.map(c => `<span class="excur2">+ ${fmtC(tb[c], c)}</span>`).join("");
 }
 ["exFreightAmt","exInsAmt"].forEach(id => {
   const el = $(id);
@@ -3640,10 +3647,12 @@ $("btnClearC").onclick = async () => {
    PDF listesi:   makine adı = kod (AIM 3410 gibi), stok kodu boş, stok adı = ürün adı
    Opsiyon:       makine adı boş, stok kodu = opsiyon kodu, stok adı = opsiyon adı */
 const isStockCode = c => /^\d[A-Z]{2}\d{6}-\d{4}$/i.test(String(c || "").trim());
+// PDF listesindeki makinelerin stok kodu (Caniasta Excel listesinden eşleştirildi; tabloda "Stok Kodları" sayfasıyla aynı)
+const PDF_STOK = Object.fromEntries("KD 305=4UN010030-0185|KY 305=4UN010030-0190|KD 350 M=4UN010030-0300|KD 350 D=4UN010030-0305|KD 350 PS=4UN010030-0315|KD 400 M=4UN010030-0400|KD 400 D=4UN010030-0410|KD 400 PS=4UN010030-0420|RYK 420 S=4UN010030-0701|RYK 420 W=4UN010030-0702|MK 420=4UN010030-0537|MK 420 PS=4UN010030-0512|MK 450=4UN010030-0570|ACK 420 S=4UN010030-0274|ACK 420 CE=4UN010030-0270|ACK 550=4UN010030-0293|ACK 700=4UN010030-0681|SCM 420 L4=5UN01-SCM-1|SCM 420 L7=5UN01-SCM-3|SK 500=4UN010030-0620|SK 500 D=4UN010030-0625|SDT 275=1TC020000-0030|SDT 280=1TC020000-0402|CK 412=4UN010030-0070|CK 412 U=5UN01-CK-1|VK 420=4UN010030-0750|KD 402 S=4UN020030-0201|DC 421 PSD=4UN020030-0690|DC 421 PBS=4UN020030-0675|DC 550 PB=4UN020030-0185|DC 550 SKH=4UN020030-0195|CDC 600 (5m)=4UN020030-0780|CDC 600 (7m)=4UN020030-0790|SNM 560 M=4UN050030-0412|SNM 560 SRV=4UN050030-0411|KM 212=4UN050030-0201|KM 211 S=4UN050030-0155|KM 215 S=4UN050030-0355|MEM 128=4UN050030-0526|FR 221 S=4UN060030-0155|FR 222=4UN060030-0200|FR 223=4UN060030-0201|FR 223 S=4UN060030-0203|FR 226 S=4UN060030-0355|ST 264=4UN060030-0005|CRM 201 S=4UN060030-0605|CRM 250 S=4UN060030-0607|NCR 300=4UN060030-0640|NCR 300 P=4UN060030-0641|TK 503=4UN030030-0130|TK 505=4UN030030-0156|DK 502=4UN030030-0231|CA 601=4UN040030-0021|CA 603=4UN040030-0030|DK 540=4UN030030-0252|DK 540 CS=4UN030030-0256|SA 251=4UN040030-0082|SA 261=4UN040030-0091|CNC 609=4UN040030-0012|CNC 609 R=4UN040030-0014|CNC 611=4UN040030-0013|CCL 1661 (2 Axis)=5UN03-CCL-1|CCL 1661 (4 Axis)=5UN03-CCL-2|CPM 4150 S=4UN110030-0054|CPM 4200=4UN110030-0057|CPM 6161=4UN110030-0062|PIM 6508 SE=4UN110030-0024|PIM 6509=4UN110030-0023|AIM 3410=4UN110030-0011|AIM 3410 CBN=4UN110030-0012|AIM 4420=4UN110030-0015|AIM 7420=4UN110030-0016|AIM 7420 T=4UN110030-0014|AIM 7510=4UN110030-0020|ALM 6510 AT=4UN110030-0035|MKN 150=4UN300030-0110|MKN 300=4UN300030-0102|MKN 301=4UN300030-0106|DKN 302=4UN300030-0035|DKN 602=4UN300030-0032|SKN 300=4UN300030-0041|SKN 600=4UN300030-0080|SKN 301=4UN300030-0127|HDL 400=4UN300030-0130|HDL 700=4UN300030-0132|PYE 101=4UN070030-0101|PYE 102=4UN070030-0102|PYE 103=4UN070030-0103|PYE 104=4UN070030-0104|KP 180=4UN090030-0017|KP 110=1TC020000-0070|KP 130 CNC=1TC020000-0096|MCA 801=1TC020000-0095|SM 201=1TC020000-0031|SM 201 SD=1TC020000-0109|SM 206=1TC020000-0089|NSM 352=1TC020000-0082|NSM 352 A=1TC020000-0107|NSM 353=1TC020000-0084|NSM 353 A=1TC020000-0108|GAS 301=1TC020000-0053|MS=4UN100030-0100|WB 4000=4UN400030-0001|GPT 1000=4UN400030-0003|HP 1000=4UN400030-0005|PT 1000=4UN400030-0002|VP 1000=4UN400030-0035|VP 2000=4UN400030-0036|GT 1000=4UN400030-0006|PWB 4100=4UN400030-0007|RT 1000=4UN400030-0008|WAS 1000=4UN400030-0015|PC 4000=1TC040000-0430|RS 1000=3UA900030-0056|250 TOOLQUAZ=1SK010000-0125|300 TOOLQUAZ=1SK010000-0101|350 TOOLQUAZ=1SK010000-0102|400 TOOLQUAZ=1SK010000-0103|420 TOOLQUAZ=1SK010000-0104|450 TOOLQUAZ=1SK010000-0105|550 TOOLQUAZ=1SK010000-0115|300 FREUD=1SK010000-0013|350 FREUD=1SK010000-0017|400 FREUD=1SK010000-0019|420 FREUD=1SK010000-0021|450 FREUD=1SK010000-0134|550 FREUD=1SK010000-0026".split("|").map(x => x.split("=")));
 function itemCols(it){
   const xl = it.src ? it.src === "excel" : isStockCode(it.code);
   const ad = it.nameTr || it.name || "";
-  return xl ? [it.desc || "", it.code || "", ad] : [it.code || "", "", ad];
+  return xl ? [it.desc || "", it.code || "", ad] : [it.code || "", PDF_STOK[String(it.code || "").trim()] || "", ad];
 }
 const optCols = o => ["", o.code || "", o.nameTr || o.name || ""];
 
@@ -3677,13 +3686,14 @@ function buildCsv(recs){
     let n = 0;
     items.forEach(it => {
       n++;
-      const push = (tur, cols, qty, unitList, unitNet, o) => rows.push([
+      const push = (tur, cols, qty, unitList, unitNet, o) => { const c = (o && o.cur) || it.cur || r.cur || "EUR", ana = c === (r.cur || c); rows.push([
         r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", ...leadCols, r.company || "", r.person || "",
-        r.phone || "", r.mail || "", r.cur || "", n, tur, ...cols,
+        r.phone || "", r.mail || "", c, n, tur, ...cols,
         qty, numCell(unitList), numCell(o && o.od != null ? o.od : it.d1), numCell(o && o.od != null ? 0 : it.d2), numCell(unitNet), numCell(unitNet * qty),
         r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
-        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal), r.city || "", r.country || "", r.savedAt || "", r.countryCode || "", r.docLang || ""
-      ]);
+        ana ? numCell(r.freight) : "", ana ? numCell(r.insurance) : "", numCell(r.listTotals ? (r.listTotals[c] || 0) : r.listTotal), numCell(r.netTotals ? (r.netTotals[c] || 0) : r.netTotal),
+        r.city || "", r.country || "", r.savedAt || "", r.countryCode || "", r.docLang || ""
+      ]); };
       push("Makine", itemCols(it), it.qty, it.unitList, it.unitNet);
       (it.opts || []).forEach(o => { n++; push("Opsiyon", optCols(o), (o.qty != null ? o.qty : it.qty), o.unitList, o.unitNet, o); });
     });
@@ -3813,17 +3823,21 @@ function sheetRows(r){
   const base = [r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "",
                 L.srcName || MODES[L.src] || "", L.fair || "", L.cc || "", L.cname || "",
                 L.opp || "", L.oppDesc || "", isoToTr(L.start), isoToTr(L.end), L.note || "",
-                r.company || "", r.person || "", r.phone || "", r.mail || "", r.cur || ""];
-  const tail = [r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
-                r.freight || 0, r.insurance || 0, r.listTotal || 0, r.netTotal || 0, r.city || "", r.country || "", r.savedAt || "", r.countryCode || "", r.docLang || ""];
+                r.company || "", r.person || "", r.phone || "", r.mail || ""];
+  // sürüm 2026.11.18-2: Para Birimi satırın kendi para birimi; teklif toplamları o para biriminin toplamı (navlun / sigorta ana para biriminde)
+  const tail = c => [r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
+                c === (r.cur || c) ? (r.freight || 0) : 0, c === (r.cur || c) ? (r.insurance || 0) : 0,
+                r.listTotals ? (r.listTotals[c] || 0) : (r.listTotal || 0), r.netTotals ? (r.netTotals[c] || 0) : (r.netTotal || 0),
+                r.city || "", r.country || "", r.savedAt || "", r.countryCode || "", r.docLang || ""];
   let n = 0;
   (r.items || []).forEach(it => {
     n++;
-    rows.push([...base, n, "Makine", ...itemCols(it), it.qty, it.unitList, it.d1, it.d2, it.unitNet, it.unitNet * it.qty, ...tail]);
+    const mc = it.cur || r.cur || "EUR";
+    rows.push([...base, mc, n, "Makine", ...itemCols(it), it.qty, it.unitList, it.d1, it.d2, it.unitNet, it.unitNet * it.qty, ...tail(mc)]);
     (it.opts || []).forEach(o => {
       n++;
-      const q = (o.qty != null ? o.qty : it.qty);
-      rows.push([...base, n, "Opsiyon", ...optCols(o), q, o.unitList, o.od != null ? o.od : it.d1, o.od != null ? 0 : it.d2, o.unitNet, o.unitNet * q, ...tail]);
+      const q = (o.qty != null ? o.qty : it.qty), oc = o.cur || mc;
+      rows.push([...base, oc, n, "Opsiyon", ...optCols(o), q, o.unitList, o.od != null ? o.od : it.d1, o.od != null ? 0 : it.d2, o.unitNet, o.unitNet * q, ...tail(oc)]);
     });
   });
   return rows;
@@ -4025,6 +4039,7 @@ function paintSrcSeg(){ [...$("srcSeg").children].forEach(b => b.classList.toggl
 function setSource(src){
   if(src === curSrc()) return;
   localStorage.setItem(SRC_KEY, src);
+  if(src === "pdf") localStorage.setItem(SRC_PDF_OK, "1"); else localStorage.removeItem(SRC_PDF_OK);
   DB = loadDb(src);
   paintSrcSeg(); updateImpInfo(); updatePkgInfo(); resetSel(); renderEmptyState();
   checkPricePackage(DB.machines.length > 0);             // liste boşsa sonucu göster
@@ -4142,6 +4157,7 @@ $("btnSetupLink").onclick = async () => {
 /* Yönetici modu */
 function admOpen(v){
   $("admBox").style.display = v ? "" : "none";
+  $("srcRow").style.display = v ? "block" : "none";              // PDF / Excel seçimi yalnız yönetici modunda
   $("btnAdm").textContent = v ? "Kapat" : "Aç";
   $("admInp").style.display = v ? "none" : "";
   if(v) $("passInp").value = "";   // boş bırakılırsa uygulamanın kendi anahtarı kullanılır
