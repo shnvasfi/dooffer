@@ -1197,7 +1197,6 @@ const I18N = {
   manPriceBad:["Geçerli bir tutar girin.", "Enter a valid amount.", "Введите корректную сумму.", "Ingrese un monto válido."],
   convToTL:   ["₺ TL'ye çevir", "₺ Convert to TL", "₺ В TL", "₺ Convertir a TL"],
   convToEUR:  ["€ EUR'ya çevir", "€ Convert to EUR", "€ В EUR", "€ Convertir a EUR"],
-  convRate:   ["Kur girin (1 € = kaç ₺?)\nŞu kalemlerin hedef listede fiyatı yok, kurla çevrilecek: {list}\n(Navlun / sigorta da bu kurla çevrilir.)", "Enter the rate (1 € = ? ₺)\nThese items have no price in the target list and will be converted at this rate: {list}\n(Freight / insurance are converted too.)", "Введите курс (1 € = ? ₺)\nПозиции без цены в целевом прайсе: {list}", "Ingrese el tipo de cambio (1 € = ? ₺)\nEstos artículos no tienen precio en la lista de destino y se convertirán con este tipo de cambio: {list}\n(El flete y el seguro también se convierten.)"],
   convQ:      ["Teklif {from} → {to} çevrilsin mi?\nFiyatlar {to} listesinden alınır, iskontolar korunur.", "Convert the quote {from} → {to}?\nPrices are taken from the {to} list; discounts are kept.", "Пересчитать {from} → {to}?", "¿Convertir la cotización de {from} a {to}?\nLos precios se toman de la lista en {to}; los descuentos se mantienen."],
   convDone:   ["Teklif {to} olarak hazır. Eskisini korumak için \"Farklı Kaydet\" ile kaydedin.", "The quote is now in {to}. To keep the old one, save with \"Save As\".", "Предложение пересчитано в {to}. Сохраните как новое.", "La cotización ahora está en {to}. Para conservar la anterior, guárdela con \"Guardar como\"."],
   needCountryList:["Ülkeyi listeden seçin (yazarken öneriler çıkar).", "Pick the country from the list (suggestions appear as you type).", "Выберите страну из списка.", "Elija el país de la lista (las sugerencias aparecen al escribir)."],
@@ -1245,10 +1244,7 @@ const I18N = {
   clearC: ["🧹 İletişim bilgilerini temizle", "🧹 Clear contact details", "🧹 Очистить контакты", "🧹 Borrar datos de contacto"],
   clearCConf: ["Yalnız iletişim bilgileri (firma, kişi, telefon, e-posta, şehir, ülke) silinsin mi?\nMakineler, fiyatlar ve şartlar olduğu gibi kalır.", "Clear only the contact details (company, person, phone, e-mail, city, country)?\nMachines, prices and terms are kept.", "Очистить только контактные данные (компания, лицо, телефон, e-mail, город, страна)?\nСтанки, цены и условия сохраняются.", "¿Borrar solo los datos de contacto (empresa, persona, teléfono, correo, ciudad, país)?\nLas máquinas, los precios y las condiciones se mantienen."],
   vcfBtn: ["📇 Rehbere kaydet", "📇 Save to contacts", "📇 В контакты", "📇 Guardar en contactos"],
-  vcfNeed: ["Rehbere kaydetmek için kişi veya firma adı ile telefon ya da e-posta girin.", "To save to contacts, enter a name or company and a phone number or e-mail.", "Введите имя или компанию и телефон или e-mail.", "Para guardar en contactos, ingrese un nombre o empresa y un teléfono o correo."],
-  kurQ: ["Bu makinede TL fiyatı olmayan {n} kalem var (Fiyat Sorunuz).\nEUR fiyatından kurla hesaplansın mı?\n\n1 € = {r} ₺", "This machine has {n} item(s) without a TL price (Price on request).\nCalculate from the EUR price at the exchange rate?\n\n1 € = {r} ₺", "У {n} позиций нет цены в TL. Рассчитать по курсу EUR?\n\n1 € = {r} ₺", "Esta máquina tiene {n} artículo(s) sin precio en TL (Precio a consultar).\n¿Calcular desde el precio en EUR con el tipo de cambio?\n\n1 € = {r} ₺"],
-  kurAsk: ["Euro kurunu girin: 1 € kaç ₺?", "Enter the euro rate: 1 € = ? ₺", "Введите курс: 1 € = ? ₺", "Ingrese el tipo de cambio: 1 € = ? ₺"],
-  kurTitle: ["Euro kuru: TL fiyatı olmayan ürünlerde kullanılır", "Euro rate: used for items without a TL price", "Курс евро для позиций без цены в TL", "Tipo de cambio del euro: para artículos sin precio en TL"]
+  vcfNeed: ["Rehbere kaydetmek için kişi veya firma adı ile telefon ya da e-posta girin.", "To save to contacts, enter a name or company and a phone number or e-mail.", "Введите имя или компанию и телефон или e-mail.", "Para guardar en contactos, ingrese un nombre o empresa y un teléfono o correo."]
 };
 const LI = {tr:0, en:1, ru:2, es:3};   // sözlük sütunları (LANGS_ALL sırası)
 function t(key, vars){
@@ -1385,6 +1381,7 @@ const SRC_KEY = "yq_src";
 // sürüm 2026.11.18-2: varsayılan Excel listesi; PDF listesini yalnız yönetici (Ayarlar → Yönetici Modu) seçer
 const SRC_PDF_OK = "yq_src_pdf";
 function curSrc(){ return localStorage.getItem(SRC_KEY) === "pdf" && localStorage.getItem(SRC_PDF_OK) === "1" ? "pdf" : "excel"; }
+try{ localStorage.removeItem("yq_eurtl"); }catch(e){}            // kaldırılan euro kuru kutusunun eski değeri silinir
 function setPdfSrc(){ localStorage.setItem(SRC_KEY, "pdf"); localStorage.setItem(SRC_PDF_OK, "1"); }
 const SKEY = (base, src) => (src || curSrc()) === "excel" ? base + "_excel" : base;   // pdf eski anahtarları kullanır
 const dbKey    = src => SKEY("yq_db", src);
@@ -1412,7 +1409,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.18-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.18-3";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
