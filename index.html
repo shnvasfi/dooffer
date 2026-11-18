@@ -51,6 +51,7 @@ main{flex:1;padding:10px 12px 16px;}
   background:#fff;font-size:16px;font-weight:800;color:var(--muted);cursor:pointer;line-height:1;}
 .optskip{background:#fff;border:2px solid var(--red);color:var(--red);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:800;letter-spacing:.4px;cursor:pointer;white-space:nowrap;}
 .optskip:active{background:var(--red);color:#fff;}
+.optskip.on{border-color:var(--blue);color:var(--blue);}   /* liste gizliyken: OPSİYON EKLE (mavi) */
 .kurbox{flex:none;display:flex;align-items:center;gap:4px;height:32px;padding:0 8px;border:1.5px solid var(--line);border-radius:8px;background:#fff;font-size:13px;font-weight:700;color:var(--blue-dark);margin-right:4px;}
 .kurbox input{width:58px;border:none;outline:none;font-size:14px;font-weight:800;text-align:right;color:var(--blue-dark);background:transparent;padding:0;}
 .curbar button.on{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff;}
@@ -1121,6 +1122,7 @@ const I18N = {
   qty:        ["ADET", "QTY", "КОЛ-ВО", "CANTIDAD"],
   options:    ["OPSİYONLAR", "OPTIONS", "ОПЦИИ", "OPCIONES"],
   optSkip:    ["OPSİYON EKLEME", "NO OPTIONS", "БЕЗ ОПЦИЙ", "SIN OPCIONES"],
+  optAdd:     ["OPSİYON EKLE", "ADD OPTIONS", "ДОБАВИТЬ ОПЦИИ", "AGREGAR OPCIONES"],
   sMach:      ["Makine", "Machine", "Оборудование", "Máquina"],
   sOpts:      ["Opsiyonlar", "Options", "Опции", "Opciones"],
   listTotal:  ["Liste Toplamı", "List Total", "Итого по прайсу", "Total a precio de lista"],
@@ -1411,7 +1413,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.18-4";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.18-5";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1500,7 +1502,6 @@ const machDiscTxt = (a, b) => (Math.round(a*100)/100) + (b ? "+" + (Math.round(b
 let qtySet = false;
 function showRest(){
   ["sumCard","discCard","finalCard","btnAdd"].forEach(x => $(x).classList.remove("hidden"));
-  $("optSkip").style.display = "none";
 }
 function advanceFromQty(){
   if(sel && sel._hasOpts) $("optCard").classList.remove("hidden");
@@ -1515,7 +1516,22 @@ function setMQty(v){
 $("mQtyMinus").onclick = () => setMQty(qtySet ? mQty - 1 : 1);
 $("mQtyPlus").onclick = () => setMQty(qtySet ? mQty + 1 : 1);
 $("mQtyInp").oninput = () => { const v = parseInt($("mQtyInp").value); if(v) setMQty(v); };
-$("optSkip").querySelector("button").onclick = showRest;
+// OPSİYON EKLEME: opsiyon listesi gizlenir (seçilenler kaldırılır), düğme "OPSİYON EKLE" olur; tekrar dokununca liste açılır
+function setOptHidden(gizli){
+  if(gizli){
+    document.querySelectorAll("#optList input[type=checkbox]:checked").forEach(cb => { cb.checked = false; cb.dispatchEvent(new Event("change")); });
+  }
+  $("optList").style.display = gizli ? "none" : "";
+  const b = $("optSkip").querySelector("button");
+  b.dataset.i18n = gizli ? "optAdd" : "optSkip"; b.textContent = t(b.dataset.i18n);
+  b.classList.toggle("on", gizli);
+}
+$("optSkip").querySelector("button").onclick = () => {
+  const gizli = $("optList").style.display !== "none";
+  setOptHidden(gizli);
+  if(gizli) showRest();
+  refresh();
+};
 
 /* ================= CURRENCY ================= */
 function setCur(c){
@@ -1715,7 +1731,7 @@ function selectMachine(m){
   sel._hasOpts = validOpts.length > 0;
   oc.classList.add("hidden");
   ["sumCard","discCard","finalCard","btnAdd"].forEach(x => $(x).classList.add("hidden"));
-  $("optSkip").style.display = "";
+  setOptHidden(false);
   refresh();
   window.scrollTo({top:0, behavior:"smooth"});
 }
