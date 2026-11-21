@@ -128,8 +128,9 @@ main{flex:1;padding:10px 12px 16px;}
 /* ---- Rapor ekranı ---- */
 #raporSheet{max-width:960px;z-index:450;}   /* açılış ekranının (400) üstünde, mesaj kutusunun (500) altında */
 .rppdfbtn{background:#fff !important;color:var(--blue-dark) !important;border-radius:8px !important;padding:4px 10px !important;font-size:13px !important;margin:0 4px;}
-.rpper{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
-.rpper button{flex:1 0 auto;background:rgba(255,255,255,.1) !important;border:1px solid rgba(255,255,255,.35) !important;border-radius:8px !important;font-size:13px !important;padding:6px 8px !important;}
+.rpper{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;}   /* telefonda 2 satır, geniş ekranda tek satır */
+@media(min-width:640px){.rpper{grid-template-columns:repeat(8,1fr);}}
+.rpper button{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(255,255,255,.1) !important;border:1px solid rgba(255,255,255,.35) !important;border-radius:8px !important;font-size:13px !important;padding:6px 8px !important;}
 .rpper button.on{background:#fff !important;color:var(--blue-dark) !important;}
 .rpdates{gap:6px;align-items:center;margin-top:8px;}
 .rpdates input{flex:1;padding:7px;border-radius:8px;border:none;font-size:14px;min-width:0;}
@@ -1231,6 +1232,8 @@ const I18N = {
   rpAg: ["Rapor verisi alınamadı. İnternet bağlantısını kontrol edin.", "Could not load report data. Check the internet connection.", "Не удалось загрузить данные.", "No se pudieron cargar los datos. Revise la conexión."],
   rpEski: ["Tablo betiği bu sürümü desteklemiyor. Yöneticiden betiği güncellemesini isteyin.", "The sheet script does not support this yet. Ask the admin to update it.", "Скрипт таблицы устарел.", "El script de la tabla está desactualizado."],
   rpPdfErr: ["PDF hazırlanamadı.", "The PDF could not be created.", "Не удалось создать PDF.", "No se pudo crear el PDF."],
+  rpToday: ["Bugün", "Today", "Сегодня", "Hoy"],
+  rpThisW: ["Bu hafta", "This week", "Эта неделя", "Esta semana"],
   rpThisM: ["Bu ay", "This month", "Этот месяц", "Este mes"],
   rpLastM: ["Geçen ay", "Last month", "Прошлый месяц", "Mes pasado"],
   rp3M: ["Son 3 ay", "Last 3 months", "3 месяца", "Últimos 3 meses"],
@@ -1575,7 +1578,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.22-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.22-3";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -4665,6 +4668,8 @@ const RPK = {no:0, tarih:1, kod:2, lead:3, fuar:4, ulke:5, ukod:6, sehir:7, firm
 function rpAralik(){
   const d = new Date(), p = n => String(n).padStart(2, "0"), iso = x => x.getFullYear() + "-" + p(x.getMonth() + 1) + "-" + p(x.getDate());
   const Y = d.getFullYear(), M = d.getMonth();
+  if(rpPer === "today") return [iso(d), iso(d)];
+  if(rpPer === "this_w"){ const g = (d.getDay() + 6) % 7; return [iso(new Date(Y, M, d.getDate() - g)), iso(new Date(Y, M, d.getDate() - g + 6))]; }   // Pazartesi–Pazar
   if(rpPer === "this_m") return [iso(new Date(Y, M, 1)), iso(new Date(Y, M + 1, 0))];
   if(rpPer === "last_m") return [iso(new Date(Y, M - 1, 1)), iso(new Date(Y, M, 0))];
   if(rpPer === "3m") return [iso(new Date(Y, M - 2, 1)), iso(d)];
@@ -4829,7 +4834,7 @@ const rpFiltreYazi = () => Object.keys(RP_F0).filter(f => rpF[f]).map(f => t(RP_
 function rpCiz(){
   if(!RP) return;
   // dönem düğmeleri
-  $("rpPer").innerHTML = [["this_m","rpThisM"],["last_m","rpLastM"],["3m","rp3M"],["this_y","rpThisY"],["all","rpAll"],["ozel","rpCustom"]]
+  $("rpPer").innerHTML = [["today","rpToday"],["this_w","rpThisW"],["this_m","rpThisM"],["last_m","rpLastM"],["3m","rp3M"],["this_y","rpThisY"],["all","rpAll"],["ozel","rpCustom"]]
     .map(([k, l]) => `<button type="button" data-p="${k}" class="${k === rpPer ? "on" : ""}">${escH(t(l))}</button>`).join("");
   $("rpPer").querySelectorAll("button").forEach(b => b.onclick = () => { rpPer = b.dataset.p; rpCiz(); });
   $("rpDates").style.display = rpPer === "ozel" ? "flex" : "none";
