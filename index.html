@@ -125,6 +125,47 @@ main{flex:1;padding:10px 12px 16px;}
 .sheet .shead button{background:none;border:none;color:#fff;font-size:16px;font-weight:700;padding:6px;cursor:pointer;}
 .sheet input.search{width:100%;margin-top:10px;padding:11px 12px;border-radius:10px;border:none;font-size:16px;}
 .sheet .slist{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 30px;}
+/* ---- Rapor ekranı ---- */
+#raporSheet{max-width:960px;z-index:450;}   /* açılış ekranının (400) üstünde, mesaj kutusunun (500) altında */
+.rppdfbtn{background:#fff !important;color:var(--blue-dark) !important;border-radius:8px !important;padding:4px 10px !important;font-size:13px !important;margin:0 4px;}
+.rpper{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.rpper button{flex:1 0 auto;background:rgba(255,255,255,.1) !important;border:1px solid rgba(255,255,255,.35) !important;border-radius:8px !important;font-size:13px !important;padding:6px 8px !important;}
+.rpper button.on{background:#fff !important;color:var(--blue-dark) !important;}
+.rpdates{gap:6px;align-items:center;margin-top:8px;}
+.rpdates input{flex:1;padding:7px;border-radius:8px;border:none;font-size:14px;min-width:0;}
+.rpkisi{width:100%;margin-top:8px;padding:8px;border-radius:8px;border:none;font-size:14px;font-weight:700;color:var(--blue-dark);}
+.rptabs{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;background:#f1f4f7;border-bottom:1px solid var(--line);flex:none;-webkit-overflow-scrolling:touch;}
+.rptabs button{flex:none;border:1.5px solid #cdd8e2;background:#fff;color:var(--blue-dark);border-radius:16px;padding:6px 12px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;}
+.rptabs button.on{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff;}
+.rpinfo{font-size:12px;color:var(--muted);padding:6px 12px;background:#fff;border-bottom:1px solid var(--line);flex:none;}
+.rpsec{background:#fff;margin:10px;border-radius:12px;padding:10px 10px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.rpsec h3{margin:2px 2px 8px;font-size:15px;color:var(--blue-dark);}
+.rpnote{font-size:11.5px;color:var(--muted);margin:-4px 2px 8px;}
+.rpnone{color:var(--muted);font-size:13.5px;padding:10px 2px;}
+.rpscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.rpt{width:100%;border-collapse:collapse;font-size:13px;}
+.rpt th{background:#eef1f5;color:var(--blue-dark);font-size:11.5px;text-align:left;padding:6px 7px;border-bottom:2px solid #d5dbe2;white-space:nowrap;}
+.rpt td{padding:6px 7px;border-bottom:1px solid #eef1f4;vertical-align:top;}
+.rpt .n{text-align:right;white-space:nowrap;}
+.rpt tbody tr:nth-child(even) td{background:#fafbfc;}
+.rpsm{font-size:11.5px;color:#5b6772;}
+.rpkpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;}
+.rpk{border:1px solid #e1e6ec;border-radius:10px;padding:8px 10px;background:#f7f9fb;}
+.rpk .l{font-size:11.5px;color:var(--muted);font-weight:700;}
+.rpk .v{font-size:18px;font-weight:900;color:var(--blue-dark);margin-top:2px;}
+/* PDF için (ekran dışında çizilir) */
+.rpdis{position:fixed;left:-10000px;top:0;}              /* PDF kaynağı ekranın dışında; içteki .rppdf konumsuz (html2pdf onu kopyalar) */
+.rppdf{width:700px;background:#fff;color:#1c2a36;font-family:inherit;padding:4px;}
+.rppdf .rpsec{box-shadow:none;border:1px solid #e1e6ec;margin:8px 0;}
+.rppdf .rpscroll{overflow:visible;}
+.rppdf .rpt{font-size:10.5px;}
+.rppdf .rpt th,.rppdf .rpt td{padding:4px 5px;}
+.rppdf .rpk .v{font-size:14px;}
+.rppdf .rpkpi{grid-template-columns:repeat(4,1fr);}
+.rphead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid var(--blue-dark);padding:4px 0 8px;margin-bottom:6px;}
+.rpt1{font-size:20px;font-weight:900;color:var(--blue-dark);}
+.rpt2{font-size:12.5px;color:#4a5864;margin-top:3px;}
+.rpt3{font-size:11px;color:#6b7680;text-align:right;}
 /* hızlı filtreler (DO_TakeOffer'daki gibi): tek sıra, 6 eşit kutu (resim + kısa ad) */
 .qf{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;padding:7px 8px;background:#f1f4f7;border-bottom:1px solid var(--line);flex:none;}
 .qf button{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;min-width:0;border:1.5px solid #cdd8e2;border-bottom-width:3px;background:#fff;color:var(--blue-dark);border-radius:10px;padding:4px 2px 5px;font:inherit;cursor:pointer;}
@@ -427,6 +468,8 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
     <button class="btn pri" id="modeOk" style="width:100%;margin-top:12px;" disabled data-i18n="ok">Tamam</button>
     <button id="btnHistSplash" style="width:100%;margin-top:10px;background:none;border:1px solid rgba(255,255,255,.35);
       color:#dfe5ea;border-radius:10px;padding:9px 0;font-size:14px;font-weight:700;cursor:pointer;" data-i18n="history">🕘 Geçmiş Teklifler</button>
+    <button id="btnRapor" style="display:none;width:100%;margin-top:10px;background:#2f7a5a;border:1px solid #2f7a5a;
+      color:#fff;border-radius:10px;padding:9px 0;font-size:14px;font-weight:700;cursor:pointer;" data-i18n="rpBtn">📊 Raporlar</button>
     <a class="extlink" id="lnkTakeInfo" href="https://do-takeinfo.vercel.app" target="_blank" rel="noopener"><span>DO_TakeInfo</span><span aria-hidden="true">↗</span></a>
   </div>
   <div class="ver" id="splashVer"></div>
@@ -553,6 +596,20 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
   </div>
   <div class="qf" id="quickF"></div>
   <div class="slist" id="pickList"></div>
+</div>
+
+<!-- RAPOR EKRANI -->
+<div class="sheet" id="raporSheet">
+  <div class="shead">
+    <div class="r1"><h2 data-i18n="rpBtn">📊 Raporlar</h2>
+      <div style="display:flex;gap:2px;align-items:center;"><button id="rpRefresh" title="Yenile">⟳</button><button id="rpPdfBtn" class="rppdfbtn">PDF</button><button id="rpClose" data-i18n="closeX">Kapat ✕</button></div></div>
+    <div class="rpper" id="rpPer"></div>
+    <div class="rpdates" id="rpDates" style="display:none;"><input type="date" id="rpFrom"><span>–</span><input type="date" id="rpTo"></div>
+    <select id="rpKisi" class="rpkisi"></select>
+  </div>
+  <div class="rptabs" id="rpTabs"></div>
+  <div class="rpinfo" id="rpInfo"></div>
+  <div class="slist" id="rpBody"></div>
 </div>
 
 <!-- QUOTE PAGE -->
@@ -1140,6 +1197,64 @@ const I18N = {
   discQ:      ["{name}\nİskonto % (ör. 10 ya da artı iskontoyla 10+5):", "{name}\nDiscount % (e.g. 10, or with extra discount 10+5):", "{name}\nСкидка % (напр. 10 или 10+5):", "{name}\nDescuento % (p. ej. 10, o con descuento extra 10+5):"],
   discQo:     ["{name}\nBu opsiyonun iskontosu % (boş = makinenin iskontosu: %{m}):", "{name}\nDiscount % for this option (empty = machine discount: {m}%):", "{name}\nСкидка % для опции (пусто = как у машины: {m}%):", "{name}\nDescuento % de esta opción (vacío = descuento de la máquina: {m} %):"],
   discBad:    ["İskonto 0 ile 99 arasında bir sayı olmalı (ör. 10 ya da 10+5).", "The discount must be a number from 0 to 99 (e.g. 10 or 10+5).", "Скидка — число от 0 до 99.", "El descuento debe ser un número de 0 a 99 (p. ej. 10 o 10+5)."],
+  rpBtn: ["📊 Raporlar", "📊 Reports", "📊 Отчёты", "📊 Informes"],
+  rpTitle: ["Raporlar", "Reports", "Отчёты", "Informes"],
+  rpPass: ["Rapor ekranı şifresi:", "Report screen password:", "Пароль отчётов:", "Contraseña de informes:"],
+  rpLoading: ["Rapor verisi alınıyor…", "Loading report data…", "Загрузка…", "Cargando datos…"],
+  rpSifre: ["Rapor şifresi hatalı.", "Wrong report password.", "Неверный пароль.", "Contraseña incorrecta."],
+  rpKilit: ["Çok fazla hatalı deneme. 15 dakika sonra tekrar deneyin.", "Too many wrong attempts. Try again in 15 minutes.", "Слишком много попыток. Повторите через 15 минут.", "Demasiados intentos. Inténtelo en 15 minutos."],
+  rpYok: ["Rapor ekranı için yetkiniz yok.", "You are not authorized for reports.", "Нет доступа к отчётам.", "No tiene acceso a los informes."],
+  rpTanimsiz: ["Rapor ekranı şifresi tabloda tanımlı değil (Ayarlar → Rapor ekranı şifresi).", "No report password is set in the sheet (Settings).", "Пароль отчётов не задан.", "No hay contraseña de informes en la tabla (Ajustes)."],
+  rpAg: ["Rapor verisi alınamadı. İnternet bağlantısını kontrol edin.", "Could not load report data. Check the internet connection.", "Не удалось загрузить данные.", "No se pudieron cargar los datos. Revise la conexión."],
+  rpEski: ["Tablo betiği bu sürümü desteklemiyor. Yöneticiden betiği güncellemesini isteyin.", "The sheet script does not support this yet. Ask the admin to update it.", "Скрипт таблицы устарел.", "El script de la tabla está desactualizado."],
+  rpPdfErr: ["PDF hazırlanamadı.", "The PDF could not be created.", "Не удалось создать PDF.", "No se pudo crear el PDF."],
+  rpThisM: ["Bu ay", "This month", "Этот месяц", "Este mes"],
+  rpLastM: ["Geçen ay", "Last month", "Прошлый месяц", "Mes pasado"],
+  rp3M: ["Son 3 ay", "Last 3 months", "3 месяца", "Últimos 3 meses"],
+  rpThisY: ["Bu yıl", "This year", "Этот год", "Este año"],
+  rpAll: ["Tümü", "All", "Все", "Todo"],
+  rpCustom: ["Tarih seç", "Pick dates", "Даты", "Elegir fechas"],
+  rpAllPeople: ["Tüm kişiler", "All people", "Все сотрудники", "Todas las personas"],
+  rpAllTime: ["tüm zamanlar", "all time", "всё время", "todo el período"],
+  rpRange: ["Dönem", "Period", "Период", "Período"],
+  rpScopeOwn: ["yalnız sizin teklifleriniz", "only your quotes", "только ваши", "solo sus cotizaciones"],
+  rpGen: ["Hazırlanma", "Generated", "Создано", "Generado"],
+  rpSum: ["Özet", "Summary", "Сводка", "Resumen"],
+  rpPerson: ["Kişilere göre", "By person", "По сотрудникам", "Por persona"],
+  rpPerson1: ["Kişi", "Person", "Сотрудник", "Persona"],
+  rpCountry: ["Ülkelere göre", "By country", "По странам", "Por país"],
+  rpCountry1: ["Ülke", "Country", "Страна", "País"],
+  rpLead: ["Lead kaynağına göre", "By lead source", "По источнику", "Por origen"],
+  rpLead1: ["Lead kaynağı", "Lead source", "Источник", "Origen"],
+  rpFair: ["Fuarlara göre", "By trade fair", "По выставкам", "Por feria"],
+  rpFair1: ["Fuar", "Trade fair", "Выставка", "Feria"],
+  rpCust: ["Müşterilere göre", "By customer", "По клиентам", "Por cliente"],
+  rpCust1: ["Müşteri", "Customer", "Клиент", "Cliente"],
+  rpCust2: ["Müşteri", "Customers", "Клиенты", "Clientes"],
+  rpMach: ["Makinelere göre", "By machine", "По машинам", "Por máquina"],
+  rpMach1: ["Makine", "Machine", "Машина", "Máquina"],
+  rpStock: ["Stok kodu", "Stock code", "Код", "Código"],
+  rpMonth: ["Aylara göre", "By month", "По месяцам", "Por mes"],
+  rpMonth1: ["Ay", "Month", "Месяц", "Mes"],
+  rpList: ["Teklif listesi", "Quote list", "Список", "Lista de cotizaciones"],
+  rpNo: ["Teklif No", "Quote No", "№", "N.º"],
+  rpDate: ["Tarih", "Date", "Дата", "Fecha"],
+  rpQ: ["Teklif", "Quotes", "Предл.", "Cotiz."],
+  rpQty: ["Adet", "Qty", "Кол.", "Cant."],
+  rpNet: ["Net tutar", "Net amount", "Сумма", "Importe neto"],
+  rpAvg: ["Ort. iskonto", "Avg. discount", "Ср. скидка", "Desc. medio"],
+  rpMin: ["En düşük", "Lowest", "Мин.", "Mínimo"],
+  rpMax: ["En yüksek", "Highest", "Макс.", "Máximo"],
+  rpIsk: ["İskonto", "Discount", "Скидка", "Descuento"],
+  rpCountries: ["Ülkeler", "Countries", "Страны", "Países"],
+  rpPeople: ["Kişiler", "People", "Сотрудники", "Personas"],
+  rpLast: ["Son teklif", "Last quote", "Последнее", "Última"],
+  rpKpiQ: ["Teklif sayısı", "Quotes", "Предложения", "Cotizaciones"],
+  rpKpiC: ["Müşteri", "Customers", "Клиенты", "Clientes"],
+  rpKpiCo: ["Ülke", "Countries", "Страны", "Países"],
+  rpKpiItems: ["Kalem", "Line items", "Позиции", "Líneas"],
+  rpNone: ["Seçili dönemde teklif yok.", "No quotes in the selected period.", "Нет предложений.", "No hay cotizaciones en el período."],
+  rpIskNote: ["İskonto: teklif başına (liste – net) / liste. Ortalama = tekliflerin ortalaması; en düşük / en yüksek = tek teklifteki oran.", "Discount per quote = (list – net) / list. Average of quotes; lowest / highest = single quote.", "Скидка по предложению.", "Descuento por cotización = (lista – neto) / lista."],
   qfAll:      ["Tümü", "All", "Все", "Todas"],
   qfIM:       ["İşleme Merk.", "Mach. Centers", "Обр. центры", "C. mecanizado"],
   qfDK:       ["Dört Kafa", "Four Head", "Четырёхголовочные", "Cuatro cabezales"],
@@ -1437,7 +1552,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.21-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.21-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -4429,9 +4544,10 @@ async function authCheck(code, pin, token){
   }catch(e){ return {net: true}; }
 }
 function applyAuth(j){
-  localStorage.setItem(AUTH_KEY, JSON.stringify({code: j.code, name: j.name || "", table: !!j.table, tableUrl: j.tableUrl || "", pkgPass: j.pkgPass || "", token: j.token || "", manualPrice: !!j.manualPrice, ts: Date.now()}));
+  localStorage.setItem(AUTH_KEY, JSON.stringify({code: j.code, name: j.name || "", table: !!j.table, tableUrl: j.tableUrl || "", pkgPass: j.pkgPass || "", token: j.token || "", manualPrice: !!j.manualPrice, rapor: j.rapor || "", ts: Date.now()}));
   if(localStorage.getItem("yq_dev") !== j.code){ localStorage.setItem("yq_dev", j.code); try{ syncQuoteNo(); }catch(e){} }
   try{ paintUserChip(); }catch(e){}
+  try{ paintRaporBtn(); }catch(e){}
 }
 function authReasonMsg(r, again){
   if(r === "pasif") return t("authPassive");
@@ -4450,6 +4566,7 @@ function paintLoginBox(msg){
   iniMsg(show ? (msg || "") : "");
   paintModeBtns();
   paintUserChip();
+  try{ paintRaporBtn(); }catch(e){}
 }
 function showLogin(msg){
   document.querySelectorAll(".modal.open").forEach(m => m.classList.remove("open"));
@@ -4478,6 +4595,221 @@ function paintUserChip(){
 document.getElementById("uChip").onclick = e => { e.stopPropagation(); document.getElementById("uMenu").classList.toggle("open"); };
 document.getElementById("uMenu").onclick = e => e.stopPropagation();
 document.getElementById("splash").addEventListener("click", () => document.getElementById("uMenu").classList.remove("open"));
+/* ================= RAPOR EKRANI (sürüm 2026.11.21-2) =================
+   Merkezi tablodaki teklifler (Teklifler sayfası) betikten alınır; tabloya girmeden kişi / ülke / lead / fuar / müşteri / makine / ay raporları.
+   Yetki: Ayarlar → "Rapor" = TÜMÜ (herkes) / KENDİ (yalnız kendi teklifleri); ayrıca "Rapor ekranı şifresi" sorulur.
+   Veri yalnız bellekte tutulur (telefona kaydedilmez); şifre oturum boyunca hatırlanır. */
+let RP = null, rpSifre = "", rpTab = "sum", rpPer = "this_m", rpKisi = "";
+const rpYetki = () => { const a = getAuth(); return a && (a.rapor === "TUMU" || a.rapor === "KENDI") ? a.rapor : ""; };
+function paintRaporBtn(){ const b = $("btnRapor"); if(b) b.style.display = rpYetki() && !needLogin() ? "" : "none"; }
+async function raporAc(){
+  if(!rpYetki()){ uiAlert(t("rpYok")); return; }
+  if(!navigator.onLine){ uiAlert(t("rpAg")); return; }
+  let s = rpSifre;
+  if(!s){
+    const inp = $("msgInput"); inp.type = "password";
+    try{ s = await uiPrompt(t("rpPass"), "", "••••"); } finally { inp.type = "text"; }
+    if(s == null) return;
+    s = String(s).trim(); if(!s) return;
+  }
+  const b = $("btnRapor"), t0 = b.textContent; b.textContent = t("rpLoading"); b.disabled = true;
+  let j = null;
+  try{
+    const a = getAuth(), u = sheetUrl();
+    if(!isScriptUrl(u)) throw new Error("adres");
+    const r = await fetch(u, {method: "POST", body: JSON.stringify({rapor: a.code, token: a.token || "", sifre: s})});
+    j = await r.json();
+  }catch(e){ j = null; }
+  finally{ b.textContent = t0; b.disabled = false; }
+  if(!j){ uiAlert(t("rpAg")); return; }
+  if(!j.ok){
+    if(j.reason === "sifre"){ rpSifre = ""; uiAlert(t("rpSifre")); return; }
+    if(j.reason === "kilit"){ uiAlert(t("rpKilit")); return; }
+    if(j.reason === "sifreTanimsiz"){ uiAlert(t("rpTanimsiz")); return; }
+    if(j.reason === "raporYok" || j.reason === "yetkisiz" || j.reason === "anahtar"){ uiAlert(t("rpYok")); return; }
+    uiAlert(t("rpEski")); return;
+  }
+  rpSifre = s; RP = j;
+  $("raporSheet").classList.add("open");
+  rpCiz();
+}
+// ---- veri: kalem satırları → teklifler (teklif no + para birimi) ----
+const RPK = {no:0, tarih:1, kod:2, lead:3, fuar:4, ulke:5, ukod:6, sehir:7, firma:8, para:9, tur:10, mak:11, stok:12, adet:13, liste:14, net:15, firsat:16, kisi:17};
+function rpAralik(){
+  const d = new Date(), p = n => String(n).padStart(2, "0"), iso = x => x.getFullYear() + "-" + p(x.getMonth() + 1) + "-" + p(x.getDate());
+  const Y = d.getFullYear(), M = d.getMonth();
+  if(rpPer === "this_m") return [iso(new Date(Y, M, 1)), iso(new Date(Y, M + 1, 0))];
+  if(rpPer === "last_m") return [iso(new Date(Y, M - 1, 1)), iso(new Date(Y, M, 0))];
+  if(rpPer === "3m") return [iso(new Date(Y, M - 2, 1)), iso(d)];
+  if(rpPer === "this_y") return [iso(new Date(Y, 0, 1)), iso(new Date(Y, 11, 31))];
+  if(rpPer === "ozel") return [$("rpFrom").value || "", $("rpTo").value || ""];
+  return ["", ""];
+}
+function rpTeklifler(){
+  const [bas, bit] = rpAralik();
+  const Q = {}, kalem = [];
+  (RP.rows || []).forEach(r => {
+    const tr = r[RPK.tarih] || "";
+    if(bas && (!tr || tr < bas)) return;
+    if(bit && (!tr || tr > bit)) return;
+    if(rpKisi && r[RPK.kod] !== rpKisi) return;
+    kalem.push(r);
+    const k = r[RPK.no] + "\u0001" + r[RPK.para];
+    const q = Q[k] || (Q[k] = {no: r[RPK.no], tarih: tr, kod: r[RPK.kod], lead: r[RPK.lead] || "-", fuar: r[RPK.fuar] || "", ulke: r[RPK.ulke] || "-",
+      firma: String(r[RPK.firma] || "-").trim(), para: r[RPK.para] || "EUR", liste: 0, net: 0, kalem: 0});
+    q.liste += +r[RPK.liste] || 0; q.net += +r[RPK.net] || 0; q.kalem++;
+  });
+  const L = Object.values(Q);
+  L.forEach(q => { q.isk = q.liste > 0 ? Math.max(0, (1 - q.net / q.liste) * 100) : 0; });
+  return {L, kalem, bas, bit};
+}
+const rpAd = k => (RP && RP.users && RP.users[k]) || k || "-";
+function rpGrupla(L, anahtar){
+  const G = {};
+  L.forEach(q => {
+    const ks = [].concat(anahtar(q));
+    ks.forEach(k => {
+      if(k == null || k === "") k = "-";
+      const g = G[k] || (G[k] = {k, no: new Set(), net: {}, liste: {}, isk: [], firma: new Set(), ulke: new Set(), kisi: new Set(), son: ""});
+      g.no.add(q.no); bagAdd(g.net, q.para, q.net); bagAdd(g.liste, q.para, q.liste);
+      if(q.liste > 0) g.isk.push(q.isk);
+      g.firma.add(q.firma.toLocaleUpperCase("tr")); g.ulke.add(q.ulke); g.kisi.add(rpAd(q.kod));
+      if(q.tarih > g.son) g.son = q.tarih;
+    });
+  });
+  return Object.values(G).sort((a, b) => b.no.size - a.no.size || String(a.k).localeCompare(String(b.k), "tr"));
+}
+const rpPct = v => v == null || isNaN(v) ? "—" : "%" + numL(Math.round(v * 10) / 10, UI_LANG);
+const rpOrt = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+const rpMin = a => a.length ? Math.min(...a) : null, rpMax = a => a.length ? Math.max(...a) : null;
+const rpPara = b => bagCurs(b).length ? bagCurs(b).map(c => `<div>${fmtC(b[c], c)}</div>`).join("") : "—";
+const rpTarih = s => s ? s.slice(8, 10) + "." + s.slice(5, 7) + "." + s.slice(0, 4) : "—";
+function rpTablo(baslik, kolonlar, satirlar, not){
+  if(!satirlar.length) return `<div class="rpsec"><h3>${escH(baslik)}</h3><div class="rpnone">${escH(t("rpNone"))}</div></div>`;
+  return `<div class="rpsec"><h3>${escH(baslik)}</h3>${not ? `<div class="rpnote">${escH(not)}</div>` : ""}<div class="rpscroll"><table class="rpt"><thead><tr>${kolonlar.map(c => `<th class="${c[1] || ""}">${escH(c[0])}</th>`).join("")}</tr></thead><tbody>${
+    satirlar.map(r => `<tr>${r.map((v, i) => `<td class="${kolonlar[i][1] || ""}">${v}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+}
+const RP_TABS = [["sum","rpSum"],["kisi","rpPerson"],["ulke","rpCountry"],["lead","rpLead"],["fuar","rpFair"],["musteri","rpCust"],["makine","rpMach"],["ay","rpMonth"],["liste","rpList"]];
+function rpBolum(tab, D, pdf){
+  const {L, kalem} = D, E = escH;
+  const iskK = [[t("rpAvg"),"n"],[t("rpMin"),"n"],[t("rpMax"),"n"]];
+  const iskV = g => [rpPct(rpOrt(g.isk)), rpPct(rpMin(g.isk)), rpPct(rpMax(g.isk))];
+  if(tab === "sum"){
+    const tot = {}; L.forEach(q => bagAdd(tot, q.para, q.net));
+    const isk = L.filter(q => q.liste > 0).map(q => q.isk);
+    const no = new Set(L.map(q => q.no));
+    const kart = (l, v) => `<div class="rpk"><div class="l">${E(l)}</div><div class="v">${v}</div></div>`;
+    let h = `<div class="rpsec"><div class="rpkpi">${kart(t("rpKpiQ"), no.size)}${kart(t("rpKpiC"), new Set(L.map(q => q.firma.toLocaleUpperCase("tr"))).size)}${kart(t("rpKpiCo"), new Set(L.map(q => q.ulke)).size)}${kart(t("rpKpiItems"), kalem.length)}
+      ${kart(t("rpNet"), rpPara(tot))}${kart(t("rpAvg"), rpPct(rpOrt(isk)))}${kart(t("rpMin") + " / " + t("rpMax"), rpPct(rpMin(isk)) + " / " + rpPct(rpMax(isk)))}</div></div>`;
+    if(pdf) return h;                                   // PDF'te kişi tablosu ayrıca "Kişilere göre" bölümünde
+    const kisi = rpGrupla(L, q => q.kod);
+    h += rpTablo(t("rpPerson"), [[t("rpPerson1")],[t("rpQ"),"n"],[t("rpNet"),"n"],...iskK], kisi.map(g => [E(rpAd(g.k)), g.no.size, rpPara(g.net), ...iskV(g)]));
+    return h;
+  }
+  if(tab === "kisi"){
+    const G = rpGrupla(L, q => q.kod);
+    return rpTablo(t("rpPerson"), [[t("rpPerson1")],[t("rpQ"),"n"],[t("rpCountries")],[t("rpCust2"),"n"],[t("rpNet"),"n"],...iskK],
+      G.map(g => [E(rpAd(g.k)), g.no.size, `<b>${g.ulke.size}</b> · <span class="rpsm">${E([...g.ulke].sort((a, b) => a.localeCompare(b, "tr")).join(", "))}</span>`, g.firma.size, rpPara(g.net), ...iskV(g)]), t("rpIskNote"));
+  }
+  if(tab === "ulke"){
+    const G = rpGrupla(L, q => q.ulke);
+    return rpTablo(t("rpCountry"), [[t("rpCountry1")],[t("rpQ"),"n"],[t("rpCust2"),"n"],[t("rpPeople")],[t("rpNet"),"n"],[t("rpAvg"),"n"]],
+      G.map(g => [E(g.k), g.no.size, g.firma.size, `<span class="rpsm">${E([...g.kisi].join(", "))}</span>`, rpPara(g.net), rpPct(rpOrt(g.isk))]));
+  }
+  if(tab === "lead"){
+    const G = rpGrupla(L, q => q.lead);
+    return rpTablo(t("rpLead"), [[t("rpLead1")],[t("rpQ"),"n"],[t("rpCust2"),"n"],[t("rpNet"),"n"],...iskK],
+      G.map(g => [E(g.k), g.no.size, g.firma.size, rpPara(g.net), ...iskV(g)]));
+  }
+  if(tab === "fuar"){
+    const G = rpGrupla(L.filter(q => q.fuar), q => q.fuar.toLocaleUpperCase("tr"));
+    return rpTablo(t("rpFair"), [[t("rpFair1")],[t("rpQ"),"n"],[t("rpCust2"),"n"],[t("rpPeople")],[t("rpNet"),"n"],[t("rpAvg"),"n"]],
+      G.map(g => [E(g.k), g.no.size, g.firma.size, `<span class="rpsm">${E([...g.kisi].join(", "))}</span>`, rpPara(g.net), rpPct(rpOrt(g.isk))]));
+  }
+  if(tab === "musteri"){
+    const G = rpGrupla(L, q => q.firma.toLocaleUpperCase("tr"));
+    return rpTablo(t("rpCust"), [[t("rpCust1")],[t("rpCountry1")],[t("rpQ"),"n"],[t("rpPeople")],[t("rpNet"),"n"],[t("rpAvg"),"n"],[t("rpLast"),"n"]],
+      G.map(g => [E(g.k), E([...g.ulke].join(", ")), g.no.size, `<span class="rpsm">${E([...g.kisi].join(", "))}</span>`, rpPara(g.net), rpPct(rpOrt(g.isk)), rpTarih(g.son)]));
+  }
+  if(tab === "makine"){
+    const M = {};
+    kalem.filter(r => r[RPK.tur] === "Makine").forEach(r => {
+      const k = r[RPK.mak] || "-", m = M[k] || (M[k] = {k, adet: 0, no: new Set(), net: {}, stok: new Set()});
+      m.adet += +r[RPK.adet] || 0; m.no.add(r[RPK.no]); bagAdd(m.net, r[RPK.para], +r[RPK.net] || 0); if(r[RPK.stok]) m.stok.add(r[RPK.stok]);
+    });
+    const G = Object.values(M).sort((a, b) => b.adet - a.adet || a.k.localeCompare(b.k, "tr"));
+    return rpTablo(t("rpMach"), [[t("rpMach1")],[t("rpStock")],[t("rpQty"),"n"],[t("rpQ"),"n"],[t("rpNet"),"n"]],
+      G.map(g => [E(g.k), `<span class="rpsm">${E([...g.stok].slice(0, 3).join(", "))}</span>`, g.adet, g.no.size, rpPara(g.net)]));
+  }
+  if(tab === "ay"){
+    const G = rpGrupla(L, q => q.tarih ? q.tarih.slice(0, 7) : "-").sort((a, b) => String(b.k).localeCompare(String(a.k)));
+    const ayAd = k => k === "-" ? "—" : (AY_ADLARI[UI_LANG] || AY_ADLARI.tr)[+k.slice(5, 7) - 1] + " " + k.slice(0, 4);
+    return rpTablo(t("rpMonth"), [[t("rpMonth1")],[t("rpQ"),"n"],[t("rpCust2"),"n"],[t("rpNet"),"n"],[t("rpAvg"),"n"]],
+      G.map(g => [E(ayAd(g.k)), g.no.size, g.firma.size, rpPara(g.net), rpPct(rpOrt(g.isk))]));
+  }
+  if(tab === "liste"){
+    const S = [...L].sort((a, b) => String(b.tarih).localeCompare(String(a.tarih)) || String(b.no).localeCompare(String(a.no)));
+    return rpTablo(t("rpList"), [[t("rpNo")],[t("rpDate"),"n"],[t("rpPerson1")],[t("rpCust1")],[t("rpCountry1")],[t("rpLead1")],[t("rpNet"),"n"],[t("rpIsk"),"n"]],
+      S.map(q => [E(q.no), rpTarih(q.tarih), E(rpAd(q.kod)), E(q.firma), E(q.ulke), E(q.lead + (q.fuar ? " · " + q.fuar : "")), fmtC(q.net, q.para), rpPct(q.liste > 0 ? q.isk : null)]));
+  }
+  return "";
+}
+const AY_ADLARI = {tr: ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"],
+  en: ["January","February","March","April","May","June","July","August","September","October","November","December"],
+  es: ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]};
+function rpBaslikYazi(D){
+  const ar = D.bas || D.bit ? rpTarih(D.bas) + " – " + rpTarih(D.bit) : t("rpAllTime");
+  return t("rpRange") + ": " + ar + (rpKisi ? " · " + rpAd(rpKisi) : "") + (RP.kapsam === "KENDI" ? " · " + t("rpScopeOwn") : "");
+}
+function rpCiz(){
+  if(!RP) return;
+  // dönem düğmeleri
+  $("rpPer").innerHTML = [["this_m","rpThisM"],["last_m","rpLastM"],["3m","rp3M"],["this_y","rpThisY"],["all","rpAll"],["ozel","rpCustom"]]
+    .map(([k, l]) => `<button type="button" data-p="${k}" class="${k === rpPer ? "on" : ""}">${escH(t(l))}</button>`).join("");
+  $("rpPer").querySelectorAll("button").forEach(b => b.onclick = () => { rpPer = b.dataset.p; rpCiz(); });
+  $("rpDates").style.display = rpPer === "ozel" ? "flex" : "none";
+  // kişi seçimi (TÜMÜ yetkisinde)
+  const ks = $("rpKisi");
+  if(RP.kapsam === "TUMU"){
+    const kodlar = [...new Set((RP.rows || []).map(r => r[RPK.kod]))].sort((a, b) => rpAd(a).localeCompare(rpAd(b), "tr"));
+    ks.innerHTML = `<option value="">${escH(t("rpAllPeople"))}</option>` + kodlar.map(k => `<option value="${escH(k)}"${k === rpKisi ? " selected" : ""}>${escH(rpAd(k))}</option>`).join("");
+    ks.style.display = "";
+  } else ks.style.display = "none";
+  // sekmeler
+  $("rpTabs").innerHTML = RP_TABS.map(([k, l]) => `<button type="button" data-t="${k}" class="${k === rpTab ? "on" : ""}">${escH(t(l))}</button>`).join("");
+  $("rpTabs").querySelectorAll("button").forEach(b => b.onclick = () => { rpTab = b.dataset.t; rpCiz(); $("rpBody").scrollTop = 0; });
+  const D = rpTeklifler();
+  $("rpInfo").textContent = rpBaslikYazi(D);
+  $("rpBody").innerHTML = rpBolum(rpTab, D);
+}
+// PDF: seçili dönem / kişi için bütün bölümler tek dosyada
+async function rpPdf(){
+  if(!RP) return;
+  const b = $("rpPdfBtn"), t0 = b.textContent; b.textContent = t("preparing"); b.disabled = true;
+  let el = null, dis = null;
+  try{
+    if(!await ensureLib("html2pdf")){ uiAlert(t("rpAg")); return; }
+    const D = rpTeklifler();
+    el = document.createElement("div"); el.className = "rppdf";
+    const d = new Date(), p = n => String(n).padStart(2, "0");
+    el.innerHTML = `<div class="rphead"><div><div class="rpt1">DO_Offer · ${escH(t("rpTitle"))}</div><div class="rpt2">${escH(rpBaslikYazi(D))}</div></div>
+      <div class="rpt3">${escH(t("rpGen"))}: ${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}<br>${escH((getAuth() || {}).name || "")}</div></div>` +
+      RP_TABS.map(([k]) => rpBolum(k, D, true)).join("");
+    dis = document.createElement("div"); dis.className = "rpdis"; dis.appendChild(el); document.body.appendChild(dis);
+    const ad = "DO_Offer_Rapor_" + (D.bas || "tum") + (D.bit ? "_" + D.bit : "") + ".pdf";
+    const blob = await html2pdf().set({margin: 8, filename: ad, image: {type: "jpeg", quality: 0.92}, html2canvas: {scale: 2},
+      jsPDF: {unit: "mm", format: "a4", orientation: "portrait"}, pagebreak: {mode: ["css", "legacy"], avoid: ["tr", ".rpk", "h3"]}}).from(el).outputPdf("blob");
+    offerShare(new File([blob], ad, {type: "application/pdf"}));
+  }catch(e){ uiAlert(t("rpPdfErr")); }
+  finally{ if(dis) dis.remove(); b.textContent = t0; b.disabled = false; }
+}
+$("btnRapor").onclick = raporAc;
+$("rpClose").onclick = () => $("raporSheet").classList.remove("open");
+$("rpKisi").onchange = () => { rpKisi = $("rpKisi").value; rpCiz(); };
+["rpFrom","rpTo"].forEach(id => $(id).onchange = () => rpCiz());
+$("rpPdfBtn").onclick = rpPdf;
+$("rpRefresh").onclick = async () => { $("raporSheet").classList.remove("open"); await raporAc(); };
+paintRaporBtn();
 document.getElementById("uLogout").onclick = async () => {
   document.getElementById("uMenu").classList.remove("open");
   if(!await uiConfirm(t("uLogoutQ"))) return;
