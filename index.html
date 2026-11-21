@@ -134,8 +134,10 @@ main{flex:1;padding:10px 12px 16px;}
 .rpdates{gap:6px;align-items:center;margin-top:8px;}
 .rpdates input{flex:1;padding:7px;border-radius:8px;border:none;font-size:14px;min-width:0;}
 .rpkisi{width:100%;margin-top:8px;padding:8px;border-radius:8px;border:none;font-size:14px;font-weight:700;color:var(--blue-dark);}
-.rptabs{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;background:#f1f4f7;border-bottom:1px solid var(--line);flex:none;-webkit-overflow-scrolling:touch;}
-.rptabs button{flex:none;border:1.5px solid #cdd8e2;background:#fff;color:var(--blue-dark);border-radius:16px;padding:6px 12px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;}
+/* sekmeler kaydırmadan görünür: telefonda 2 satır (5 + 4), geniş ekranda tek satır */
+.rptabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:7px 8px;background:#f1f4f7;border-bottom:1px solid var(--line);flex:none;}
+.rptabs button{min-width:0;border:1.5px solid #cdd8e2;background:#fff;color:var(--blue-dark);border-radius:14px;padding:6px 2px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+@media(min-width:640px){.rptabs{grid-template-columns:repeat(9,1fr);}.rptabs button{font-size:13px;}}
 .rptabs button.on{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff;}
 .rpchips{display:flex;gap:6px;flex-wrap:wrap;padding:7px 10px;background:#fff7e0;border-bottom:1px solid #f0d9a0;flex:none;}
 .rpchip{border:1.5px solid #d89b2b;background:#fff;color:#7a4b00;border-radius:16px;padding:5px 10px;font-size:12.5px;cursor:pointer;}
@@ -1209,6 +1211,15 @@ const I18N = {
   discBad:    ["İskonto 0 ile 99 arasında bir sayı olmalı (ör. 10 ya da 10+5).", "The discount must be a number from 0 to 99 (e.g. 10 or 10+5).", "Скидка — число от 0 до 99.", "El descuento debe ser un número de 0 a 99 (p. ej. 10 o 10+5)."],
   rpTapHint: ["Seçin ya da tablodaki satıra dokunun; seçim bütün raporlara uygulanır.", "Pick one or tap a row; the filter applies to all reports.", "Выберите значение или нажмите строку.", "Elija o toque una fila; el filtro se aplica a todos los informes."],
   rpClear: ["Filtreleri temizle", "Clear filters", "Сбросить", "Quitar filtros"],
+  rpSum_k: ["Özet", "Summary", "Сводка", "Resumen"],
+  rpPerson_k: ["Kişiler", "People", "Сотр.", "Personas"],
+  rpCountry_k: ["Ülkeler", "Countries", "Страны", "Países"],
+  rpLead_k: ["Lead", "Lead", "Источник", "Origen"],
+  rpFair_k: ["Fuarlar", "Fairs", "Выставки", "Ferias"],
+  rpCust_k: ["Müşteriler", "Customers", "Клиенты", "Clientes"],
+  rpMach_k: ["Makineler", "Machines", "Машины", "Máquinas"],
+  rpMonth_k: ["Aylar", "Months", "Месяцы", "Meses"],
+  rpList_k: ["Teklifler", "Quotes", "Список", "Cotiz."],
   rpBtn: ["📊 Raporlar", "📊 Reports", "📊 Отчёты", "📊 Informes"],
   rpTitle: ["Raporlar", "Reports", "Отчёты", "Informes"],
   rpPass: ["Rapor ekranı şifresi:", "Report screen password:", "Пароль отчётов:", "Contraseña de informes:"],
@@ -1564,7 +1575,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.22-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.22-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -4829,7 +4840,7 @@ function rpCiz(){
     (fs.length > 1 ? `<button type="button" class="rpchip clr" data-fx="*">${escH(t("rpClear"))}</button>` : "");
   $("rpChips").style.display = fs.length ? "" : "none";
   // sekmeler
-  $("rpTabs").innerHTML = RP_TABS.map(([k, l]) => `<button type="button" data-t="${k}" class="${k === rpTab ? "on" : ""}">${escH(t(l))}</button>`).join("");
+  $("rpTabs").innerHTML = RP_TABS.map(([k, l]) => `<button type="button" data-t="${k}" class="${k === rpTab ? "on" : ""}" title="${escH(t(l))}">${escH(t(l + "_k"))}</button>`).join("");
   $("rpTabs").querySelectorAll("button").forEach(b => b.onclick = () => { rpTab = b.dataset.t; rpCiz(); $("rpBody").scrollTop = 0; });
   const D = rpTeklifler();
   $("rpInfo").textContent = rpBaslikYazi(D);
