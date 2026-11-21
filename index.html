@@ -50,6 +50,8 @@ main{flex:1;padding:10px 12px 16px;}
 .curbar button{flex:none;width:40px;height:32px;padding:0;border-radius:8px;border:1.5px solid var(--line);
   background:#fff;font-size:16px;font-weight:800;color:var(--muted);cursor:pointer;line-height:1;}
 .optskip{background:#fff;border:2px solid var(--red);color:var(--red);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:800;letter-spacing:.4px;cursor:pointer;white-space:nowrap;}
+.proforma:not(.pdfmode) .discfix{cursor:pointer;color:var(--blue);text-decoration:underline dotted;text-underline-offset:3px;}
+.proforma:not(.pdfmode) .discfix:active{background:#e6f0f6;}
 .optskip:active{background:var(--red);color:#fff;}
 .optskip.on{border-color:var(--blue);color:var(--blue);}   /* liste gizliyken: OPSİYON EKLE (mavi) */
 .kurbox{flex:none;display:flex;align-items:center;gap:4px;height:32px;padding:0 8px;border:1.5px solid var(--line);border-radius:8px;background:#fff;font-size:13px;font-weight:700;color:var(--blue-dark);margin-right:4px;}
@@ -1134,6 +1136,10 @@ const I18N = {
   options:    ["OPSİYONLAR", "OPTIONS", "ОПЦИИ", "OPCIONES"],
   optSkip:    ["OPSİYON EKLEME", "NO OPTIONS", "БЕЗ ОПЦИЙ", "SIN OPCIONES"],
   optAdd:     ["OPSİYON EKLE", "ADD OPTIONS", "ДОБАВИТЬ ОПЦИИ", "AGREGAR OPCIONES"],
+  discTap:    ["Düzeltmek için dokunun", "Tap to correct", "Нажмите, чтобы изменить", "Toque para corregir"],
+  discQ:      ["{name}\nİskonto % (ör. 10 ya da artı iskontoyla 10+5):", "{name}\nDiscount % (e.g. 10, or with extra discount 10+5):", "{name}\nСкидка % (напр. 10 или 10+5):", "{name}\nDescuento % (p. ej. 10, o con descuento extra 10+5):"],
+  discQo:     ["{name}\nBu opsiyonun iskontosu % (boş = makinenin iskontosu: %{m}):", "{name}\nDiscount % for this option (empty = machine discount: {m}%):", "{name}\nСкидка % для опции (пусто = как у машины: {m}%):", "{name}\nDescuento % de esta opción (vacío = descuento de la máquina: {m} %):"],
+  discBad:    ["İskonto 0 ile 99 arasında bir sayı olmalı (ör. 10 ya da 10+5).", "The discount must be a number from 0 to 99 (e.g. 10 or 10+5).", "Скидка — число от 0 до 99.", "El descuento debe ser un número de 0 a 99 (p. ej. 10 o 10+5)."],
   qfAll:      ["Tümü", "All", "Все", "Todas"],
   qfIM:       ["İşleme Merk.", "Mach. Centers", "Обр. центры", "C. mecanizado"],
   qfDK:       ["Dört Kafa", "Four Head", "Четырёхголовочные", "Cuatro cabezales"],
@@ -1431,7 +1437,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.20-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.21-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2303,6 +2309,36 @@ function paintTotal(box, b){
   box.innerHTML = k.map(c => `<span class="tc">${cok ? c : (c === "TL" ? "₺" : "€")}</span><span class="tv">${b[c].toLocaleString("tr-TR", NF)}${cok ? (c === "TL" ? " ₺" : " €") : ""}</span>`).join("");
   box.classList.toggle("multi", cok);
 }
+// Teklif tablosunda İskonto hücresine dokununca iskonto elle düzeltilir.
+// Makine satırı: "10" ya da "10+5" (iskonto + artı iskonto; makineye bağlı, kendi iskontosu olmayan opsiyonlar da güncellenir).
+// Opsiyon satırı: o opsiyonun kendi iskontosu; boş bırakılırsa makinenin iskontosuna döner.
+async function discFix(i, oi){
+  const it = quote[i]; if(!it) return;
+  const o = oi != null ? it.opts[oi] : null;
+  const num = s => { const v = parseFloat(String(s).replace(",", ".")); return isNaN(v) ? null : Math.max(0, Math.min(99, v)); };
+  const yaz = v => String(Math.round(v * 100) / 100).replace(".", ",");
+  if(o){
+    const cur0 = o.od != null ? yaz(o.od) : "";
+    const v = await uiPrompt(t("discQo", {name: itemNameUi(o), m: machDiscTxt(it.d1 || 0, it.d2 || 0)}), cur0, "%");
+    if(v == null) return;
+    const s = String(v).replace(/[%\s]/g, "");
+    if(s === "") delete o.od;
+    else { const n = num(s); if(n == null){ uiAlert(t("discBad")); return; } o.od = n; }
+    o.unitNet = listOf(o, it) * optK(o, it);
+  } else {
+    const cur0 = yaz(it.d1 || 0) + (it.d2 ? "+" + yaz(it.d2) : "");
+    const v = await uiPrompt(t("discQ", {name: itemNameUi(it)}), cur0, "10 / 10+5");
+    if(v == null) return;
+    const p = String(v).replace(/[%\s]/g, "").split("+");
+    const a = p[0] === "" ? 0 : num(p[0]), b = p.length > 1 ? num(p[1]) : 0;
+    if(a == null || b == null || p.length > 2){ uiAlert(t("discBad")); return; }
+    const ul = listOf(it, it), ols = it.opts.map(x => listOf(x, it));
+    it.d1 = a; it.d2 = b;
+    it.unitList = ul; it.unitNet = ul * (1 - a/100) * (1 - b/100);
+    it.opts.forEach((x, j) => { x.unitList = ols[j]; x.unitNet = ols[j] * optK(x, it); });
+  }
+  saveQuote(); renderQuote();
+}
 function renderQuote(){
   const showD = localStorage.getItem("yq_showdisc") === "1";
   $("btnDisc").textContent = showD ? t("discShow") : t("discHide");
@@ -2319,7 +2355,7 @@ function renderQuote(){
   let n = 0;
   quote.forEach((it, idx) => {
     n++;
-    const dcols = showD ? `<td class="num">${fmtC(listOf(it,it), lc(it))}</td><td class="ctr">${discLabel(it)}</td>` : "";
+    const dcols = showD ? `<td class="num">${fmtC(listOf(it,it), lc(it))}</td><td class="ctr discfix" data-di="${idx}" title="${escH(t("discTap"))}">${discLabel(it)}</td>` : "";
     const tr = document.createElement("tr");
     tr.innerHTML = `<td class="ctr">${n}</td><td><b>${it.code}</b></td><td>${pfName(it)}</td>
       <td class="ctr"><input class="qty-in" type="tel" value="${it.qty}" data-i="${idx}"></td>
@@ -2328,7 +2364,7 @@ function renderQuote(){
     tb.appendChild(tr);
     it.opts.forEach((o, oi) => {
       n++;
-      const docols = showD ? `<td class="num">${fmtC(listOf(o,it), ocur(o,it))}</td><td class="ctr">${discLabelO(o,it)}</td>` : "";
+      const docols = showD ? `<td class="num">${fmtC(listOf(o,it), ocur(o,it))}</td><td class="ctr discfix" data-di="${idx}" data-doi="${oi}" title="${escH(t("discTap"))}">${discLabelO(o,it)}</td>` : "";
       const tro = document.createElement("tr"); tro.className = "optrow";
       const oq = oQty(o, it);
       tro.innerHTML = `<td class="ctr">${n}</td><td>${o.code}</td><td class="oname">+ ${pfName(o)}</td>
@@ -2349,6 +2385,7 @@ function renderQuote(){
   const discB = {}; bagCurs(listB).forEach(c => discB[c] = listB[c] - (totB[c] || 0));
   $("pfDiscT").textContent = fmtBag(discB, "− ");
   tb.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openEdit(+b.dataset.edit));
+  tb.querySelectorAll(".discfix").forEach(c => c.onclick = () => discFix(+c.dataset.di, c.dataset.doi != null ? +c.dataset.doi : null));
   tb.querySelectorAll(".delx:not([data-edit])").forEach(b => b.onclick = () => {
     if(b.dataset.delopt){
       const [i, oi] = b.dataset.delopt.split(":").map(Number);
