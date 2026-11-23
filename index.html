@@ -664,8 +664,8 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
         <div class="k" data-pf="person">CONTACT PERSON</div><div><input id="cPerson" placeholder="" autocomplete="off"></div>
         <div class="k" data-pf="phone">PHONE NUMBER</div><div><input id="cPhone" placeholder=""></div>
         <div class="k" data-pf="mail">E MAIL</div><div><input id="cMail" placeholder=""></div>
-        <div class="k" data-pf="city">CITY / ADDRESS</div><div><input id="cCity" placeholder="" autocomplete="off"></div>
         <div class="k" data-pf="ccountry">COUNTRY</div><div><input id="cCountry" placeholder="" autocomplete="off"></div>
+        <div class="k" data-pf="city">CITY / ADDRESS</div><div><input id="cCity" placeholder="" autocomplete="off"></div>
       </div>
       <div class="pf-scroll">
       <table class="pf">
@@ -1356,6 +1356,8 @@ const I18N = {
   edQty:      ["Adet", "Quantity", "Количество", "Cantidad"],
   edList:     ["Liste", "List", "Прайс", "Lista"],
   edUnit:     ["birim ", "unit ", "за ед. ", "unidad "],
+  needCompany: ["Firma adını yazın (zorunlu).", "Enter the company name (required).", "Укажите название компании (обязательно).", "Ingrese el nombre de la empresa (obligatorio)."],
+  needPerson: ["İlgili kişiyi yazın (zorunlu).", "Enter the contact person (required).", "Укажите контактное лицо (обязательно).", "Ingrese la persona de contacto (obligatorio)."],
   needFirm:   ["Firma adı veya ilgili kişiden en az birini yazın.", "Enter the company name or the contact person (at least one).", "Укажите название компании или контактное лицо.", "Ingrese la empresa o la persona de contacto (al menos uno)."],
   shareFail:  ["Paylaşım tamamlanamadı. Tekrar 'Paylaş'a dokunun ya da 'PDF'i aç / indir' ile açıp oradan gönderin.", "Sharing did not complete. Tap 'Share' again or use 'Open / download PDF' and send from there.", "Не удалось поделиться. Попробуйте ещё раз или откройте PDF.", "No se pudo compartir. Vuelva a intentarlo o abra el PDF."],
   pdfReady:   ["PDF hazır", "PDF is ready", "PDF готов", "PDF listo"],
@@ -1578,7 +1580,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.22-3";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.23-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2851,7 +2853,9 @@ async function checkContact(){
     setTimeout(() => el.classList.remove("reqmiss"), 4000);
     return uiAlert(t(msg)).then(() => { try{ el.focus(); }catch(e){} return false; });
   };
-  if(!$("cCompany").value.trim() && !$("cPerson").value.trim()) return miss("cCompany", "needFirm");
+  // sürüm 2026.11.23-1: firma adı ve ilgili kişi ikisi de zorunlu
+  if(!$("cCompany").value.trim()) return miss("cCompany", "needCompany");
+  if(!$("cPerson").value.trim()) return miss("cPerson", "needPerson");
   if(!$("cCountry").value.trim()) return miss("cCountry", "needCountry");
   if(!countryCodeOf($("cCountry").value)) return miss("cCountry", "needCountryList");
   return true;
