@@ -655,15 +655,15 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
         <div class="pf-title" data-pf="title">PROFORMA INVOICE</div>
         <div class="pf-meta">
           <div class="mr"><b data-pf="date">DATE</b><span id="pfDate"></span></div>
-          <div class="mr"><b data-pf="no">NO</b><input id="pfNo" value="000000"></div>
+          <div class="mr"><b data-pf="no">NO</b><input id="pfNo" value="000000" autocomplete="off" name="dof_no"></div>
         </div>
       </div>
       <div class="pf-sechead acc-c" data-pf="contact">CONTACT INFORMATION</div>
       <div class="pf-grid acc-c">
         <div class="k" data-pf="company">COMPANY NAME</div><div><input id="cCompany" placeholder="" autocomplete="off"></div>
         <div class="k" data-pf="person">CONTACT PERSON</div><div><input id="cPerson" placeholder="" autocomplete="off"></div>
-        <div class="k" data-pf="phone">PHONE NUMBER</div><div><input id="cPhone" placeholder=""></div>
-        <div class="k" data-pf="mail">E MAIL</div><div><input id="cMail" placeholder=""></div>
+        <div class="k" data-pf="phone">PHONE NUMBER</div><div><input id="cPhone" placeholder="" autocomplete="off" name="dof_tel"></div>
+        <div class="k" data-pf="mail">E MAIL</div><div><input id="cMail" placeholder="" autocomplete="off" name="dof_eposta" inputmode="email"></div>
         <div class="k" data-pf="ccountry">COUNTRY</div><div><input id="cCountry" placeholder="" autocomplete="off"></div>
         <div class="k" data-pf="city">CITY / ADDRESS</div><div><input id="cCity" placeholder="" autocomplete="off"></div>
       </div>
@@ -706,7 +706,7 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
           <input id="delPlace" placeholder="" style="flex:1;border:none;background:#fffbe8;font-size:12.5px;">
         </div>
         <div class="k" data-pf="install">INSTALLATION</div><div data-pf="installX">If the installation provided by the Yılmaz Machine, the customer responsible for all accommadation and travel expences</div>
-        <div class="k" data-pf="payment">PAYMENT</div><div><input id="cPayment" placeholder=""></div>
+        <div class="k" data-pf="payment">PAYMENT</div><div><input id="cPayment" placeholder="" autocomplete="off" name="dof_odeme"></div>
       </div>
       <div class="pf-sechead acc-b" data-pf="bank">BANK INFORMATION</div>
       <div class="pf-grid pf-cond acc-b">
@@ -1580,7 +1580,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.23-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.24-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2547,6 +2547,9 @@ function renderQuote(){
 }
 
 /* customer info persistence */
+// sürüm 2026.11.23-2: tarayıcının otomatik doldurmasıyla e-posta kutusuna teklif numarası (F-VS-00009 gibi) gelmişse temizlenir
+try{ const m = localStorage.getItem("yq_cMail") || ""; if(/^[A-Z]-[A-ZÇĞİÖŞÜ]{2}-\d{3,6}$/i.test(m.trim())) localStorage.removeItem("yq_cMail"); }catch(e){}
+setTimeout(() => { try{ const el = $("cMail"); if(el && /^[A-Z]-[A-ZÇĞİÖŞÜ]{2}-\d{3,6}$/i.test(el.value.trim())){ el.value = ""; localStorage.removeItem("yq_cMail"); } }catch(e){} }, 1500);
 ["cPerson","cCompany","cPhone","cMail","cCity","cCountry","cPayment","incoTerm","incoPlace","delTerm","delPlace","pfNo"].forEach(id => {
   const el = $(id);
   el.value = localStorage.getItem("yq_" + id) || (id === "pfNo" ? "000000" : "");
@@ -4640,12 +4643,13 @@ async function raporAc(){
   if(!rpYetki()){ uiAlert(t("rpYok")); return; }
   if(!navigator.onLine){ uiAlert(t("rpAg")); return; }
   let s = rpSifre;
-  if(!s){
+  if(!s && rpYetki() !== "TUMU"){                     // sürüm 2026.11.24-1: TÜMÜ yetkisinde şifre sorulmaz
     const inp = $("msgInput"); inp.type = "password";
     try{ s = await uiPrompt(t("rpPass"), "", "••••"); } finally { inp.type = "text"; }
     if(s == null) return;
     s = String(s).trim(); if(!s) return;
   }
+  s = s || "";
   const b = $("btnRapor"), t0 = b.textContent; b.textContent = t("rpLoading"); b.disabled = true;
   let j = null;
   try{
@@ -4657,13 +4661,14 @@ async function raporAc(){
   finally{ b.textContent = t0; b.disabled = false; }
   if(!j){ uiAlert(t("rpAg")); return; }
   if(!j.ok){
+    if(j.reason === "sifre" && !s){ uiAlert(t("rpEski")); return; }   // betik eski (TÜMÜ'de şifresiz giriş yok)
     if(j.reason === "sifre"){ rpSifre = ""; uiAlert(t("rpSifre")); return; }
     if(j.reason === "kilit"){ uiAlert(t("rpKilit")); return; }
     if(j.reason === "sifreTanimsiz"){ uiAlert(t("rpTanimsiz")); return; }
     if(j.reason === "raporYok" || j.reason === "yetkisiz" || j.reason === "anahtar"){ uiAlert(t("rpYok")); return; }
     uiAlert(t("rpEski")); return;
   }
-  rpSifre = s; RP = j;
+  rpSifre = s || ""; RP = j;
   $("raporSheet").classList.add("open");
   rpCiz();
 }
