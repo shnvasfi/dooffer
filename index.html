@@ -668,7 +668,7 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
         <div class="k" data-pf="phone">PHONE NUMBER</div><div><input id="cPhone" type="tel" inputmode="tel" placeholder="" autocomplete="off" name="dof_tel"></div>
         <div class="k" data-pf="mail">E MAIL</div><div><input id="cMail" placeholder="" autocomplete="off" name="dof_eposta" inputmode="email"></div>
         <div class="k" data-pf="ccountry">COUNTRY</div><div><input id="cCountry" placeholder="" autocomplete="off"></div>
-        <div class="k" data-pf="city">CITY / ADDRESS</div><div><input id="cCity" placeholder="" autocomplete="off"></div>
+        <div class="k" data-pf="city">CITY</div><div><input id="cCity" placeholder="" autocomplete="off"></div>
       </div>
       <div class="pf-scroll">
       <table class="pf">
@@ -1375,7 +1375,8 @@ const I18N = {
   convToEUR:  ["€ EUR'ya çevir", "€ Convert to EUR", "€ В EUR", "€ Convertir a EUR"],
   convQ:      ["Teklif {from} → {to} çevrilsin mi?\nFiyatlar {to} listesinden alınır, iskontolar korunur.", "Convert the quote {from} → {to}?\nPrices are taken from the {to} list; discounts are kept.", "Пересчитать {from} → {to}?", "¿Convertir la cotización de {from} a {to}?\nLos precios se toman de la lista en {to}; los descuentos se mantienen."],
   convDone:   ["Teklif {to} olarak hazır. Eskisini korumak için \"Farklı Kaydet\" ile kaydedin.", "The quote is now in {to}. To keep the old one, save with \"Save As\".", "Предложение пересчитано в {to}. Сохраните как новое.", "La cotización ahora está en {to}. Para conservar la anterior, guárdela con \"Guardar como\"."],
-  needCountryList:["Ülkeyi listeden seçin (yazarken öneriler çıkar).", "Pick the country from the list (suggestions appear as you type).", "Выберите страну из списка.", "Elija el país de la lista (las sugerencias aparecen al escribir)."],
+  needCityList:  ["Şehri listeden seçin (listede yoksa en alttaki Diğer).", "Pick the city from the list (if it is not there, choose Other at the bottom).", "Выберите город из списка (если его нет — «Другое» внизу).", "Elija la ciudad de la lista (si no está, elija Otro al final)."],
+  needCountryList:["Ülkeyi listeden seçin (listede yoksa en alttaki Diğer).", "Pick the country from the list (if it is not there, choose Other at the bottom).", "Выберите страну из списка (если её нет — «Другое» внизу).", "Elija el país de la lista (si no está, elija Otro al final)."],
   needCountry:["Müşterinin ülkesini yazın (zorunlu).", "Enter the customer's country (required).", "Укажите страну клиента (обязательно).", "Ingrese el país del cliente (obligatorio)."],
   emptyQuote: ["Teklif listesi boş.", "The quote is empty.", "Предложение пусто.", "La cotización está vacía."],
   curMix:     ["Teklif listesinde {c} kalemler var. Aynı teklifte iki para birimi olamaz.\nÖnce teklifi paylaşıp temizleyin.", "The quote already has {c} items. A quote cannot contain two currencies.\nShare and clear the quote first.", "В предложении уже есть позиции в {c}. В одном предложении не может быть двух валют.\nСначала отправьте и очистите предложение.", "La cotización ya tiene artículos en {c}. Una cotización no puede tener dos monedas.\nPrimero comparta y borre la cotización."],
@@ -1440,7 +1441,7 @@ const PF = {
   company:   ["FİRMA ADI", "COMPANY NAME", "НАЗВАНИЕ КОМПАНИИ", "EMPRESA"],
   phone:     ["TELEFON", "PHONE NUMBER", "ТЕЛЕФОН", "TELÉFONO"],
   mail:      ["E-POSTA", "E-MAIL", "ЭЛ. ПОЧТА", "CORREO ELECTRÓNICO"],
-  city:      ["ŞEHİR / ADRES", "CITY / ADDRESS", "ГОРОД / АДРЕС", "CIUDAD / DIRECCIÓN"],
+  city:      ["ŞEHİR", "CITY", "ГОРОД", "CIUDAD"],
   ccountry:  ["ÜLKE", "COUNTRY", "СТРАНА", "PAÍS"],
   thMachine: ["MAKİNE", "MACHINE", "ОБОРУДОВАНИЕ", "MÁQUINA"],
   thDesc:    ["AÇIKLAMA", "DESCRIPTION", "ОПИСАНИЕ", "DESCRIPCIÓN"],
@@ -1585,7 +1586,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.26-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.26-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2013,6 +2014,14 @@ function cityList(code){
 }
 // Şehir adı büyük harf: Türkiye'de Türkçe kurala göre (istanbul → İSTANBUL, içel → İÇEL), diğer ülkelerde düz büyük harf
 const sehirBuyuk = (s, code) => code === "TR" ? String(s).toLocaleUpperCase("tr") : String(s).toUpperCase();
+// sürüm 2026.11.26-2: ülke ve şehir yalnız listeden seçilir; listede yoksa "Diğer" (tabloya DİĞER, ülke kodu boş). Elle yazılan değer kabul edilmez, şehirde adres yok.
+const DIGER = {tr: "Diğer", en: "Other", ru: "Другое", es: "Otro"};
+const digerAd = () => DIGER[typeof DOC_LANG !== "undefined" ? DOC_LANG : UI_LANG] || DIGER.en;
+const isDiger = v => { const k = normTxt(v); return !!k && Object.values(DIGER).some(x => normTxt(x) === k); };
+const ulkeGecerli = v => !!countryCodeOf(v) || isDiger(v);
+const sehirGecerli = v => { const x = String(v || "").trim(); if(!x || isDiger(x)) return true; const code = localStorage.getItem("yq_cCountryCode") || ""; const k = normTxt(x); return cityList(code).some(c => normTxt(c) === k); };
+const ulkeKayit = () => { const v = $("cCountry").value.trim(), c = countryCodeOf(v); return c ? countryName(c) : (isDiger(v) ? "Diğer" : v); };
+const sehirKayit = () => { const v = $("cCity").value.trim(); return isDiger(v) ? "DİĞER" : v; };
 function fillCountryDl(){
   let dl = $("dlCountry");
   if(!dl){ dl = document.createElement("datalist"); dl.id = "dlCountry"; document.body.appendChild(dl); }
@@ -2033,21 +2042,23 @@ function syncCountry(){
   if(code){
     const L = typeof DOC_LANG !== "undefined" ? DOC_LANG : UI_LANG;
     el.value = regionName(code, L); localStorage.setItem("yq_cCountry", el.value);
-  }
+  } else if(isDiger(el.value)){ el.value = digerAd(); localStorage.setItem("yq_cCountry", el.value); }
   if(code !== (localStorage.getItem("yq_cCountryCode") || "")){
     localStorage.setItem("yq_cCountryCode", code);
   }
   fillCityDl();
+  const ce = $("cCity");                                  // ülke değişince yeni listede olmayan şehir silinir
+  if(ce && ce.value.trim() && !sehirGecerli(ce.value.split(",")[0])){ ce.value = ""; localStorage.setItem("yq_cCity", ""); }
 }
 // Şehir kutusu: ilk parça (virgülden önce) listedeki bir şehre denk geliyorsa doğru yazımı konur; adres kısmına dokunulmaz
 function syncCity(){
   const el = $("cCity"); if(!el || !el.value.trim()) return;
   const code = localStorage.getItem("yq_cCountryCode") || "";
-  const parts = el.value.split(","), first = normTxt(parts[0]);
-  const hit = cityList(code).find(c => normTxt(c) === first);
-  // sürüm 2026.11.25-1: şehir (virgülden önceki kısım) büyük harf; listede varsa doğru yazımından (Istanbul → İSTANBUL)
-  parts[0] = sehirBuyuk(hit || parts[0].trim(), code);
-  el.value = parts.map((x, i) => i ? x : x.trim()).join(","); localStorage.setItem("yq_cCity", el.value);
+  const first = el.value.split(",")[0].trim(), k = normTxt(first);
+  if(isDiger(first)){ el.value = sehirBuyuk(digerAd(), code === "TR" || (typeof DOC_LANG !== "undefined" ? DOC_LANG : UI_LANG) === "tr" ? "TR" : code); localStorage.setItem("yq_cCity", el.value); return; }
+  const hit = cityList(code).find(c => normTxt(c) === k);
+  // sürüm 2026.11.25-1: büyük harf; 2026.11.26-2: yalnız listedeki şehir (adres yok)
+  el.value = hit ? sehirBuyuk(hit, code) : ""; localStorage.setItem("yq_cCity", el.value);
 }
 /* ---- Öneri listesi: input altında açılır, dokununca seçer (iOS/Android'de datalist güvenilir değil) ---- */
 const sugBox = (() => { const d = document.createElement("div"); d.id = "sugBox"; document.body.appendChild(d); return d; })();
@@ -2097,7 +2108,7 @@ function sugShow(inp, items, pick){
   sugBox.scrollTop = 0;
   sugPick = i => pick(items[i]);
 }
-function attachSug(inp, source, pick){
+function attachSug(inp, source, pick, secim){
   const run = () => sugShow(inp, source(inp.value), it => { inp.value = it.v; localStorage.setItem("yq_" + inp.id, it.v); if(pick) pick(it); });
   // Öneriler kendiliğinden açılmaz: yazmaya başlayınca, çift tıklayınca ya da (telefonda) kutuya ikinci kez dokununca açılır
   inp.addEventListener("input", () => { if(inp.value.trim()) run(); else sugHide(); });
@@ -2107,6 +2118,12 @@ function attachSug(inp, source, pick){
   inp.addEventListener("click", () => { if(odakta && sugFor !== inp) run(); });
   inp.addEventListener("keydown", e => { if(e.key === "Escape") sugHide(); if(e.key === "ArrowDown" && sugFor !== inp) run(); });
   inp.addEventListener("blur", () => setTimeout(() => { if(sugFor === inp && !sugTouching) sugHide(); }, 220));
+  if(secim){                                           // yalnız seçim: dokununca liste açılır, listeden seçilmeyen değer silinir
+    inp.addEventListener("focus", () => setTimeout(run, 50));
+    inp.addEventListener("click", () => { if(sugFor !== inp) run(); });
+    const kontrol = () => { if(document.activeElement === inp || sugFor === inp || sugTouching){ setTimeout(kontrol, 300); return; } secim(); };
+    inp.addEventListener("blur", () => setTimeout(kontrol, 350));
+  }
 }
 window.addEventListener("resize", () => { if(sugFor) sugYerlestir(sugFor); });
 if(window.visualViewport) window.visualViewport.addEventListener("resize", () => { if(sugFor) sugYerlestir(sugFor); });
@@ -2118,19 +2135,29 @@ setTimeout(() => {
     return q.trim() || out.length < 30 ? out : [];
   }, it => applyCustomer(it.c));
   attachSug($("cPerson"), q => CUSTOMERS.filter(c => c.person && sugMatch(c.person, q)).map(c => ({v: c.person, sub: [c.company, c.city].filter(Boolean).join(" • "), c})), it => applyCustomer(it.c));
-  attachSug($("cCountry"), q => {
+  attachSug($("cCountry"), q0 => {
     const L = typeof DOC_LANG !== "undefined" ? DOC_LANG : UI_LANG;
-    if(!q.trim()) return [];
-    return COUNTRY_CODES.map(c => ({v: regionName(c, L), c})).filter(x => sugMatch(x.v, q) || normTxt(x.c) === normTxt(q))
+    const q = ulkeGecerli(q0) ? "" : q0;                // seçili ülkeye dokununca bütün liste
+    const a = COUNTRY_CODES.map(c => ({v: regionName(c, L), c})).filter(x => sugMatch(x.v, q) || normTxt(x.c) === normTxt(q))
       .sort((a, b) => (normTxt(a.v).indexOf(normTxt(q)) - normTxt(b.v).indexOf(normTxt(q))) || a.v.localeCompare(b.v, L));
-  }, () => { syncCountry(); syncCity(); });
-  attachSug($("cCity"), q => {
-    const first = q.split(",")[0];
-    return cityList(localStorage.getItem("yq_cCountryCode") || "").filter(c => sugMatch(c, first)).map(c => ({v: c}));
-  }, () => syncCity());
+    return a.slice(0, 29).concat([{v: digerAd(), c: "", sub: "—"}]);
+  }, () => { syncCountry(); syncCity(); }, () => {
+    const el = $("cCountry");
+    if(el.value.trim() && !ulkeGecerli(el.value)){ el.value = ""; localStorage.setItem("yq_cCountry", ""); }
+    syncCountry();
+  });
+  attachSug($("cCity"), q0 => {
+    const code = localStorage.getItem("yq_cCountryCode") || "";
+    const q = sehirGecerli(q0) && q0.trim() && !isDiger(q0) ? "" : (isDiger(q0) ? "" : q0.split(",")[0]);
+    return cityList(code).filter(c => sugMatch(c, q)).slice(0, 29).map(c => ({v: c})).concat([{v: digerAd(), sub: "—"}]);
+  }, () => syncCity(), () => {
+    const el = $("cCity");
+    if(el.value.trim() && !sehirGecerli(el.value)){ el.value = ""; localStorage.setItem("yq_cCity", ""); }
+    else syncCity();
+  });
 }, 0);
 setTimeout(() => {
-  fillCountryDl(); syncCountry();
+  fillCountryDl(); syncCountry(); syncCity();
   $("cCountry").addEventListener("change", () => { syncCountry(); syncCity(); });
   $("cCity").addEventListener("change", syncCity);
 
@@ -2637,7 +2664,8 @@ function applyCustomer(c){
   [["cCompany", c.company], ["cPerson", c.person], ["cPhone", c.phone], ["cMail", c.mail], ["cCity", c.city], ["cCountry", c.country]].forEach(([id, v]) => {
     if(v == null || (v === "" && (id === "cCity" || id === "cCountry"))) return; $(id).value = v; localStorage.setItem("yq_" + id, v);
   });
-  syncCountry();
+  if(!ulkeGecerli($("cCountry").value)){ $("cCountry").value = ""; localStorage.setItem("yq_cCountry", ""); }
+  syncCountry(); syncCity();
 }
 $("cCompany").addEventListener("change", () => {
   const v = $("cCompany").value.trim().toLocaleLowerCase("tr"); if(!v) return;
@@ -2766,8 +2794,8 @@ function currentQuoteRecord(){
     no: $("pfNo").value, ts: Date.now(), savedAt: yerelSaat(), docLang: DOC_LANG, qid: teklifKimligi(),
     date: new Date().toLocaleDateString("tr-TR"),
     company: $("cCompany").value, person: $("cPerson").value,
-    phone: $("cPhone").value, mail: $("cMail").value, city: $("cCity").value.trim(),
-    country: (c => c ? countryName(c) : $("cCountry").value.trim())(countryCodeOf($("cCountry").value)), countryCode: countryCodeOf($("cCountry").value),
+    phone: $("cPhone").value, mail: $("cMail").value, city: sehirKayit(),
+    country: ulkeKayit(), countryCode: countryCodeOf($("cCountry").value),
     mode: localStorage.getItem("yq_mode") || "", user: (localStorage.getItem("yq_dev") || ""),
     cur: qcur2, incoTerm: $("incoTerm").value, incoPlace: $("incoPlace").value,
     delTerm: $("delTerm").value, delPlace: $("delPlace").value, payment: $("cPayment").value,
@@ -2859,7 +2887,7 @@ function vcardOf(r){
 function saveToContacts(){
   const cc = countryCodeOf($("cCountry").value);
   const r = {person: $("cPerson").value.trim(), company: $("cCompany").value.trim(), phone: $("cPhone").value.trim(), mail: $("cMail").value.trim(),
-             city: $("cCity").value.trim(), countryCode: cc, country: cc ? countryName(cc) : $("cCountry").value.trim(), no: ($("pfNo").value || "").trim()};
+             city: sehirKayit(), countryCode: cc, country: ulkeKayit(), no: ($("pfNo").value || "").trim()};
   if(!(r.person || r.company) || !(r.phone || r.mail)){ uiAlert(t("vcfNeed")); return; }
   const ad = (String(r.person || r.company).trim().replace(/[^\wÇĞİÖŞÜçğıöşü .-]+/g, "_") || "kisi") + ".vcf";
   const file = new File([vcardOf(r)], ad, {type: "text/vcard"});
@@ -2885,7 +2913,8 @@ async function checkContact(){
   // sürüm 2026.11.25-4: e-posta boş olabilir, yazıldıysa @ olmalı (yanlışlıkla telefon yazılıyordu)
   { const m = $("cMail").value.trim(); if(m && !/^[^\s@]+@[^\s@]+$/.test(m)) return miss("cMail", "needMailAt"); }
   if(!$("cCountry").value.trim()) return miss("cCountry", "needCountry");
-  if(!countryCodeOf($("cCountry").value)) return miss("cCountry", "needCountryList");
+  if(!ulkeGecerli($("cCountry").value)) return miss("cCountry", "needCountryList");
+  if(!sehirGecerli($("cCity").value)){ $("cCity").value = ""; localStorage.setItem("yq_cCity", ""); return miss("cCity", "needCityList"); }
   return true;
 }
 $("btnSaveQ").onclick = async () => {
@@ -3887,7 +3916,7 @@ function loadQuoteForEdit(r){
   saveQuote();
   const setF = (id, v) => { $(id).value = v || ""; localStorage.setItem("yq_" + id, v || ""); };
   setF("cPerson", r.person); setF("cCompany", r.company); setF("cPhone", r.phone); setF("cMail", r.mail);
-  setF("cCity", r.city); setF("cCountry", r.country); syncCountry();
+  setF("cCity", r.city); setF("cCountry", r.country); syncCountry(); syncCity();
   setF("cPayment", r.payment); setF("incoTerm", r.incoTerm); setF("incoPlace", r.incoPlace);
   setF("delTerm", r.delTerm); setF("delPlace", r.delPlace);
   setF("exFreightAmt", r.freight ? String(r.freight).replace(".", ",") : "");
