@@ -665,8 +665,8 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       <div class="pf-grid acc-c">
         <div class="k" data-pf="company">COMPANY NAME</div><div><input id="cCompany" placeholder="" autocomplete="off"></div>
         <div class="k" data-pf="person">CONTACT PERSON</div><div><input id="cPerson" placeholder="" autocomplete="off"></div>
-        <div class="k" data-pf="phone">PHONE NUMBER</div><div><input id="cPhone" type="tel" inputmode="tel" placeholder="" autocomplete="off" name="dof_tel"></div>
-        <div class="k" data-pf="mail">E MAIL</div><div><input id="cMail" placeholder="" autocomplete="off" name="dof_eposta" inputmode="email"></div>
+        <div class="k" data-pf="phone">PHONE NUMBER</div><div><input id="cPhone" type="tel" inputmode="tel" placeholder="" autocomplete="off" name="dof_tel" readonly></div>
+        <div class="k" data-pf="mail">E MAIL</div><div><input id="cMail" placeholder="" autocomplete="off" name="dof_eposta" inputmode="email" readonly></div>
         <div class="k" data-pf="ccountry">COUNTRY</div><div><input id="cCountry" placeholder="" autocomplete="off"></div>
         <div class="k" data-pf="city">CITY</div><div><input id="cCity" placeholder="" autocomplete="off"></div>
       </div>
@@ -1586,7 +1586,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.26-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.26-3";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2120,7 +2120,7 @@ function attachSug(inp, source, pick, secim){
   inp.addEventListener("blur", () => setTimeout(() => { if(sugFor === inp && !sugTouching) sugHide(); }, 220));
   if(secim){                                           // yalnız seçim: dokununca liste açılır, listeden seçilmeyen değer silinir
     inp.addEventListener("focus", () => setTimeout(run, 50));
-    inp.addEventListener("click", () => { if(sugFor !== inp) run(); });
+    inp.addEventListener("click", run);
     const kontrol = () => { if(document.activeElement === inp || sugFor === inp || sugTouching){ setTimeout(kontrol, 300); return; } secim(); };
     inp.addEventListener("blur", () => setTimeout(kontrol, 350));
   }
@@ -2590,8 +2590,27 @@ function renderQuote(){
 
 /* customer info persistence */
 // sürüm 2026.11.23-2: tarayıcının otomatik doldurmasıyla e-posta kutusuna teklif numarası (F-VS-00009 gibi) gelmişse temizlenir
-try{ const m = localStorage.getItem("yq_cMail") || ""; if(/^[A-Z]-[A-ZÇĞİÖŞÜ]{2,4}-\d{3,6}(-\d{6})?$/i.test(m.trim())) localStorage.removeItem("yq_cMail"); }catch(e){}
-setTimeout(() => { try{ const el = $("cMail"); if(el && /^[A-Z]-[A-ZÇĞİÖŞÜ]{2,4}-\d{3,6}(-\d{6})?$/i.test(el.value.trim())){ el.value = ""; localStorage.removeItem("yq_cMail"); } }catch(e){} }, 1500);
+// sürüm 2026.11.26-3: tarayıcının otomatik doldurması E-posta / Telefon kutusuna teklif numarası koyuyordu.
+// Kutular dokunulana kadar salt okunur (tarayıcı salt okunur kutuyu doldurmaz) + teklif numarasına benzeyen değer her an silinir.
+const NO_BENZER = /^[A-Z]-[A-ZÇĞİÖŞÜ]{2,4}-\d{3,6}(-\d{6})?(-\d+)?$/i;
+try{ ["yq_cMail", "yq_cPhone"].forEach(k => { const m = localStorage.getItem(k) || ""; if(NO_BENZER.test(m.trim())) localStorage.removeItem(k); }); }catch(e){}
+function noTemizle(){ ["cMail", "cPhone"].forEach(id => { const el = $(id); if(el && NO_BENZER.test(el.value.trim())){ el.value = ""; localStorage.removeItem("yq_" + id); } }); }
+["cMail", "cPhone"].forEach(id => {
+  const el = $(id); if(!el) return;
+  const ac = () => { if(el.readOnly){ el.readOnly = false; } };
+  el.addEventListener("pointerdown", ac); el.addEventListener("focus", ac); el.addEventListener("keydown", ac);
+  el.addEventListener("blur", () => setTimeout(() => { if(document.activeElement !== el) el.readOnly = true; }, 300));
+  ["input", "change", "animationstart"].forEach(ev => el.addEventListener(ev, () => setTimeout(noTemizle, 0)));
+});
+setInterval(noTemizle, 1500);
+// Telefon: yalnız rakam, +, boşluk, ( ) - . (harf yazılamaz, yapıştırılan metinden harfler atılır)
+$("cPhone").addEventListener("input", () => { const el = $("cPhone"), v = el.value, y = v.replace(/[^0-9+()\-.\s\/]/g, ""); if(y !== v){ const p0 = el.selectionStart - (v.length - y.length); el.value = y; try{ el.setSelectionRange(p0, p0); }catch(e){} localStorage.setItem("yq_cPhone", y); } });
+// E-posta: kutudan çıkınca @ kontrolü (kayıtta da kontrol edilir)
+$("cMail").addEventListener("blur", () => setTimeout(() => {
+  const el = $("cMail"), m = el.value.trim();
+  if(!m || /^[^\s@]+@[^\s@]+$/.test(m) || $("msgModal").classList.contains("open")) return;
+  el.classList.add("reqmiss"); setTimeout(() => el.classList.remove("reqmiss"), 4000); uiAlert(t("needMailAt"));
+}, 250));
 ["cPerson","cCompany","cPhone","cMail","cCity","cCountry","cPayment","incoTerm","incoPlace","delTerm","delPlace","pfNo"].forEach(id => {
   const el = $(id);
   el.value = localStorage.getItem("yq_" + id) || (id === "pfNo" ? "000000" : "");
