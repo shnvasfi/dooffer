@@ -224,6 +224,7 @@ main{flex:1;padding:10px 12px 16px;}
 .pf-meta .mr{display:flex;justify-content:space-between;gap:10px;}
 .pf-meta .mr b{font-weight:800;}
 .pf-meta input{width:80px;border:1px solid #ccc;font-size:12.5px;text-align:right;}
+.pf-meta #pfNo{width:138px;}
 .pf-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 table.pf{width:100%;border-collapse:collapse;margin-top:8px;}
 table.pf th.c-n{width:22px;} table.pf th.c-mak{width:105px;} table.pf th.c-qty{width:34px;}
@@ -363,6 +364,8 @@ table.pf .optrow .oname{padding-left:16px;}
   .pf-logo{width:58px;} .pf-logo img{width:52px !important;height:52px !important;}
   .pf-meta{min-width:104px;font-size:11px;}
   .pf-meta input{width:62px;font-size:11px;}
+  .pf-meta{min-width:124px;}
+  .pf-meta #pfNo{width:112px;}
   table.pf th{font-size:9px;padding:3px 2px;}
   table.pf td{font-size:10.5px;padding:3px 3px;}
   table.pf th.c-mak{width:60px;} table.pf th.c-qty{width:24px;}
@@ -662,7 +665,7 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       <div class="pf-grid acc-c">
         <div class="k" data-pf="company">COMPANY NAME</div><div><input id="cCompany" placeholder="" autocomplete="off"></div>
         <div class="k" data-pf="person">CONTACT PERSON</div><div><input id="cPerson" placeholder="" autocomplete="off"></div>
-        <div class="k" data-pf="phone">PHONE NUMBER</div><div><input id="cPhone" placeholder="" autocomplete="off" name="dof_tel"></div>
+        <div class="k" data-pf="phone">PHONE NUMBER</div><div><input id="cPhone" type="tel" inputmode="tel" placeholder="" autocomplete="off" name="dof_tel"></div>
         <div class="k" data-pf="mail">E MAIL</div><div><input id="cMail" placeholder="" autocomplete="off" name="dof_eposta" inputmode="email"></div>
         <div class="k" data-pf="ccountry">COUNTRY</div><div><input id="cCountry" placeholder="" autocomplete="off"></div>
         <div class="k" data-pf="city">CITY / ADDRESS</div><div><input id="cCity" placeholder="" autocomplete="off"></div>
@@ -881,7 +884,7 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
         <button class="btn sec" id="btnLogout" style="flex:none;padding:6px 10px;font-size:12.5px;margin-left:4px;">Çıkış</button>
       </span>
     </div>
-    <div class="setrow">
+    <div class="setrow" style="display:none;"><!-- sürüm 2026.11.25-3: numara tarih-saatten üretildiği için sayaç kullanılmıyor -->
       <span>Sıradaki Teklif Sayacı</span>
       <span style="display:flex;gap:6px;align-items:center;">
         <button class="btn sec" id="btnSeqReset" style="flex:none;padding:8px 12px;font-size:13px;">Sıfırla</button>
@@ -1357,6 +1360,8 @@ const I18N = {
   edList:     ["Liste", "List", "Прайс", "Lista"],
   edUnit:     ["birim ", "unit ", "за ед. ", "unidad "],
   needCompany: ["Firma adını yazın (zorunlu).", "Enter the company name (required).", "Укажите название компании (обязательно).", "Ingrese el nombre de la empresa (obligatorio)."],
+  needPhone: ["Telefon numarasını yazın (zorunlu).", "Enter the phone number (required).", "Укажите номер телефона (обязательно).", "Ingrese el número de teléfono (obligatorio)."],
+  needMailAt: ["E-posta adresi hatalı: @ işareti olmalı (ör. ad@firma.com). Telefonu Telefon kutusuna yazın.", "Invalid e-mail address: it must contain @ (e.g. name@company.com). Enter phone numbers in the Phone field.", "Неверный адрес эл. почты: должен содержать @ (напр. name@company.com). Телефон укажите в поле «Телефон».", "Correo electrónico no válido: debe contener @ (p. ej. nombre@empresa.com). Escriba el teléfono en el campo Teléfono."],
   needPerson: ["İlgili kişiyi yazın (zorunlu).", "Enter the contact person (required).", "Укажите контактное лицо (обязательно).", "Ingrese la persona de contacto (obligatorio)."],
   needFirm:   ["Firma adı veya ilgili kişiden en az birini yazın.", "Enter the company name or the contact person (at least one).", "Укажите название компании или контактное лицо.", "Ingrese la empresa o la persona de contacto (al menos uno)."],
   shareFail:  ["Paylaşım tamamlanamadı. Tekrar 'Paylaş'a dokunun ya da 'PDF'i aç / indir' ile açıp oradan gönderin.", "Sharing did not complete. Tap 'Share' again or use 'Open / download PDF' and send from there.", "Не удалось поделиться. Попробуйте ещё раз или откройте PDF.", "No se pudo compartir. Vuelva a intentarlo o abra el PDF."],
@@ -1580,7 +1585,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.25-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.25-5";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2286,7 +2291,7 @@ function devPrefix(){
 function syncQuoteNo(){
   const cur0 = ($("pfNo").value || "").trim();
   if(editingNo && editingNo === cur0) return;     // kayıtlı teklif düzenleniyor: numara değişmez (tabloda aynı satırlar güncellenir)
-  const m = cur0.match(/(\d+)\s*$/);
+  const m = cur0.match(/(\d{6}-\d{6}(?:-\d+)?|\d+)\s*$/);   // yeni biçim YYAAGG-SSDDss (sürüm 2026.11.25-3) ya da eski sıra no
   if(!m || !quote.length) return;
   const yeni = devPrefix() + "-" + m[1];
   if(yeni !== cur0){
@@ -2295,14 +2300,19 @@ function syncQuoteNo(){
     renderMini();
   }
 }
+const yeniKimlik = () => { try{ if(crypto.randomUUID) return crypto.randomUUID(); }catch(e){} return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10); };
+const teklifKimligi = () => { let q = localStorage.getItem("yq_qid"); if(!q){ q = yeniKimlik(); localStorage.setItem("yq_qid", q); } return q; };
 function nextQuoteNo(){
   editingNo = null;
   const dev = devPrefix();
-  const seq = parseInt(localStorage.getItem("yq_seq") || "1") || 1;
-  const no = dev + "-" + String(seq).padStart(5, "0");
-  localStorage.setItem("yq_seq", String(seq + 1));
+  // sürüm 2026.11.25-3: numara tarih-saatten üretilir (F-FŞ-251125-143205 = 25.11.2025 14:32:05) — iki cihaz aynı numarayı veremez
+  const d = new Date(), z = n => String(n).padStart(2, "0");
+  let no = dev + "-" + z(d.getFullYear() % 100) + z(d.getMonth() + 1) + z(d.getDate()) + "-" + z(d.getHours()) + z(d.getMinutes()) + z(d.getSeconds());
+  if(no === localStorage.getItem("yq_lastNo")) no += "-2";   // aynı saniyede ikinci teklif (pratikte olmaz)
+  localStorage.setItem("yq_lastNo", no);
   $("pfNo").value = no;
   localStorage.setItem("yq_pfNo", no);
+  localStorage.setItem("yq_qid", yeniKimlik());   // sürüm 2026.11.25-2: her teklifin değişmeyen kimliği (numara çakışmasında tablo eskisini korur)
   try{ paintEditBar(); }catch(e){}
   return no;
 }
@@ -2553,8 +2563,8 @@ function renderQuote(){
 
 /* customer info persistence */
 // sürüm 2026.11.23-2: tarayıcının otomatik doldurmasıyla e-posta kutusuna teklif numarası (F-VS-00009 gibi) gelmişse temizlenir
-try{ const m = localStorage.getItem("yq_cMail") || ""; if(/^[A-Z]-[A-ZÇĞİÖŞÜ]{2}-\d{3,6}$/i.test(m.trim())) localStorage.removeItem("yq_cMail"); }catch(e){}
-setTimeout(() => { try{ const el = $("cMail"); if(el && /^[A-Z]-[A-ZÇĞİÖŞÜ]{2}-\d{3,6}$/i.test(el.value.trim())){ el.value = ""; localStorage.removeItem("yq_cMail"); } }catch(e){} }, 1500);
+try{ const m = localStorage.getItem("yq_cMail") || ""; if(/^[A-Z]-[A-ZÇĞİÖŞÜ]{2,4}-\d{3,6}(-\d{6})?$/i.test(m.trim())) localStorage.removeItem("yq_cMail"); }catch(e){}
+setTimeout(() => { try{ const el = $("cMail"); if(el && /^[A-Z]-[A-ZÇĞİÖŞÜ]{2,4}-\d{3,6}(-\d{6})?$/i.test(el.value.trim())){ el.value = ""; localStorage.removeItem("yq_cMail"); } }catch(e){} }, 1500);
 ["cPerson","cCompany","cPhone","cMail","cCity","cCountry","cPayment","incoTerm","incoPlace","delTerm","delPlace","pfNo"].forEach(id => {
   const el = $(id);
   el.value = localStorage.getItem("yq_" + id) || (id === "pfNo" ? "000000" : "");
@@ -2747,7 +2757,7 @@ function yerelSaat(d){
 function currentQuoteRecord(){
   const qcur2 = qMain();
   return {
-    no: $("pfNo").value, ts: Date.now(), savedAt: yerelSaat(), docLang: DOC_LANG,
+    no: $("pfNo").value, ts: Date.now(), savedAt: yerelSaat(), docLang: DOC_LANG, qid: teklifKimligi(),
     date: new Date().toLocaleDateString("tr-TR"),
     company: $("cCompany").value, person: $("cPerson").value,
     phone: $("cPhone").value, mail: $("cMail").value, city: $("cCity").value.trim(),
@@ -2864,6 +2874,10 @@ async function checkContact(){
   // sürüm 2026.11.23-1: firma adı ve ilgili kişi ikisi de zorunlu
   if(!$("cCompany").value.trim()) return miss("cCompany", "needCompany");
   if(!$("cPerson").value.trim()) return miss("cPerson", "needPerson");
+  // sürüm 2026.11.25-5: telefon zorunlu
+  if(!$("cPhone").value.trim()) return miss("cPhone", "needPhone");
+  // sürüm 2026.11.25-4: e-posta boş olabilir, yazıldıysa @ olmalı (yanlışlıkla telefon yazılıyordu)
+  { const m = $("cMail").value.trim(); if(m && !/^[^\s@]+@[^\s@]+$/.test(m)) return miss("cMail", "needMailAt"); }
   if(!$("cCountry").value.trim()) return miss("cCountry", "needCountry");
   if(!countryCodeOf($("cCountry").value)) return miss("cCountry", "needCountryList");
   return true;
@@ -3863,6 +3877,7 @@ $("btnHist").onclick = async () => {
 let editingNo = null;
 function loadQuoteForEdit(r){
   quote = JSON.parse(JSON.stringify(r.items || []));
+  localStorage.setItem("yq_qid", r.qid || yeniKimlik());   // düzenlenen teklifin kimliği (eski kayıtta yoksa yeni; tablo aynı firmalı eski satırları benimser)
   saveQuote();
   const setF = (id, v) => { $(id).value = v || ""; localStorage.setItem("yq_" + id, v || ""); };
   setF("cPerson", r.person); setF("cCompany", r.company); setF("cPhone", r.phone); setF("cMail", r.mail);
@@ -3927,7 +3942,7 @@ function buildCsv(recs){
     "Firma","İlgili Kişi","Telefon","E-posta","Para Birimi",
     "Sıra","Tür","Makine Adı","Stok Kodu","Stok Adı","Adet","Liste Fiyat","İskonto %","Artı İskonto %","Birim Net","Tutar",
     "Teslim Şekli","Teslim Yeri","Incoterm","Incoterm Yeri","Ödeme","Navlun","Sigorta",
-    "Teklif Liste Toplamı","Teklif Net Toplamı","Müşteri Şehir / Adres","Müşteri Ülkesi","Yerel Kayıt Saati","Müşteri Ülke Kodu","Teklif Dili"];
+    "Teklif Liste Toplamı","Teklif Net Toplamı","Müşteri Şehir / Adres","Müşteri Ülkesi","Yerel Kayıt Saati","Müşteri Ülke Kodu","Teklif Dili","Teklif Kimliği"];
   const rows = [head];
   const MODES = {F:"Fuar", S:"Seyahat", D:"Direkt", O:"Direkt"};
   recs.forEach(r => {
@@ -3939,7 +3954,7 @@ function buildCsv(recs){
       rows.push([r.no, r.date, MODES[r.mode] || r.mode || "", r.user || "", ...leadCols, r.company || "", r.person || "",
         r.phone || "", r.mail || "", r.cur || "", "", "", "", "", "", "", "", "", "", "", "",
         r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
-        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal), r.city || "", r.country || "", r.savedAt || "", r.countryCode || "", r.docLang || ""]);
+        numCell(r.freight), numCell(r.insurance), numCell(r.listTotal), numCell(r.netTotal), r.city || "", r.country || "", r.savedAt || "", r.countryCode || "", r.docLang || "", r.qid || ""]);
       return;
     }
     let n = 0;
@@ -3951,7 +3966,7 @@ function buildCsv(recs){
         qty, numCell(unitList), numCell(o && o.od != null ? o.od : it.d1), numCell(o && o.od != null ? 0 : it.d2), numCell(unitNet), numCell(unitNet * qty),
         r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
         ana ? numCell(r.freight) : "", ana ? numCell(r.insurance) : "", numCell(r.listTotals ? (r.listTotals[c] || 0) : r.listTotal), numCell(r.netTotals ? (r.netTotals[c] || 0) : r.netTotal),
-        r.city || "", r.country || "", r.savedAt || "", r.countryCode || "", r.docLang || ""
+        r.city || "", r.country || "", r.savedAt || "", r.countryCode || "", r.docLang || "", r.qid || ""
       ]); };
       push("Makine", itemCols(it), it.qty, it.unitList, it.unitNet);
       (it.opts || []).forEach(o => { n++; push("Opsiyon", optCols(o), (o.qty != null ? o.qty : it.qty), o.unitList, o.unitNet, o); });
@@ -4087,7 +4102,7 @@ function sheetRows(r){
   const tail = c => [r.delTerm || "", r.delPlace || "", r.incoTerm || "", r.incoPlace || "", r.payment || "",
                 c === (r.cur || c) ? (r.freight || 0) : 0, c === (r.cur || c) ? (r.insurance || 0) : 0,
                 r.listTotals ? (r.listTotals[c] || 0) : (r.listTotal || 0), r.netTotals ? (r.netTotals[c] || 0) : (r.netTotal || 0),
-                r.city || "", r.country || "", r.savedAt || "", r.countryCode || "", r.docLang || ""];
+                r.city || "", r.country || "", r.savedAt || "", r.countryCode || "", r.docLang || "", r.qid || ""];
   let n = 0;
   (r.items || []).forEach(it => {
     n++;
@@ -4153,7 +4168,7 @@ async function sheetFlush(){
 }
 async function sheetSend(rec){
   if(!sheetUrl()) return;
-  const payload = {no:rec.no, v:2, rows:sheetRows(rec)};   // v:2 = Makine Adı | Stok Kodu | Stok Adı kolonları
+  const payload = {no:rec.no, v:2, qid: rec.qid || "", rows:sheetRows(rec)};   // v:2 = Makine Adı | Stok Kodu | Stok Adı kolonları
   if(!await sheetPost(payload)) sheetQueue(payload);
 }
 setTimeout(() => sheetFlush().then(() => { try{ updateSheetInfo(); }catch(e){} }), 3000);
@@ -4584,9 +4599,32 @@ async function authCheck(code, pin, token){
 function applyAuth(j){
   localStorage.setItem(AUTH_KEY, JSON.stringify({code: j.code, name: j.name || "", table: !!j.table, tableUrl: j.tableUrl || "", pkgPass: j.pkgPass || "", token: j.token || "", manualPrice: !!j.manualPrice, rapor: j.rapor || "", ts: Date.now()}));
   if(localStorage.getItem("yq_dev") !== j.code){ localStorage.setItem("yq_dev", j.code); try{ syncQuoteNo(); }catch(e){} }
+  // sürüm 2026.11.25-2: tablodaki en büyük sıra numarasının üstünden devam (ikinci telefon / sıfırlanan program 00001'den başlamasın)
+  try{ const m = parseInt(j.maxSeq) || 0, s = parseInt(localStorage.getItem("yq_seq") || "1") || 1; if(m + 1 > s) localStorage.setItem("yq_seq", String(m + 1)); }catch(e){}
   try{ paintUserChip(); }catch(e){}
   try{ paintRaporBtn(); }catch(e){}
+  setTimeout(() => { try{ adlariGonder(); }catch(e){} }, 1500);
 }
+// sürüm 2026.11.25-5: Excel fiyat listesindeki Türkçe / İngilizce adları tabloya gönderir (fiyat gitmez; yalnız stok kodu + adlar).
+// Tablo bunları gizli "Stok Adları" sayfasına yazar; Pano Verisi'nde Stok Adı ve Stok Adı (İngilizce) buradan gelir. Liste değişmedikçe tekrar gönderilmez.
+async function adlariGonder(){
+  const a = getAuth(), u = sheetUrl();
+  if(!a || !a.code || !a.table || !isScriptUrl(u)) return;
+  const db = loadDb("excel"), seen = new Set(), L = [];
+  const ekle = x => { const c = String((x && x.code) || "").trim(); if(!c || seen.has(c.toUpperCase())) return; seen.add(c.toUpperCase()); L.push([c, String(x.name || "").trim(), String(x.nameEn || "").trim()]); };
+  (db.machines || []).forEach(ekle); Object.values(db.opts || {}).forEach(ekle);
+  if(L.length < 5) return;
+  const js = JSON.stringify(L);
+  let h = 0; for(let i = 0; i < js.length; i++) h = (h * 31 + js.charCodeAt(i)) | 0;
+  const anahtar = a.code + ":" + h + ":" + u;
+  if(localStorage.getItem("yq_adlar_h") === anahtar) return;
+  try{
+    const r = await fetch(u, {method: "POST", body: JSON.stringify({adlar: L, kod: a.code, token: a.token || ""})});
+    const j = await r.json();
+    if(j && j.ok) localStorage.setItem("yq_adlar_h", anahtar);
+  }catch(e){}
+}
+setTimeout(() => { try{ adlariGonder(); }catch(e){} }, 4000);
 function authReasonMsg(r, again){
   if(r === "pasif") return t("authPassive");
   if(r === "pin") return t("authPin");
@@ -4646,6 +4684,7 @@ const rpYetki = () => { const a = getAuth(); return a && (a.rapor === "TUMU" || 
 function paintRaporBtn(){ const b = $("btnRapor"); if(b) b.style.display = rpYetki() && !needLogin() ? "" : "none"; }
 async function raporAc(){
   if(!rpYetki()){ uiAlert(t("rpYok")); return; }
+  rpF = Object.assign({}, RP_F0);                     // sürüm 2026.11.25-2: açılışta ve ⟳'de filtreler temizlenir (eski filtre sayıları eksik göstermesin)
   if(!navigator.onLine){ uiAlert(t("rpAg")); return; }
   let s = rpSifre;
   if(!s && rpYetki() !== "TUMU"){                     // sürüm 2026.11.24-1: TÜMÜ yetkisinde şifre sorulmaz
@@ -4890,9 +4929,14 @@ $("btnRapor").onclick = raporAc;
 $("rpClose").onclick = () => $("raporSheet").classList.remove("open");
 // filtre olayları: satıra dokun (seç / aynı satıra tekrar dokun = kaldır), seçim listesi, ✕ düğmeleri
 const rpFKaldir = f => { if(f === "*") rpF = Object.assign({}, RP_F0); else rpF[f] = ""; rpCiz(); };
+let rpDok = null;   // kaydırırken yanlışlıkla satıra dokunup filtre seçilmesin: parmak 8 px'ten fazla kaydıysa seçim yapılmaz
+$("rpBody").addEventListener("pointerdown", e => { rpDok = {x: e.clientX, y: e.clientY, kaydi: false}; }, {passive: true});
+$("rpBody").addEventListener("pointermove", e => { if(rpDok && (Math.abs(e.clientX - rpDok.x) > 8 || Math.abs(e.clientY - rpDok.y) > 8)) rpDok.kaydi = true; }, {passive: true});
+$("rpBody").addEventListener("scroll", () => { if(rpDok) rpDok.kaydi = true; }, {passive: true});
 $("rpBody").addEventListener("click", e => {
   const x = e.target.closest("[data-fx]"); if(x){ rpFKaldir(x.dataset.fx); return; }
   const tr = e.target.closest("tr.rpclk"); if(!tr) return;
+  if(rpDok && rpDok.kaydi) return;
   const f = tr.dataset.f, v = tr.dataset.v;
   rpF[f] = rpF[f] === v ? "" : v; rpCiz();
 });

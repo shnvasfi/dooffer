@@ -1,5 +1,5 @@
 /* DO_Offer service worker — çevrimdışı çalışma + otomatik güncelleme */
-const CACHE = "dooffer-v2";
+const CACHE = "dooffer-v3";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon.png"];
 
 self.addEventListener("install", e => {
@@ -37,7 +37,9 @@ self.addEventListener("fetch", e => {
     );
     return;
   }
-  // Dış kütüphaneler (PDF/Excel/OCR): önbellek önce, sonra ağ
+  // Dış kütüphaneler (PDF/Excel/OCR): önbellek önce, sonra ağ — YALNIZ kütüphane sunucuları (sürüm v3).
+  // Tablo betiği (script.google.com) ve diğer adresler önbelleğe alınmaz: her istek ağdan, güncel veri.
+  if(!/(^|\.)(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|unpkg\.com)$/.test(url.hostname)) return;
   e.respondWith(
     caches.match(req).then(hit => hit || fetch(req).then(res => {
       const copy = res.clone();
