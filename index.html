@@ -1585,7 +1585,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.25-5";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.26-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2754,7 +2754,13 @@ function yerelSaat(d){
   return p(d.getDate()) + "." + p(d.getMonth() + 1) + "." + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) +
     " (UTC" + (off < 0 ? "-" : "+") + oh + (om ? ":" + p(om) : "") + (tz ? " " + tz : "") + ")";
 }
+// sürüm 2026.11.26-1: üst tırnak (kesme işareti ' ’ ‘ ` ´) yerine boşluk — ERP aktarımında ayraç olarak sorun çıkarıyordu
+const tirnakSil = v => typeof v === "string" && /['’‘`´ʼ]/.test(v) ? v.replace(/['’‘`´ʼ]/g, " ").replace(/ {2,}/g, " ").trim() : v;
+const TIRNAK_ALAN = ["cCompany", "cPerson", "cPhone", "cMail", "cCountry", "cCity", "incoPlace", "delPlace", "cPayment", "leadNote", "leadCountryQ"];
+function tirnakTemizle(){ TIRNAK_ALAN.forEach(id => { const el = $(id); if(el && /['’‘`´ʼ]/.test(el.value)){ el.value = tirnakSil(el.value); try{ el.dispatchEvent(new Event("input", {bubbles: true})); }catch(e){} } }); }
+TIRNAK_ALAN.forEach(id => { const el = $(id); if(el) el.addEventListener("change", tirnakTemizle); });
 function currentQuoteRecord(){
+  tirnakTemizle();
   const qcur2 = qMain();
   return {
     no: $("pfNo").value, ts: Date.now(), savedAt: yerelSaat(), docLang: DOC_LANG, qid: teklifKimligi(),
@@ -4114,7 +4120,7 @@ function sheetRows(r){
       rows.push([...base, oc, n, "Opsiyon", ...optCols(o), q, o.unitList, o.od != null ? o.od : it.d1, o.od != null ? 0 : it.d2, o.unitNet, o.unitNet * q, ...tail(oc)]);
     });
   });
-  return rows;
+  return rows.map(x => x.map(tirnakSil));   // sürüm 2026.11.26-1: tabloya üst tırnak gitmez
 }
 // Google Form ön dolgulu bağlantısından adres + alan kimliği çıkar
 function parseFormLink(link){
