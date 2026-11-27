@@ -1588,7 +1588,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.28-1";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.28-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2040,9 +2040,20 @@ const odemeMetin = r => r[LI[DOC_LANG] != null ? LI[DOC_LANG] : 1] || r[1] || r[
 const odemeBul = v => { const k = normTxt(v); return k ? ODEME_L.find(r => r.some(x => x && normTxt(x) === k)) : null; };
 function odemeDilSync(){ const el = $("cPayment"), r = odemeBul(el.value); if(r){ const y = odemeMetin(r); if(y !== el.value){ el.value = y; localStorage.setItem("yq_cPayment", y); } } }
 // Teslim şekilleri: Incoterms ve Teslim Şekli seçimleri + navlun / sigorta satırı kuralları
+// sürüm 2026.11.28-2: Teslim Şekli seçiminde ve PDF'te kod + açıklama (Türkçe teklifte Türkçe, diğerlerinde İngilizce). Incoterms kutusu dar: yalnız kod.
+let TESLIM_L = [["EXW","Fabrikada teslim","Ex Works",0,0],["FCA","Taşıyıcıya teslim","Free Carrier",0,0],["CPT","Taşıma ücreti ödenmiş olarak","Carriage Paid To",1,0],
+  ["CIP","Taşıma ve sigorta ödenmiş olarak","Carriage and Insurance Paid To",1,1],["DAP","Belirlenen yerde teslim","Delivered at Place",1,1],["DPU","Boşaltılmış olarak yerinde teslim","Delivered at Place Unloaded",1,1],
+  ["DDP","Gümrük vergileri ödenmiş olarak teslim","Delivered Duty Paid",0,0],["FAS","Gemi doğrultusunda masrafsız","Free Alongside Ship",0,0],["FOB","Gemide masrafsız","Free On Board",0,0],
+  ["CFR","Masraflar ve navlun","Cost and Freight",1,0],["CIF","Masraflar, sigorta ve navlun","Cost, Insurance and Freight",1,1]];
+const teslimAciklama = k => { const r = TESLIM_L.find(x => x[0] === k); return r ? (DOC_LANG === "tr" ? (r[1] || r[2]) : (r[2] || r[1])) : ""; };
+function teslimEtiket(){
+  [...$("delTerm").options].forEach(o => { if(!o.value) return; const a = teslimAciklama(o.value); o.textContent = o.value + (a ? " – " + a : ""); });
+  [...$("incoTerm").options].forEach(o => { if(!o.value) return; const a = teslimAciklama(o.value); o.textContent = o.value; o.title = a; });
+}
 function teslimUygula(T){
   const rows = T.filter(r => r && r[0]).map(r => [String(r[0]).toUpperCase(), String(r[1] || ""), String(r[2] || ""), +r[3] ? 1 : 0, +r[4] ? 1 : 0]);
   if(!rows.length) return;
+  TESLIM_L = rows;
   Object.keys(TERM_RULES).forEach(k => delete TERM_RULES[k]);
   rows.forEach(r => { TERM_RULES[r[0]] = [].concat(r[3] ? ["F"] : [], r[4] ? ["I"] : []); });
   ["incoTerm", "delTerm"].forEach(id => {
@@ -2050,6 +2061,7 @@ function teslimUygula(T){
     sel.innerHTML = '<option value=""></option>' + rows.map(r => `<option value="${escH(r[0])}" title="${escH(r[2] || r[1])}">${escH(r[0])}</option>`).join("");
     secimKoru(sel, keep);
   });
+  teslimEtiket();
   try{ renderExtra(); }catch(e){}
 }
 // Banka hesabı: birden fazlaysa teklif sayfasında seçilir (PDF'te seçim kutusu yok). Seçilmediyse teklifin para birimine uyan ilk hesap.
@@ -2069,7 +2081,7 @@ function bankaGuncelle(){
 }
 const bankaSecili = () => (BANKA_L.find(x => x[0] === $("bkSec").value) || [""])[0];
 $("bkSec").addEventListener("change", () => { localStorage.setItem("yq_bank", $("bkSec").value); bankaGuncelle(); });
-setTimeout(() => { try{ listeUygula(JSON.parse(localStorage.getItem(LISTE_KEY) || "null")); }catch(e){} try{ bankaKur(); }catch(e){} }, 0);   // tüm tanımlar yüklendikten sonra
+setTimeout(() => { try{ teslimEtiket(); }catch(e){} try{ listeUygula(JSON.parse(localStorage.getItem(LISTE_KEY) || "null")); }catch(e){} try{ bankaKur(); }catch(e){} }, 0);   // tüm tanımlar yüklendikten sonra
 const LEAD_KEY = "yq_lead";
 let leadData = {};
 try{ leadData = JSON.parse(localStorage.getItem(LEAD_KEY) || "{}"); }catch(e){ leadData = {}; }
@@ -4691,7 +4703,7 @@ function applyDocLang(skipRender){
   try{ syncExwPlace(); }catch(e){}
   try{ paintEditBar(); }catch(e){}
   try{ fillCountryDl(); syncCountry(); }catch(e){}
-  try{ odemeDilSync(); bankaGuncelle(); }catch(e){}      // sürüm 2026.11.28-1
+  try{ odemeDilSync(); bankaGuncelle(); teslimEtiket(); }catch(e){}      // sürüm 2026.11.28-1 / -2
 }
 function setUiLang(l){
   if(LANGS.indexOf(l) < 0) return;
