@@ -820,6 +820,7 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       <button class="qbtn" id="edQtyPlus">+</button>
       <span style="flex:1;text-align:right;font-size:13px;color:var(--muted);" id="edUnitInfo"></span>
     </div>
+    <button class="btn sec" id="edConv" style="width:100%;margin:-2px 0 12px;padding:9px;font-size:14px;">₺ TL'ye çevir</button>
 
     <div class="lbl" data-i18n="discP">İskonto %</div>
     <div class="seg" id="edSegD1" style="margin-bottom:10px;"></div>
@@ -1586,7 +1587,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.26-3";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.27-2";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1974,8 +1975,42 @@ const COUNTRY_CODES = ["AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AR", "AT
 // Fuar → ülke (fuar seçilince ülke sorulmaz). Listede olmayan yeni bir fuarda ülke kutusu görünür.
 const FAIR_CC = {"AVRASYA PENCERE FUARI":"TR", "BATIMAT":"FR", "BAU":"DE", "BIG 5":"AE", "CONCRETA":"PT",
   "EDIFICA":"CL", "EXPO CAMACOL":"CO", "FENSTERBAU FRONTALE":"DE", "GLASSTECH MEXICO":"MX", "VETECO":"ES"};
-const fairCc = () => (leadData.src === "F" && FAIR_CC[$("leadFair").value]) || "";
+const FAIR_CC0 = Object.assign({}, FAIR_CC);           // programdaki eski adlar (eski teklif düzenlenirken ülke yine bilinsin)
+const fuarUlke = v => FAIR_CC[v] || FAIR_CC0[v] || "";
+const fairCc = () => (leadData.src === "F" && fuarUlke($("leadFair").value)) || "";
 const OPP_MAP = {"F01":"Bayi Üzerinden Satış Fırsatı","F02":"Perakende Satış Fırsatı","F03":"Proje Satış Fırsatı","F10":"Bayiye Satış Fırsatı"};
+/* sürüm 2026.11.27-2: CANLI LİSTELER — Fuarlar ve Fırsat Tipleri tablodaki Ayarlar dosyasından (girişle birlikte) gelir, cihazda saklanır.
+   Liste gelmezse (internet yok / eski betik) programdaki yukarıdaki değerler kullanılır. Eski teklifteki değer listede yoksa seçili kalır. */
+const OPP_EN = {};
+const LISTE_KEY = "yq_listeler";
+function secimKoru(sel, val){
+  if(!val) { sel.value = ""; return; }
+  if(![...sel.options].some(o => o.value === val)){ const o = document.createElement("option"); o.value = val; o.textContent = val; o.dataset.eski = "1"; sel.appendChild(o); }
+  sel.value = val;
+}
+const oppAd = k => UI_LANG === "tr" ? (OPP_MAP[k] || (I18N["opp" + k] ? t("opp" + k) : "")) : (OPP_EN[k] || (I18N["opp" + k] ? t("opp" + k) : OPP_MAP[k] || ""));
+function oppEtiket(){ [...$("leadOpp").options].forEach(o => { o.textContent = o.value ? o.value + (oppAd(o.value) ? " " + oppAd(o.value) : "") : t("chooseOpt"); }); }
+function listeUygula(L){
+  if(!L || typeof L !== "object") return;
+  try{
+    if(Array.isArray(L.fuar) && L.fuar.length){
+      Object.keys(FAIR_CC).forEach(k => delete FAIR_CC[k]);
+      L.fuar.forEach(r => { if(r && r[0]) FAIR_CC[String(r[0])] = String(r[1] || ""); });
+      const sel = $("leadFair"), keep = sel.value;
+      sel.innerHTML = '<option value="">' + escH(t("chooseOpt")) + '</option>' + L.fuar.filter(r => r && r[0]).map(r => `<option value="${escH(r[0])}">${escH(r[0])}</option>`).join("");
+      secimKoru(sel, keep);
+    }
+    if(Array.isArray(L.firsat) && L.firsat.length){
+      Object.keys(OPP_MAP).forEach(k => delete OPP_MAP[k]); Object.keys(OPP_EN).forEach(k => delete OPP_EN[k]);
+      L.firsat.forEach(r => { if(r && r[0]){ OPP_MAP[String(r[0])] = String(r[1] || ""); if(r[2]) OPP_EN[String(r[0])] = String(r[2]); } });
+      const sel = $("leadOpp"), keep = sel.value;
+      sel.innerHTML = '<option value=""></option>' + L.firsat.filter(r => r && r[0]).map(r => `<option value="${escH(r[0])}"></option>`).join("");
+      secimKoru(sel, keep);
+      oppEtiket();
+    }
+  }catch(e){}
+}
+try{ listeUygula(JSON.parse(localStorage.getItem(LISTE_KEY) || "null")); }catch(e){}
 const LEAD_KEY = "yq_lead";
 let leadData = {};
 try{ leadData = JSON.parse(localStorage.getItem(LEAD_KEY) || "{}"); }catch(e){ leadData = {}; }
@@ -2189,7 +2224,7 @@ function leadRefresh(){
   const direkt = leadData.src === "D";
   [...$("leadSrc").children].forEach(b => b.classList.toggle("on", b.dataset.src === leadData.src));
   $("leadFairWrap").style.display = leadData.src === "F" ? "" : "none";
-  const fc = leadData.src === "F" && (FAIR_CC[$("leadFair").value] || !$("leadFair").value);   // fuar: ülke fuardan gelir
+  const fc = leadData.src === "F" && (fuarUlke($("leadFair").value) || !$("leadFair").value);   // fuar: ülke fuardan gelir
   $("leadCountryWrap").style.display = fc ? "none" : "";
   $("leadDateWrap").style.display = direkt ? "none" : "flex";      // Direkt'te tarih sorulmaz
   $("leadNoteLbl").style.display = "flex";                          // not her kaynakta sorulur
@@ -2201,9 +2236,9 @@ function leadRefresh(){
 }
 function leadFill(){
   leadData.src = leadData.src || (localStorage.getItem("yq_mode") === "S" ? "S" : localStorage.getItem("yq_mode") === "F" ? "F" : "D");
-  $("leadFair").value = leadData.fair || "";
+  secimKoru($("leadFair"), leadData.fair || "");       // eski teklifteki fuar listede yoksa seçili kalır
   $("leadCountry").value = leadData.cc || "";
-  $("leadOpp").value = leadData.opp || "";
+  secimKoru($("leadOpp"), leadData.opp || "");
   $("leadStart").value = leadData.start || todayIso();
   $("leadEnd").value = leadData.end || todayIso();
   $("leadCountryQ").value = ""; fillCountries("");
@@ -2426,7 +2461,7 @@ function paintConvBtn(){
   const b = $("btnConv"); if(!b) return;
   const from = qMain();
   b.textContent = from === "EUR" ? t("convToTL") : t("convToEUR");
-  b.style.display = quote.length ? "" : "none";
+  b.style.display = "none";            // sürüm 2026.11.27-1: teklif sayfasında yok; kalemi düzenle penceresinde (edConv)
 }
 $("btnConv").onclick = async () => {
   if(!quote.length) return;
@@ -3531,6 +3566,7 @@ function edRefresh(){
   $("edDisc").textContent = fmtBag(disc, "− ") + "  (%" + (Math.round(edState.d1*100)/100) + (edState.d2 ? " +%" + (Math.round(edState.d2*100)/100) : "") + (edState.opts.some(o => o.od != null) ? " • " + t("optDiscShort") : "") + ")";
   $("edNet").textContent = fmtBag(net);
   $("edUnitInfo").textContent = t("edUnit") + fmtC(edState.unitList, cur);
+  $("edConv").textContent = cur === "EUR" ? t("convToTL") : t("convToEUR");
   $("edQty").value = edState.qty;
 }
 function edRenderOpts(){
@@ -3569,13 +3605,31 @@ function openEdit(idx){
   };
   $("edTitle").textContent = it.code;
   $("edSub").textContent = it.name || "";
-  edBuildSeg($("edSegD1"), discVals(1, qMain()), "%", "d1");     // TL teklifte %5 / %10 / elle
-  edBuildSeg($("edSegD2"), discVals(2, qMain()), "+%", "d2");
+  edBuildSeg($("edSegD1"), discVals(1, edState.cur), "%", "d1");     // TL kalemde %5 / %10 / elle
+  edBuildSeg($("edSegD2"), discVals(2, edState.cur), "+%", "d2");
   edPaintSeg($("edSegD1"), "d1");
   edPaintSeg($("edSegD2"), "d2");
   edRenderOpts(); edRefresh();
   $("editModal").classList.add("open");
 }
+// sürüm 2026.11.27-1: kalemin para birimini çevir (makine + opsiyonları). Hedef listede fiyatı olan çevrilir, olmayan eski para biriminde kalır; iskontolar korunur.
+$("edConv").onclick = () => {
+  if(!edState) return;
+  const it = quote[edIdx]; if(!it) return;
+  const to = edState.cur === "EUR" ? "TL" : "EUR", key = to === "TL" ? "tl" : "eur";
+  const m = (DB.machines || []).find(x => x.code === it.code), optList = Object.values(DB.opts || {});
+  const kalan = [];
+  if(m && m[key] != null){ edState.unitList = m[key]; edState.cur = to; } else kalan.push(it.code);
+  edState.opts.forEach(o => {
+    if((o.cur || edState.cur) === to){ o.cur = to; return; }
+    const x = optList.find(y => y.code === o.code);
+    if(x && x[key] != null){ o.unitList = x[key]; o.cur = to; } else kalan.push(o.code);
+  });
+  edBuildSeg($("edSegD1"), discVals(1, edState.cur), "%", "d1"); edBuildSeg($("edSegD2"), discVals(2, edState.cur), "+%", "d2");
+  edPaintSeg($("edSegD1"), "d1"); edPaintSeg($("edSegD2"), "d2");
+  edRenderOpts(); edRefresh();
+  if(kalan.length) uiAlert(t("convKeep", {list: kalan.join(", ")}));
+};
 $("edQtyMinus").onclick = () => { edState.qty = Math.max(1, edState.qty - 1); edRefresh(); };
 $("edQtyPlus").onclick = () => { edState.qty = edState.qty + 1; edRefresh(); };
 $("edQty").oninput = () => { const v = parseInt($("edQty").value); if(v) { edState.qty = Math.max(1, v); edRefresh(); } };
@@ -3583,7 +3637,7 @@ $("edCancel").onclick = () => { $("editModal").classList.remove("open"); edIdx =
 $("edSave").onclick = () => {
   const it = quote[edIdx]; if(!it) return;
   const k = (1 - edState.d1/100) * (1 - edState.d2/100);
-  it.qty = edState.qty; it.d1 = edState.d1; it.d2 = edState.d2;
+  it.qty = edState.qty; it.d1 = edState.d1; it.d2 = edState.d2; it.cur = edState.cur;
   it.unitList = edState.unitList; it.unitNet = edState.unitList * k;
   it.opts = edState.opts.map(o => ({code:o.code, name:o.name, nameTr:o.nameTr || "", nameEn:o.nameEn || "", qty:o.qty, unitList:o.unitList, cur: o.cur,
     unitNet: o.unitList * (o.od != null ? 1 - o.od/100 : k), ...(o.od != null ? {od: o.od} : {})}));
@@ -4524,7 +4578,7 @@ function applyLang(){
   document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   document.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = t(el.dataset.i18nTitle); el.setAttribute("aria-label", t(el.dataset.i18nTitle)); });
   // fırsat tipleri (değerler aynı, yalnız görünen ad)
-  [...$("leadOpp").options].forEach(o => { o.textContent = o.value ? o.value + " " + t("opp" + o.value) : t("chooseOpt"); });
+  oppEtiket();                                              // fırsat tipleri: canlı listeden (Türkçe / İngilizce)
   const fo = $("leadFair").options[0]; if(fo && !fo.value) fo.textContent = t("chooseOpt");
   buildCountryList(); fillCountries($("leadCountryQ").value || "");
   fillCountryDl();
@@ -4657,6 +4711,7 @@ function applyAuth(j){
   try{ const m = parseInt(j.maxSeq) || 0, s = parseInt(localStorage.getItem("yq_seq") || "1") || 1; if(m + 1 > s) localStorage.setItem("yq_seq", String(m + 1)); }catch(e){}
   try{ paintUserChip(); }catch(e){}
   try{ paintRaporBtn(); }catch(e){}
+  if(j.listeler && typeof j.listeler === "object"){ try{ localStorage.setItem(LISTE_KEY, JSON.stringify(j.listeler)); listeUygula(j.listeler); }catch(e){} }   // sürüm 2026.11.27-2
   setTimeout(() => { try{ adlariGonder(); }catch(e){} }, 1500);
 }
 // sürüm 2026.11.25-5: Excel fiyat listesindeki Türkçe / İngilizce adları tabloya gönderir (fiyat gitmez; yalnız stok kodu + adlar).
