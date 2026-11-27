@@ -1587,7 +1587,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.27-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.27-3";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -1982,6 +1982,7 @@ const OPP_MAP = {"F01":"Bayi Üzerinden Satış Fırsatı","F02":"Perakende Sat�
 /* sürüm 2026.11.27-2: CANLI LİSTELER — Fuarlar ve Fırsat Tipleri tablodaki Ayarlar dosyasından (girişle birlikte) gelir, cihazda saklanır.
    Liste gelmezse (internet yok / eski betik) programdaki yukarıdaki değerler kullanılır. Eski teklifteki değer listede yoksa seçili kalır. */
 const OPP_EN = {};
+const FAIR_TARIH = {};                                  // sürüm 2026.11.27-3: fuar adı → [başlangıç, bitiş] (ISO), Fuarlar sayfasından
 const LISTE_KEY = "yq_listeler";
 function secimKoru(sel, val){
   if(!val) { sel.value = ""; return; }
@@ -1994,8 +1995,9 @@ function listeUygula(L){
   if(!L || typeof L !== "object") return;
   try{
     if(Array.isArray(L.fuar) && L.fuar.length){
-      Object.keys(FAIR_CC).forEach(k => delete FAIR_CC[k]);
-      L.fuar.forEach(r => { if(r && r[0]) FAIR_CC[String(r[0])] = String(r[1] || ""); });
+      Object.keys(FAIR_CC).forEach(k => delete FAIR_CC[k]); Object.keys(FAIR_TARIH).forEach(k => delete FAIR_TARIH[k]);
+      const isoOk = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) ? String(v) : "";
+      L.fuar.forEach(r => { if(r && r[0]){ FAIR_CC[String(r[0])] = String(r[1] || ""); const b = isoOk(r[2]), e = isoOk(r[3]); if(b || e) FAIR_TARIH[String(r[0])] = [b, e]; } });
       const sel = $("leadFair"), keep = sel.value;
       sel.innerHTML = '<option value="">' + escH(t("chooseOpt")) + '</option>' + L.fuar.filter(r => r && r[0]).map(r => `<option value="${escH(r[0])}">${escH(r[0])}</option>`).join("");
       secimKoru(sel, keep);
@@ -2246,6 +2248,14 @@ function leadFill(){
   $("leadNote").value = leadData.note || "";
   leadRefresh();
 }
+// sürüm 2026.11.27-3: fuar seçilince (yalnız kullanıcı seçince) Fuarlar sayfasındaki tarihler dolar; satışçı yine değiştirebilir
+$("leadFair").addEventListener("change", () => {
+  const tr = FAIR_TARIH[$("leadFair").value]; if(!tr) return;
+  const b = tr[0] || tr[1], e = tr[1] || tr[0];
+  if(b) setLeadDate("leadStart", b);
+  if(e) setLeadDate("leadEnd", e < b ? b : e);
+  leadRefresh();
+});
 [...$("leadSrc").children].forEach(b => b.onclick = () => { leadData.src = b.dataset.src; if(b.dataset.src !== "F") $("leadFair").value = ""; leadRefresh(); });
 ["leadFair","leadCountry","leadOpp","leadStart","leadEnd"].forEach(id => { $(id).onchange = leadRefresh; $(id).oninput = leadRefresh; });
 /* Tarihler GG.AA.YYYY gösterilir; içeride ISO (YYYY-AA-GG) saklanır */
