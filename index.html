@@ -711,14 +711,15 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
         <div class="k" data-pf="install">INSTALLATION</div><div data-pf="installX">If the installation provided by the Yılmaz Machine, the customer responsible for all accommadation and travel expences</div>
         <div class="k" data-pf="payment">PAYMENT</div><div><input id="cPayment" placeholder="" autocomplete="off" name="dof_odeme"></div>
       </div>
+      <div class="qprint" id="bkSecWrap" style="display:none;padding:8px 0 2px;"><select id="bkSec" style="font-family:inherit;font-size:13px;padding:4px 6px;border:1px solid #bbb;border-radius:6px;background:#fffbe8;max-width:100%;"></select></div>
       <div class="pf-sechead acc-b" data-pf="bank">BANK INFORMATION</div>
       <div class="pf-grid pf-cond acc-b">
-        <div class="k" data-pf="accName">ACCOUNT NAME</div><div>YILMAZ MAKİNE SAN. VE TİC. A.Ş.</div>
-        <div class="k" data-pf="ourBank">OUR BANK</div><div>GARANTİ / 9090258 HESAP (EUR)</div>
-        <div class="k" data-pf="branch">BRANCH</div><div>1616</div>
-        <div class="k" data-pf="swift">SWIFT CODE</div><div>TGBATRIS</div>
-        <div class="k" data-pf="accNo">ACCOUNT NUMBER</div><div>EUR - 9090258</div>
-        <div class="k" data-pf="iban">IBAN CODES</div><div>TR60 0006 2001 6160 0009 0902 58</div>
+        <div class="k" data-pf="accName">ACCOUNT NAME</div><div id="bkUnvan">YILMAZ MAKİNE SAN. VE TİC. A.Ş.</div>
+        <div class="k" data-pf="ourBank">OUR BANK</div><div id="bkBanka">GARANTİ / 9090258 HESAP (EUR)</div>
+        <div class="k" data-pf="branch">BRANCH</div><div id="bkSube">1616</div>
+        <div class="k" data-pf="swift">SWIFT CODE</div><div id="bkSwift">TGBATRIS</div>
+        <div class="k" data-pf="accNo">ACCOUNT NUMBER</div><div id="bkNo">EUR - 9090258</div>
+        <div class="k" data-pf="iban">IBAN CODES</div><div id="bkIban">TR60 0006 2001 6160 0009 0902 58</div>
       </div>
       <div class="pf-note" data-pf="note">For our machines, the ambient temperature must be maximum of 40 degrees Celsius. If the ambient temperature is higher than 40 degrees Celsius, please contact our technical team</div>
     </div>
@@ -1587,7 +1588,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.27-3";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.28-1";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2010,9 +2011,65 @@ function listeUygula(L){
       secimKoru(sel, keep);
       oppEtiket();
     }
+    if(Array.isArray(L.odeme) && L.odeme.length){ ODEME_L = L.odeme.filter(r => r && r[0]).map(r => [0,1,2,3].map(i => String(r[i] || ""))); }
+    if(Array.isArray(L.teslim) && L.teslim.length) teslimUygula(L.teslim);
+    if(Array.isArray(L.banka) && L.banka.length){ BANKA_L = L.banka.filter(r => r && r[0]).map(r => [0,1,2,3,4,5,6,7].map(i => String(r[i] || ""))); bankaKur(); }
   }catch(e){}
 }
-try{ listeUygula(JSON.parse(localStorage.getItem(LISTE_KEY) || "null")); }catch(e){}
+/* sürüm 2026.11.28-1: CANLI LİSTELER 2 — Ödeme şekilleri, Teslim şekilleri (Incoterms), Banka hesapları.
+   Varsayılanlar aşağıda (tablodaki ilk kurulumla aynı); liste gelince onunla değişir. Eski tekliflerdeki değerler korunur. */
+let ODEME_L = [
+  ["Peşin", "Cash in advance", "100% предоплата", "Pago anticipado"],
+  ["Havale / EFT ile peşin", "100% advance payment by bank transfer", "100% предоплата банковским переводом", "100% pago anticipado por transferencia bancaria"],
+  ["%30 peşin, %70 sevkiyattan önce", "30% advance, 70% before shipment", "30% предоплата, 70% до отгрузки", "30% anticipo, 70% antes del embarque"],
+  ["%50 peşin, %50 sevkiyattan önce", "50% advance, 50% before shipment", "50% предоплата, 50% до отгрузки", "50% anticipo, 50% antes del embarque"],
+  ["%30 peşin, %70 vesaik mukabili", "30% advance, 70% cash against documents (CAD)", "30% предоплата, 70% документы против платежа (CAD)", "30% anticipo, 70% pago contra documentos (CAD)"],
+  ["%30 peşin, %70 görüldüğünde ödemeli akreditif", "30% advance, 70% irrevocable L/C at sight", "30% предоплата, 70% безотзывный аккредитив по предъявлении", "30% anticipo, 70% carta de crédito irrevocable a la vista"],
+  ["%10 peşin, kalan 90 gün vadeli", "10% advance, balance 90 days", "10% предоплата, остаток через 90 дней", "10% anticipo, saldo a 90 días"],
+  ["%20 peşin, kalan 6 eşit taksit", "20% advance, balance in 6 equal monthly instalments", "20% предоплата, остаток 6 равными ежемесячными платежами", "20% anticipo, saldo en 6 cuotas mensuales iguales"],
+  ["Görüldüğünde ödemeli gayrikabili rücu akreditif", "Irrevocable letter of credit (L/C) at sight", "Безотзывный аккредитив по предъявлении", "Carta de crédito irrevocable a la vista"],
+  ["90 gün vadeli akreditif", "Deferred payment L/C, 90 days", "Аккредитив с отсрочкой платежа 90 дней", "Carta de crédito con pago diferido a 90 días"],
+  ["Vesaik mukabili (CAD)", "Cash against documents (CAD)", "Документы против платежа (CAD)", "Pago contra documentos (CAD)"],
+  ["Kabul kredili, 60 gün (D/A)", "Documents against acceptance, 60 days (D/A)", "Документы против акцепта, 60 дней (D/A)", "Documentos contra aceptación, 60 días (D/A)"],
+  ["Sevkiyattan sonra 30 gün (açık hesap)", "Open account, 30 days after shipment", "Открытый счёт, 30 дней после отгрузки", "Cuenta abierta, 30 días después del embarque"],
+  ["30 gün vadeli", "Net 30 days", "30 дней", "30 días netos"],
+  ["60 gün vadeli", "Net 60 days", "60 дней", "60 días netos"],
+  ["Kredi kartı ile", "By credit card", "Кредитной картой", "Con tarjeta de crédito"]];
+let BANKA_L = [["Garanti EUR", "YILMAZ MAKİNE SAN. VE TİC. A.Ş.", "GARANTİ / 9090258 HESAP (EUR)", "1616", "TGBATRIS", "EUR - 9090258", "TR60 0006 2001 6160 0009 0902 58", "EUR"]];
+const odemeMetin = r => r[LI[DOC_LANG] != null ? LI[DOC_LANG] : 1] || r[1] || r[0];
+const odemeBul = v => { const k = normTxt(v); return k ? ODEME_L.find(r => r.some(x => x && normTxt(x) === k)) : null; };
+function odemeDilSync(){ const el = $("cPayment"), r = odemeBul(el.value); if(r){ const y = odemeMetin(r); if(y !== el.value){ el.value = y; localStorage.setItem("yq_cPayment", y); } } }
+// Teslim şekilleri: Incoterms ve Teslim Şekli seçimleri + navlun / sigorta satırı kuralları
+function teslimUygula(T){
+  const rows = T.filter(r => r && r[0]).map(r => [String(r[0]).toUpperCase(), String(r[1] || ""), String(r[2] || ""), +r[3] ? 1 : 0, +r[4] ? 1 : 0]);
+  if(!rows.length) return;
+  Object.keys(TERM_RULES).forEach(k => delete TERM_RULES[k]);
+  rows.forEach(r => { TERM_RULES[r[0]] = [].concat(r[3] ? ["F"] : [], r[4] ? ["I"] : []); });
+  ["incoTerm", "delTerm"].forEach(id => {
+    const sel = $(id), keep = sel.value;
+    sel.innerHTML = '<option value=""></option>' + rows.map(r => `<option value="${escH(r[0])}" title="${escH(r[2] || r[1])}">${escH(r[0])}</option>`).join("");
+    secimKoru(sel, keep);
+  });
+  try{ renderExtra(); }catch(e){}
+}
+// Banka hesabı: birden fazlaysa teklif sayfasında seçilir (PDF'te seçim kutusu yok). Seçilmediyse teklifin para birimine uyan ilk hesap.
+function bankaKur(){
+  const sel = $("bkSec"); if(!sel) return;
+  sel.innerHTML = BANKA_L.map(r => `<option value="${escH(r[0])}">${escH(r[0])}${r[7] ? " (" + escH(r[7]) + ")" : ""}</option>`).join("");
+  $("bkSecWrap").style.display = BANKA_L.length > 1 ? "" : "none";
+  bankaGuncelle();
+}
+function bankaGuncelle(){
+  if(!BANKA_L.length) return;
+  const secili = localStorage.getItem("yq_bank") || "";
+  let r = secili && BANKA_L.find(x => x[0] === secili);
+  if(!r){ let c = "EUR"; try{ c = qMain(); }catch(e){} r = BANKA_L.find(x => x[7] === c || (c === "TL" && x[7] === "TRY")) || BANKA_L[0]; }
+  $("bkSec").value = r[0];
+  [["bkUnvan", 1], ["bkBanka", 2], ["bkSube", 3], ["bkSwift", 4], ["bkNo", 5], ["bkIban", 6]].forEach(([id, i]) => { const el = $(id); if(el) el.textContent = r[i] || ""; });
+}
+const bankaSecili = () => (BANKA_L.find(x => x[0] === $("bkSec").value) || [""])[0];
+$("bkSec").addEventListener("change", () => { localStorage.setItem("yq_bank", $("bkSec").value); bankaGuncelle(); });
+setTimeout(() => { try{ listeUygula(JSON.parse(localStorage.getItem(LISTE_KEY) || "null")); }catch(e){} try{ bankaKur(); }catch(e){} }, 0);   // tüm tanımlar yüklendikten sonra
 const LEAD_KEY = "yq_lead";
 let leadData = {};
 try{ leadData = JSON.parse(localStorage.getItem(LEAD_KEY) || "{}"); }catch(e){ leadData = {}; }
@@ -2172,6 +2229,17 @@ setTimeout(() => {
     return q.trim() || out.length < 30 ? out : [];
   }, it => applyCustomer(it.c));
   attachSug($("cPerson"), q => CUSTOMERS.filter(c => c.person && sugMatch(c.person, q)).map(c => ({v: c.person, sub: [c.company, c.city].filter(Boolean).join(" • "), c})), it => applyCustomer(it.c));
+  // sürüm 2026.11.28-1: Ödeme — listeden seçilir (teklif dilinde). Elle yazılan değer kutudan çıkınca silinir; eski teklifteki metne dokunulmadıysa kalır.
+  let odemeIlk = null;
+  $("cPayment").addEventListener("focus", () => { if(odemeIlk === null) odemeIlk = $("cPayment").value; });
+  attachSug($("cPayment"), q0 => {
+    const q = odemeBul(q0) ? "" : q0;
+    return ODEME_L.filter(r => !q.trim() || r.some(x => x && sugMatch(x, q))).slice(0, 30).map(r => ({v: odemeMetin(r)}));
+  }, () => { odemeIlk = null; }, () => {
+    const el = $("cPayment"), v = el.value.trim();
+    if(v && !odemeBul(v) && v !== String(odemeIlk || "").trim()){ el.value = String(odemeIlk || ""); localStorage.setItem("yq_cPayment", el.value); }
+    odemeIlk = null; odemeDilSync();
+  });
   attachSug($("cCountry"), q0 => {
     const L = typeof DOC_LANG !== "undefined" ? DOC_LANG : UI_LANG;
     const q = ulkeGecerli(q0) ? "" : q0;                // seçili ülkeye dokununca bütün liste
@@ -2384,6 +2452,7 @@ function nextQuoteNo(){
   localStorage.setItem("yq_lastNo", no);
   $("pfNo").value = no;
   localStorage.setItem("yq_pfNo", no);
+  localStorage.removeItem("yq_bank");             // sürüm 2026.11.28-1: yeni teklifte banka hesabı para birimine göre
   localStorage.setItem("yq_qid", yeniKimlik());   // sürüm 2026.11.25-2: her teklifin değişmeyen kimliği (numara çakışmasında tablo eskisini korur)
   try{ paintEditBar(); }catch(e){}
   return no;
@@ -2862,7 +2931,7 @@ function currentQuoteRecord(){
     country: ulkeKayit(), countryCode: countryCodeOf($("cCountry").value),
     mode: localStorage.getItem("yq_mode") || "", user: (localStorage.getItem("yq_dev") || ""),
     cur: qcur2, incoTerm: $("incoTerm").value, incoPlace: $("incoPlace").value,
-    delTerm: $("delTerm").value, delPlace: $("delPlace").value, payment: $("cPayment").value,
+    delTerm: $("delTerm").value, delPlace: $("delPlace").value, payment: $("cPayment").value, bank: bankaSecili(),
     freight: parseAmt($("exFreightAmt").value), insurance: parseAmt($("exInsAmt").value),
     listTotal: quoteListTotal(), netTotal: quoteTotal(),
     listTotals: quoteListTotals(), netTotals: quoteTotals(),      // iki para birimli teklif: para birimine göre
@@ -4002,6 +4071,8 @@ function loadQuoteForEdit(r){
   setF("cCity", r.city); setF("cCountry", r.country); syncCountry(); syncCity();
   setF("cPayment", r.payment); setF("incoTerm", r.incoTerm); setF("incoPlace", r.incoPlace);
   setF("delTerm", r.delTerm); setF("delPlace", r.delPlace);
+  try{ secimKoru($("incoTerm"), r.incoTerm || ""); secimKoru($("delTerm"), r.delTerm || ""); renderExtra(); }catch(e){}   // listede olmayan eski teslim şekli de seçili kalır
+  try{ if(r.bank) localStorage.setItem("yq_bank", r.bank); else localStorage.removeItem("yq_bank"); bankaGuncelle(); }catch(e){}
   setF("exFreightAmt", r.freight ? String(r.freight).replace(".", ",") : "");
   setF("exInsAmt", r.insurance ? String(r.insurance).replace(".", ",") : "");
   $("pfNo").value = r.no; localStorage.setItem("yq_pfNo", r.no);
@@ -4620,6 +4691,7 @@ function applyDocLang(skipRender){
   try{ syncExwPlace(); }catch(e){}
   try{ paintEditBar(); }catch(e){}
   try{ fillCountryDl(); syncCountry(); }catch(e){}
+  try{ odemeDilSync(); bankaGuncelle(); }catch(e){}      // sürüm 2026.11.28-1
 }
 function setUiLang(l){
   if(LANGS.indexOf(l) < 0) return;
