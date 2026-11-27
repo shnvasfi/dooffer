@@ -347,7 +347,7 @@ table.pf .optrow .oname{padding-left:16px;}
 /* ---- settings modal ---- */
 .modal{position:fixed;inset:0;z-index:200;background:rgba(10,25,40,.5);display:none;align-items:flex-end;justify-content:center;}
 .modal.open{display:flex;}
-.modal .mbox{background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:520px;padding:18px 16px calc(24px + env(safe-area-inset-bottom));}
+.modal .mbox{background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:520px;padding:18px 16px calc(24px + env(safe-area-inset-bottom));max-height:94vh;max-height:94dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
 .modal h3{margin:0 0 14px;font-size:17px;}
 .setrow{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:15.5px;}
 .switch{position:relative;width:52px;height:31px;flex:none;}
@@ -1589,7 +1589,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.28-4";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.28-5";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -4428,7 +4428,8 @@ async function pkgDecrypt(text, pass){
 function updatePkgInfo(){
   const st = localStorage.getItem(stampKey());
   const el = $("pkgInfo");
-  if(el) el.textContent = SRC_NAMES[curSrc()] + " • " + (st ? ("Paket: " + st) : (localStorage.getItem(infoKey()) || "Paket yüklenmedi"));
+  const canli = curSrc() === "excel" && localStorage.getItem(CANLI_TS);   // sürüm 2026.11.28-5
+  if(el) el.textContent = SRC_NAMES[curSrc()] + " • " + (canli ? (localStorage.getItem(infoKey()) || "Canlı dosya") : st ? ("Paket: " + st) : (localStorage.getItem(infoKey()) || "Paket yüklenmedi"));
 }
 /* Yönetici: mevcut fiyatlardan şifreli paket üret */
 $("btnPkgMake").onclick = async () => {
@@ -4885,6 +4886,7 @@ function canliUygula(wb, guncel){
       localStorage.setItem(infoKey("excel"), "Canlı dosya (" + new Date(+guncel).toLocaleString("tr-TR") + ")");
       sonuc.makine = db.machines.length; sonuc.opsiyon = Object.keys(db.opts).length;
       if(curSrc() === "excel"){ DB = db; try{ updateImpInfo(); if(!sel){ resetSel(); renderEmptyState(); } }catch(e){} }
+      try{ setTimeout(updatePkgInfo, 0); }catch(e){}
     }
   }
   // 2) liste sekmeleri (sekme ve kolon adından bulunur; Aktif = HAYIR alınmaz)
