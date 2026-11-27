@@ -701,7 +701,7 @@ html.touch .dwrap .dhid::-webkit-calendar-picker-indicator{position:static;width
       </div>
       <div class="pf-sechead gap acc-s" data-pf="sales">SALES CONDITION</div>
       <div class="pf-grid pf-cond acc-s">
-        <div class="k" data-pf="maker">MANUFACTURER</div><div>YILMAZ MAKİNE SANAYİ VE TİCARET A.Ş.</div>
+        <div class="k" data-pf="maker">MANUFACTURER</div><div data-pf="makerX">YILMAZ MAKİNE SANAYİ VE TİCARET A.Ş.</div>
         <div class="k" data-pf="delivery">DELIVERY TERMS</div><div style="display:flex;gap:6px;align-items:center;">
           <select id="delTerm" style="font-family:inherit;font-size:12.5px;border:1px solid #ccc;background:#fffbe8;">
             <option value=""></option><option value="EXW">EXW</option><option value="FCA">FCA</option><option value="CPT">CPT</option><option value="CIP">CIP</option><option value="DAP">DAP</option><option value="DPU">DPU</option><option value="DDP">DDP</option><option value="FAS">FAS</option><option value="FOB">FOB</option><option value="CFR">CFR</option><option value="CIF">CIF</option>
@@ -1459,6 +1459,7 @@ const PF = {
   totalAmt:  ["{T} TOPLAM TUTAR", "TOTAL AMOUNT {T}", "ИТОГО {T}", "IMPORTE TOTAL {T}"],
   sales:     ["SATIŞ KOŞULLARI", "SALES CONDITIONS", "УСЛОВИЯ ПРОДАЖИ", "CONDICIONES DE VENTA"],
   maker:     ["ÜRETİCİ", "MANUFACTURER", "ПРОИЗВОДИТЕЛЬ", "FABRICANTE"],
+  makerX:    ["YILMAZ MAKİNE SANAYİ VE TİCARET A.Ş.", "YILMAZ MAKİNE SANAYİ VE TİCARET A.Ş.", "YILMAZ MAKİNE SANAYİ VE TİCARET A.Ş.", "YILMAZ MAKİNE SANAYİ VE TİCARET A.Ş."],
   delivery:  ["TESLİM ŞEKLİ", "DELIVERY TERMS", "УСЛОВИЯ ПОСТАВКИ", "CONDICIONES DE ENTREGA"],
   install:   ["KURULUM", "INSTALLATION", "МОНТАЖ", "INSTALACIÓN"],
   installX:  ["Kurulum Yılmaz Makine tarafından yapılırsa tüm konaklama ve seyahat giderleri müşteriye aittir.", "If installation is carried out by Yılmaz Machine, all accommodation and travel expenses shall be borne by the customer.", "Если монтаж выполняет Yılmaz Machine, все расходы на проживание и проезд несёт заказчик.", "Si la instalación la realiza Yılmaz Machine, todos los gastos de alojamiento y viaje corren a cargo del cliente."],
@@ -1588,7 +1589,7 @@ function loadDb(src){
   return (d && d.machines && d.machines.length) ? d : normalizeEmbedded();
 }
 const DB_VERSION = 20260819;
-const APP_BUILD = "2026.11.28-2";   // gömülü liste sürümü (Ağustos 2026)
+const APP_BUILD = "2026.11.28-4";   // gömülü liste sürümü (Ağustos 2026)
 let DB = null, dbNotice = "";
 try{ DB = JSON.parse(localStorage.getItem("yq_db")); }catch(e){}     // PDF listesi (göç kontrolü için)
 if(!DB || !DB.machines || !DB.machines.length){
@@ -2013,6 +2014,7 @@ function listeUygula(L){
     }
     if(Array.isArray(L.odeme) && L.odeme.length){ ODEME_L = L.odeme.filter(r => r && r[0]).map(r => [0,1,2,3].map(i => String(r[i] || ""))); }
     if(Array.isArray(L.teslim) && L.teslim.length) teslimUygula(L.teslim);
+    if(L.metin && typeof L.metin === "object") metinUygula(L.metin);
     if(Array.isArray(L.banka) && L.banka.length){ BANKA_L = L.banka.filter(r => r && r[0]).map(r => [0,1,2,3,4,5,6,7].map(i => String(r[i] || ""))); bankaKur(); }
   }catch(e){}
 }
@@ -2079,9 +2081,23 @@ function bankaGuncelle(){
   $("bkSec").value = r[0];
   [["bkUnvan", 1], ["bkBanka", 2], ["bkSube", 3], ["bkSwift", 4], ["bkNo", 5], ["bkIban", 6]].forEach(([id, i]) => { const el = $(id); if(el) el.textContent = r[i] || ""; });
 }
+// sürüm 2026.11.28-3: Sabit Metinler (üretici, kurulum metni, alt not, EXW fabrika adresi) — tablodan; boş dil → İngilizce → Türkçe
+function metinUygula(M){
+  const dort = a => { const v = [0,1,2,3].map(i => String((a || [])[i] || "").trim()); return v.map(x => x || v[1] || v[0]); };
+  [["uretici", "makerX"], ["kurulum", "installX"], ["not", "note"]].forEach(([k, pf]) => { if(M[k] && String(M[k][0] || M[k][1] || "").trim()) PF[pf] = dort(M[k]); });
+  if(M.exw && String(M.exw[0] || M.exw[1] || "").trim()){
+    const v = dort(M.exw); const eskiYer = $("incoPlace").value, eskiVars = isExwDefault(eskiYer);
+    EXW_PLACE.tr = v[0]; EXW_PLACE.en = v[1]; EXW_PLACE.ru = v[2]; EXW_PLACE.es = v[3];
+    if(eskiVars && $("incoTerm").value === "EXW") setSaved("incoPlace", exwPlace());
+  }
+  try{ document.querySelectorAll("[data-pf]").forEach(el => { el.innerHTML = pfL(el.dataset.pf); }); }catch(e){}
+}
 const bankaSecili = () => (BANKA_L.find(x => x[0] === $("bkSec").value) || [""])[0];
 $("bkSec").addEventListener("change", () => { localStorage.setItem("yq_bank", $("bkSec").value); bankaGuncelle(); });
-setTimeout(() => { try{ teslimEtiket(); }catch(e){} try{ listeUygula(JSON.parse(localStorage.getItem(LISTE_KEY) || "null")); }catch(e){} try{ bankaKur(); }catch(e){} }, 0);   // tüm tanımlar yüklendikten sonra
+// sürüm 2026.11.28-4: canlı dosyadaki (Drive) liste sekmeleri tablodaki Ayarlar listelerinin önüne geçer
+const CANLI_TS = "yq_canli_ts", CANLI_LST = "yq_canli_listeler";
+function listeBirlesik(){ let a = {}, b = {}; try{ a = JSON.parse(localStorage.getItem(LISTE_KEY) || "{}") || {}; }catch(e){} try{ b = JSON.parse(localStorage.getItem(CANLI_LST) || "{}") || {}; }catch(e){} return Object.assign({}, a, b); }
+setTimeout(() => { try{ teslimEtiket(); }catch(e){} try{ listeUygula(listeBirlesik()); }catch(e){} try{ bankaKur(); }catch(e){} }, 0);   // tüm tanımlar yüklendikten sonra
 const LEAD_KEY = "yq_lead";
 let leadData = {};
 try{ leadData = JSON.parse(localStorage.getItem(LEAD_KEY) || "{}"); }catch(e){ leadData = {}; }
@@ -2747,7 +2763,8 @@ $("cMail").addEventListener("blur", () => setTimeout(() => {
 /* INCOTERMS: EXW seçilince yer, teklif diline göre fabrika adresiyle dolar ve teslim şekli EXW olur; başka terimde yer boşalır */
 const EXW_PLACE = {tr: "YILMAZ MAKİNE DİLOVASI / KOCAELİ", en: "YILMAZ FACTORY DILOVASI / KOCAELI", es: "FÁBRICA YILMAZ DILOVASI / KOCAELI"};
 const exwPlace = () => EXW_PLACE[DOC_LANG] || EXW_PLACE.en;
-const isExwDefault = v => Object.values(EXW_PLACE).indexOf(String(v || "").trim()) >= 0;
+const EXW_ESKI = Object.values(EXW_PLACE);           // sürüm 2026.11.28-3: Sabit Metinler'den değişse de eski varsayılan yer tanınır
+const isExwDefault = v => { const x = String(v || "").trim(); return Object.values(EXW_PLACE).indexOf(x) >= 0 || EXW_ESKI.indexOf(x) >= 0; };
 function setSaved(id, v){ $(id).value = v; localStorage.setItem("yq_" + id, v); }
 $("incoTerm").addEventListener("change", () => {
   if($("incoTerm").value === "EXW"){
@@ -4495,6 +4512,7 @@ async function checkPricePackage(silent){
     if(pkgSrc !== src){ if(!silent) uiAlert("İndirilen paket " + SRC_NAMES[pkgSrc] + " listesi, seçili kaynak " + SRC_NAMES[src] + ".\nYönetici " + PKG_NAMES[src][0] + " dosyasını yüklemeli."); return; }
     if(curSrc() !== src) return;                         // indirme sırasında kaynak değiştirildi
     if(pkg.stamp && pkg.stamp === localStorage.getItem(stampKey(src)) && DB.machines.length){ if(!silent) uiAlert(SRC_NAMES[src] + " fiyat listesi güncel.\nPaket: " + pkg.stamp); return; }
+    if(src === "excel" && localStorage.getItem(CANLI_TS)){ if(!silent) uiAlert("Excel fiyat listesi canlı dosyadan (Drive) geliyor; GitHub paketi kullanılmadı."); return; }   // sürüm 2026.11.28-4
     DB = pkg.db;
     saveDb();
     if(src === "pdf") localStorage.setItem("yq_dbver", String(pkg.ver || DB_VERSION));
@@ -4507,7 +4525,10 @@ async function checkPricePackage(silent){
     if(!silent) uiAlert("Fiyat paketi bu telefonda açılamadı.\n\nPaket büyük olasılıkla özel bir şifreyle üretilmiş.\nYönetici şunu yapmalı: Ayarlar > Yönetici Modu > Paket Şifresi alanını BOŞ bırakıp\n\"Fiyat Paketi Oluştur\" ile yeniden üretip depoya yüklemeli.");
   }
 }
-$("btnPkgCheck").onclick = () => checkPricePackage(false);
+$("btnPkgCheck").onclick = async () => {
+  if(curSrc() === "excel"){ const r = await canliKontrol(true); if(r === "yuklendi" || r === "hata") return; }   // sürüm 2026.11.28-4: önce canlı dosya
+  checkPricePackage(false);
+};
 
 /* Fiyat kaynağı seçimi (herkese açık) */
 function paintSrcSeg(){ [...$("srcSeg").children].forEach(b => b.classList.toggle("on", b.dataset.src === curSrc())); }
@@ -4805,7 +4826,8 @@ function applyAuth(j){
   try{ const m = parseInt(j.maxSeq) || 0, s = parseInt(localStorage.getItem("yq_seq") || "1") || 1; if(m + 1 > s) localStorage.setItem("yq_seq", String(m + 1)); }catch(e){}
   try{ paintUserChip(); }catch(e){}
   try{ paintRaporBtn(); }catch(e){}
-  if(j.listeler && typeof j.listeler === "object"){ try{ localStorage.setItem(LISTE_KEY, JSON.stringify(j.listeler)); listeUygula(j.listeler); }catch(e){} }   // sürüm 2026.11.27-2
+  if(j.listeler && typeof j.listeler === "object"){ try{ localStorage.setItem(LISTE_KEY, JSON.stringify(j.listeler)); listeUygula(listeBirlesik()); }catch(e){} }   // sürüm 2026.11.27-2
+  setTimeout(() => { try{ canliKontrol(false); }catch(e){} }, 1200);   // sürüm 2026.11.28-4: canlı fiyat / liste dosyası
   setTimeout(() => { try{ adlariGonder(); }catch(e){} }, 1500);
 }
 // sürüm 2026.11.25-5: Excel fiyat listesindeki Türkçe / İngilizce adları tabloya gönderir (fiyat gitmez; yalnız stok kodu + adlar).
@@ -4828,6 +4850,75 @@ async function adlariGonder(){
   }catch(e){}
 }
 setTimeout(() => { try{ adlariGonder(); }catch(e){} }, 4000);
+/* sürüm 2026.11.28-4: CANLI DOSYA — Google Drive'daki DO_Offer_Canli/DO_Offer_Fiyat_Listesi.xlsx (tablo betiği aracılığıyla, yalnız aktif kullanıcıya).
+   Açılışta dosyanın tarihine bakılır; değiştiyse indirilir: fiyat sekmesi (CANIAS düzeni) Excel listesine, liste sekmeleri programa uygulanır.
+   Dosya yoksa / okunamazsa her şey eskisi gibi (GitHub paketi + Ayarlar listeleri) çalışır. */
+let canliMesgul = false;
+async function canliKontrol(elle){
+  const a = getAuth(), u = sheetUrl();
+  if(!a || !a.code || !isScriptUrl(u) || canliMesgul) return "yok";
+  canliMesgul = true;
+  try{
+    const q = tur => u + (u.indexOf("?") >= 0 ? "&" : "?") + "canli=" + tur + "&kod=" + encodeURIComponent(a.code) + "&token=" + encodeURIComponent(a.token || "") + "&t=" + Date.now();
+    const m = await (await fetch(q("meta"), {cache: "no-store"})).json();
+    if(!m || !m.ok) return (m && m.reason) || "hata";
+    if(!elle && String(m.guncel) === localStorage.getItem(CANLI_TS)) return "guncel";
+    if(!await ensureLib("XLSX")) return "hata";
+    const d = await (await fetch(q("dosya"), {cache: "no-store"})).json();
+    if(!d || !d.ok || !d.b64) return "hata";
+    const wb = XLSX.read(d.b64, {type: "base64"});
+    const r = canliUygula(wb, d.guncel);
+    localStorage.setItem(CANLI_TS, String(d.guncel));
+    if(elle) uiAlert("Canlı dosya yüklendi (" + new Date(+d.guncel).toLocaleString("tr-TR") + ")\n\n" + (r.makine ? "• Fiyat listesi: " + r.makine + " makine, " + r.opsiyon + " opsiyon\n" : "• Fiyat sekmesi bulunamadı (mevcut liste kullanılıyor)\n") + (r.listeler.length ? "• Listeler: " + r.listeler.join(", ") : ""));
+    return "yuklendi";
+  }catch(e){ if(elle) uiAlert("Canlı dosya okunamadı: " + (e && e.message || e)); return "hata"; }
+  finally{ canliMesgul = false; }
+}
+function canliUygula(wb, guncel){
+  const sonuc = {makine: 0, opsiyon: 0, listeler: []};
+  // 1) fiyat sekmesi (başlıklarından tanınır: MAKİNE KODU, OPSİYON KODU, …)
+  const cx = parseCaniastaWb(wb);
+  if(cx){
+    const {db} = buildCaniastaDb(cx);
+    if(db.machines.length){
+      localStorage.setItem(dbKey("excel"), JSON.stringify(db));
+      localStorage.setItem(infoKey("excel"), "Canlı dosya (" + new Date(+guncel).toLocaleString("tr-TR") + ")");
+      sonuc.makine = db.machines.length; sonuc.opsiyon = Object.keys(db.opts).length;
+      if(curSrc() === "excel"){ DB = db; try{ updateImpInfo(); if(!sel){ resetSel(); renderEmptyState(); } }catch(e){} }
+    }
+  }
+  // 2) liste sekmeleri (sekme ve kolon adından bulunur; Aktif = HAYIR alınmaz)
+  const nk = v => String(v == null ? "" : v).toLocaleUpperCase("tr").replace(/[^0-9A-ZÇĞİÖŞÜ]/g, "");
+  const sayfa = ad => { const sn = wb.SheetNames.find(x => nk(x) === nk(ad)); return sn ? XLSX.utils.sheet_to_json(wb.Sheets[sn], {header: 1, defval: "", raw: true}) : null; };
+  const hayirMi = v => /^(HAYIR|H|NO|N|0|FALSE|YANLIŞ)$/i.test(String(v == null ? "" : v).trim());
+  const evetMi = v => /^(EVET|E|YES|Y|1|TRUE|DOĞRU)$/i.test(String(v == null ? "" : v).trim());
+  const S = v => String(v == null ? "" : v).trim();
+  const iso = v => {
+    if(typeof v === "number" && v > 20000){ const c = XLSX.SSF.parse_date_code(v); return c ? c.y + "-" + String(c.m).padStart(2, "0") + "-" + String(c.d).padStart(2, "0") : ""; }
+    const m = S(v).match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/); return m ? m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0") : "";
+  };
+  const oku = (ad, kolonlar, f) => {
+    const R = sayfa(ad); if(!R || R.length < 2) return null;
+    const H = R[0].map(nk), ix = kolonlar.map(k => H.findIndex(h => h.indexOf(nk(k)) === 0)), ak = H.findIndex(h => h.indexOf("AKTIF") === 0 || h.indexOf("AKTİF") === 0);
+    if(ix[0] < 0) return null;
+    const out = R.slice(1).filter(r => S(r[ix[0]]) && !(ak >= 0 && hayirMi(r[ak]))).map(r => f(ix.map(i => i < 0 ? "" : r[i])));
+    return out.length ? out : null;
+  };
+  const E = {};
+  E.fuar = oku("Fuarlar", ["Fuar Adı", "Ülke Kodu", "Başlangıç", "Bitiş"], v => [S(v[0]), S(v[1]).toUpperCase().slice(0, 2), iso(v[2]), iso(v[3])]);
+  E.firsat = oku("Fırsat Tipleri", ["Kod", "Açıklama (Türkçe)", "Açıklama (İngilizce)"], v => [S(v[0]).toUpperCase(), S(v[1]), S(v[2])]);
+  E.odeme = oku("Ödeme Şekilleri", ["Türkçe", "İngilizce", "Rusça", "İspanyolca"], v => v.map(S));
+  E.teslim = oku("Teslim Şekilleri", ["Kod", "Açıklama (Türkçe)", "Açıklama (İngilizce)", "Navlun", "Sigorta"], v => [S(v[0]).toUpperCase(), S(v[1]), S(v[2]), evetMi(v[3]) ? 1 : 0, evetMi(v[4]) ? 1 : 0]);
+  E.banka = oku("Banka Hesapları", ["Hesap (", "Hesap Adı", "Banka", "Şube", "SWIFT", "Hesap No", "IBAN", "Para Birimi"], v => v.slice(0, 7).map(S).concat([S(v[7]).toUpperCase()]));
+  const mt = oku("Sabit Metinler", ["Alan", "Türkçe", "İngilizce", "Rusça", "İspanyolca"], v => v.map(S));
+  if(mt){ const AN = {URETICI: "uretici", URETİCİ: "uretici", KURULUMMETNI: "kurulum", KURULUMMETNİ: "kurulum", ALTNOT: "not", EXWFABRIKAADRESI: "exw", EXWFABRİKAADRESİ: "exw"};
+    const o = {}; mt.forEach(r => { const k = AN[nk(r[0])]; if(k) o[k] = r.slice(1, 5); }); if(Object.keys(o).length) E.metin = o; }
+  const AD = {fuar: "Fuarlar", firsat: "Fırsat Tipleri", odeme: "Ödeme Şekilleri", teslim: "Teslim Şekilleri", banka: "Banka Hesapları", metin: "Sabit Metinler"};
+  Object.keys(E).forEach(k => { if(!E[k]) delete E[k]; else sonuc.listeler.push(AD[k]); });
+  localStorage.setItem(CANLI_LST, JSON.stringify(E));
+  try{ listeUygula(listeBirlesik()); }catch(e){}
+  return sonuc;
+}
 function authReasonMsg(r, again){
   if(r === "pasif") return t("authPassive");
   if(r === "pin") return t("authPin");
